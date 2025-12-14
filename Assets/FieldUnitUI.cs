@@ -7,7 +7,7 @@ public class FieldUnitUI : MonoBehaviour
     public TMP_Text nameText;
     public TMP_Text statsText;   // ATK / HP
     public TMP_Text statusText;  // 进化 / 装备数
-    public Button attackButton;
+    public Button clickButton;  // 更改了名字，现在不止用作攻击了
 
     private BattleManager _manager;
     private int _unitId;
@@ -28,12 +28,12 @@ public class FieldUnitUI : MonoBehaviour
 
         if (nameText != null)  nameText.text = unitName;
         UpdateStats(attack, hp, evolved, equipCount);
-        SetCanAttack(canAttack);
+        SetButtonInteractable(canAttack);
 
-        if (attackButton != null)
+        if (clickButton != null)
         {
-            attackButton.onClick.RemoveAllListeners();
-            attackButton.onClick.AddListener(OnAttackClicked);
+            clickButton.onClick.RemoveAllListeners();
+            clickButton.onClick.AddListener(OnUnitClicked);
         }
     }
 
@@ -49,15 +49,19 @@ public class FieldUnitUI : MonoBehaviour
         }
     }
 
-    public void SetCanAttack(bool canAttack)
+    // === 修改点 1：把 SetCanAttack 改名为更通用的 SetButtonInteractable ===
+    public void SetButtonInteractable(bool interactable)
     {
-        if (attackButton != null)
-            attackButton.interactable = canAttack;
+        if (clickButton != null)
+            clickButton.interactable = interactable;
     }
 
-    private void OnAttackClicked()
+    // === 修改点 2：点击事件 ===
+    private void OnUnitClicked()
     {
         if (_manager != null)
-            _manager.OnFieldUnitAttack(_unitId);
+        {
+            _manager.OnFieldUnitClicked(_unitId);
+        }
     }
 }
