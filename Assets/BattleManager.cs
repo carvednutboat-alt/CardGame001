@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System.Collections;
 
 public class BattleManager : MonoBehaviour
 {
@@ -33,6 +34,8 @@ public class BattleManager : MonoBehaviour
     [Header("Misc UI")]
     public TMP_Text logText;
     public Button endTurnButton;
+    // === 新增 ===
+    public ScrollRect logScrollRect;
 
     [Header("Enemy settings")]
     public int enemyAttackDamage = 5;
@@ -91,6 +94,10 @@ public class BattleManager : MonoBehaviour
     // 当前回合是否允许战斗：先手第一个回合不能战斗
     private bool battleAllowedThisTurn;
     private int  nextFieldUnitId = 1;
+
+    // =========== 新增：目标选择系统变量 ===========
+    private bool isTargetingMode = false; // 是否处于“请选择目标”的状态
+    private CardUI pendingCardUI;         // 玩家刚才点击的那张等待生效的卡
 
     // ----------------- 生命周期 -----------------
 
@@ -152,7 +159,7 @@ public class BattleManager : MonoBehaviour
         playerGoesFirst = Random.value < 0.5f;
         Log(playerGoesFirst ? "你是先手。" : "你是后手。");
 
-        DrawCards(5);
+        DrawCards(4);
 
         if (endTurnButton != null)
         {
@@ -248,6 +255,13 @@ public class BattleManager : MonoBehaviour
     public void OnCardClicked(CardUI cardView)
     {
         if (gameEnded) return;
+
+        // 如果正在选目标的时候点了别的手牌，我们可以取消之前的选择，换成这张
+        if (isTargetingMode)
+        {
+            CancelTargetingMode();
+        }
+
         if (cardView == null || cardView.Data == null) return;
 
         CardData card   = cardView.Data;
@@ -275,6 +289,15 @@ public class BattleManager : MonoBehaviour
         }
         else
         {
+            // =========== 修改开始 ===========
+            // 如果是“指定单位回血”的卡，不要立刻 Play，而是进入选择模式
+            if (card.effectType == CardEffectType.HealUnit)
+            {
+                EnterTargetingMode(cardView);
+                return; // 直接返回，不执行下面的销毁逻辑
+            }
+            // =========== 修改结束 ===========
+
             if (card.kind == CardKind.Spell)
             {
                 played = PlaySpellCard(card);
@@ -314,9 +337,17 @@ public class BattleManager : MonoBehaviour
     // ----------------- 玩家点击：场上单位（攻击） -----------------
 
     // 被 FieldUnitUI 调用
-    public void OnFieldUnitAttack(int unitId)
+    public void OnFieldUnitClicked(int unitId)
     {
         if (gameEnded) return;
+
+        // =========== 新增逻辑：如果是选择模式，执行治疗 ===========
+        if (isTargetingMode)
+        {
+            ApplyPendingCardToUnit(unitId);
+            return;
+        }
+        // ======================================================
 
         if (!battleAllowedThisTurn)
         {
@@ -354,7 +385,7 @@ public class BattleManager : MonoBehaviour
 
         unit.canAttackThisTurn = false;
         if (unit.ui != null)
-            unit.ui.SetCanAttack(false);
+            unit.ui.SetButtonInteractable(false);
 
         if (enemy.IsDead())
         {
@@ -368,7 +399,7 @@ public class BattleManager : MonoBehaviour
         {
             u.canAttackThisTurn = canAttack;
             if (u.ui != null)
-                u.ui.SetCanAttack(canAttack);
+                u.ui.SetButtonInteractable(canAttack);
         }
     }
 
@@ -895,8 +926,120 @@ public class BattleManager : MonoBehaviour
     private void Log(string msg)
     {
         if (logText != null)
-            logText.text += "\n" + msg;
+        {
+        logText.text += "\n" + msg;
+
+        // === 新增：强制滚动到底部 ===
+        // Canvas 的刷新不是实时的，所以我们需要等一帧再滚动，否则滚不到最新的一行
+        StartCoroutine(ScrollToBottom());
+        }
         else
             Debug.Log(msg);
+    }
+
+    // 这是一个协程，用于等待一帧
+    private IEnumerator ScrollToBottom()
+    {
+        // 等待这一帧结束，确保 UI 已经把字加上去了，高度已经算好了
+        yield return new WaitForEndOfFrame();
+
+        if (logScrollRect != null)
+        {
+            // 0 代表最底部，1 代表最顶部
+            logScrollRect.verticalNormalizedPosition = 0f;
+        }
+    }
+
+    private void EnterTargetingMode(CardUI cardUI)
+    {
+        if (playerUnits.Count == 0)
+        {
+            Log("场上没有单位可以治疗。");
+            return;
+        }
+
+        isTargetingMode = true;
+        pendingCardUI = cardUI;
+        Log($"请选择一个场上单位来使用 {cardUI.Data.cardName}...");
+
+        // === 关键修改：强制让所有单位按钮变亮，允许点击 ===
+        foreach (var unit in playerUnits)
+        {
+            if (unit.ui != null)
+            {
+                // 无论它能不能攻击，现在都可以点（因为是选目标）
+                unit.ui.SetButtonInteractable(true);
+                // 进阶优化：你甚至可以在 FieldUnitUI 里写一个 Highlight() 方法让它闪光
+            }
+        }
+    }
+
+    // 退出/取消选择模式
+    private void ExitTargetingMode()
+    {
+        isTargetingMode = false;
+        pendingCardUI = null;
+
+        // === 关键修改：还原按钮状态 ===
+        // 恢复成“只有能攻击的单位才能点”的状态
+        foreach (var unit in playerUnits)
+        {
+            if (unit.ui != null)
+            {
+                // 还原回 unit.canAttackThisTurn 的状态
+                unit.ui.SetButtonInteractable(unit.canAttackThisTurn);
+            }
+        }
+    }
+
+    private void CancelTargetingMode()
+    {
+        isTargetingMode = false;
+        pendingCardUI = null;
+        Log("已取消使用卡牌。");
+    }
+
+    // 回血逻辑
+    private void ApplyPendingCardToUnit(int unitId)
+    {
+        if (pendingCardUI == null) return;
+
+        // 1. 找到被点击的单位
+        FieldUnit targetUnit = null;
+        foreach (var u in playerUnits)
+        {
+            if (u.id == unitId)
+            {
+                targetUnit = u;
+                break;
+            }
+        }
+
+        if (targetUnit == null) return; // 没找到单位
+
+        CardData card = pendingCardUI.Data;
+        int healAmount = card.value;
+
+        // 2. 执行回血逻辑
+        Log($"你对 {targetUnit.name} 使用了 {card.cardName}，恢复 {healAmount} 点生命。");
+
+        targetUnit.currentHealth += healAmount;
+        if (targetUnit.currentHealth > targetUnit.maxHealth)
+            targetUnit.currentHealth = targetUnit.maxHealth;
+
+        // 刷新 UI
+        if (targetUnit.ui != null)
+            targetUnit.ui.UpdateStats(targetUnit.currentAttack, targetUnit.currentHealth, targetUnit.evolved, targetUnit.equips.Count);
+
+        // 3. 消耗手牌 (这是之前 OnCardClicked 里做的事，现在移到这里做)
+        hand.Remove(card);
+        discardPile.Add(card);
+        Destroy(pendingCardUI.gameObject);
+
+        // 4. 退出模式
+        isTargetingMode = false;
+        pendingCardUI = null;
+
+        CheckWinLose();
     }
 }

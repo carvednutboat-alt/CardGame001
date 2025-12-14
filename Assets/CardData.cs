@@ -22,7 +22,8 @@ public enum CardEffectType
     HealPlayer,
     DrawCards,
     ReviveUnit,
-    FieldEvolve
+    FieldEvolve,
+    HealUnit
 }
 
 [CreateAssetMenu(fileName = "NewCard", menuName = "Card Game/Card")]
