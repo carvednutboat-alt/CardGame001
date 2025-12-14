@@ -1,51 +1,51 @@
 using UnityEngine;
 using TMPro;
-using UnityEngine.UI;
 
 public class Unit : MonoBehaviour
 {
-    public string unitName;
     public int maxHp = 30;
-    public int currentHp;
-
     public TMP_Text hpText;
+
+    private int _currentHp;
 
     private void Awake()
     {
-        currentHp = maxHp;
-        UpdateUI();
+        _currentHp = maxHp;
+        UpdateHpUI();
     }
 
     public void ResetHp()
     {
-        currentHp = maxHp;
-        UpdateUI();
+        _currentHp = maxHp;
+        UpdateHpUI();
     }
 
     public void TakeDamage(int amount)
     {
-        currentHp -= amount;
-        if (currentHp < 0) currentHp = 0;
-        UpdateUI();
+        _currentHp -= amount;
+        if (_currentHp < 0) _currentHp = 0;
+        UpdateHpUI();
     }
 
     public void Heal(int amount)
     {
-        currentHp += amount;
-        if (currentHp > maxHp) currentHp = maxHp;
-        UpdateUI();
+        _currentHp += amount;
+        if (_currentHp > maxHp) _currentHp = maxHp;
+        UpdateHpUI();
     }
 
     public bool IsDead()
     {
-        return currentHp <= 0;
+        return _currentHp <= 0;
     }
 
-    private void UpdateUI()
+    public int CurrentHp => _currentHp;
+
+    private void UpdateHpUI()
     {
         if (hpText != null)
         {
-            hpText.text = $"{unitName} HP: {currentHp}/{maxHp}";
+            hpText.text = $"{_currentHp}/{maxHp}";
         }
     }
 }

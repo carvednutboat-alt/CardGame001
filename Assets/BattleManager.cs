@@ -11,17 +11,22 @@ public class BattleManager : MonoBehaviour
     [Header("Player deck setup")]
     public List<CardData> startingDeck = new List<CardData>();
 
-    private List<CardData> drawPile = new List<CardData>();
-    private List<CardData> hand = new List<CardData>();
-    private List<CardData> discardPile = new List<CardData>();
+    // 非 Unit 卡：牌堆 / 手牌 / 弃牌堆
+    private readonly List<CardData> drawPile    = new List<CardData>();
+    private readonly List<CardData> hand        = new List<CardData>();
+    private readonly List<CardData> discardPile = new List<CardData>();
 
     [Header("Hand UI")]
     public Transform handPanel;
     public CardUI cardPrefab;
 
     [Header("Unit UI")]
-    public Transform unitPanel;
-    private List<CardData> unitPool = new List<CardData>();
+    public Transform unitPanel;  // “候选单位”（一开始就看到的怪兽）
+
+    [Header("Field Unit UI")]
+    public Transform fieldUnitPanel;   // 场上的单位显示区
+    public FieldUnitUI fieldUnitPrefab;
+
     [Header("Field info")]
     public TMP_Text fieldColorsText;
 
@@ -29,26 +34,65 @@ public class BattleManager : MonoBehaviour
     public TMP_Text logText;
     public Button endTurnButton;
 
-    private class FieldUnit
+    [Header("Enemy settings")]
+    public int enemyAttackDamage = 5;
+
+    // --------- 内部结构：单位状态 ---------
+
+    private enum UnitStatus
     {
-        public CardColor color;
-        public string name;
-        public int health;
+        Ready,   // 在候选列表中，未上场
+        OnField, // 已在场上
+        Dead     // 已死亡，只能靠复活魔法恢复
     }
 
-    private List<FieldUnit> playerUnits = new List<FieldUnit>();
+    private class UnitCardState
+    {
+        public CardData data;
+        public CardUI ui;
+        public UnitStatus status;
+    }
 
-    private HashSet<CardColor> activeColors = new HashSet<CardColor>();
+    private class FieldUnit
+    {
+        public int id;
+        public CardColor color;
+        public string name;
+
+        public int baseAttack;
+        public int baseHealth;
+
+        public int maxHealth;
+        public int currentAttack;
+        public int currentHealth;
+
+        public UnitCardState source;
+        public List<CardData> equips = new List<CardData>();
+
+        public bool evolved;
+        public int evolveTurnsLeft;
+
+        public bool canAttackThisTurn;
+        public FieldUnitUI ui;
+    }
+
+    private readonly List<UnitCardState> unitCards   = new List<UnitCardState>();
+    private readonly List<FieldUnit>     playerUnits = new List<FieldUnit>();
+
+    private readonly HashSet<CardColor> activeColors = new HashSet<CardColor>();
     private int rolesOnField = 0;
     public int maxRolesOnField = 5;
 
     private bool hasSummonedThisTurn;
     private bool hasEvolvedThisTurn;
-
     private bool playerGoesFirst;
     private bool gameEnded;
 
-    public int enemyAttackDamage = 5;
+    // 当前回合是否允许战斗：先手第一个回合不能战斗
+    private bool battleAllowedThisTurn;
+    private int  nextFieldUnitId = 1;
+
+    // ----------------- 生命周期 -----------------
 
     private void Start()
     {
@@ -57,29 +101,44 @@ public class BattleManager : MonoBehaviour
 
     private void SetupGame()
     {
-        gameEnded = false;
-        hasSummonedThisTurn = false;
-        hasEvolvedThisTurn = false;
+        gameEnded            = false;
+        hasSummonedThisTurn  = false;
+        hasEvolvedThisTurn   = false;
+        battleAllowedThisTurn = false;
+        nextFieldUnitId      = 1;
 
         if (player != null) player.ResetHp();
-        if (enemy != null) enemy.ResetHp();
+        if (enemy  != null) enemy.ResetHp();
 
         drawPile.Clear();
         hand.Clear();
         discardPile.Clear();
-        activeColors.Clear();
+        unitCards.Clear();
         playerUnits.Clear();
-        unitPool.Clear();
+        activeColors.Clear();
         rolesOnField = 0;
         UpdateFieldColorsText();
 
+        // 清空场上单位 UI
+        if (fieldUnitPanel != null)
+        {
+            foreach (Transform child in fieldUnitPanel)
+                Destroy(child.gameObject);
+        }
+
+        // startingDeck 拆成 Unit 区 + 牌堆
         foreach (var card in startingDeck)
         {
             if (card == null) continue;
 
             if (card.kind == CardKind.Unit)
             {
-                unitPool.Add(card);
+                unitCards.Add(new UnitCardState
+                {
+                    data   = card,
+                    ui     = null,
+                    status = UnitStatus.Ready
+                });
             }
             else
             {
@@ -88,7 +147,6 @@ public class BattleManager : MonoBehaviour
         }
 
         Shuffle(drawPile);
-
         CreateUnitCardsUI();
 
         playerGoesFirst = Random.value < 0.5f;
@@ -110,17 +168,24 @@ public class BattleManager : MonoBehaviour
     {
         if (gameEnded) return;
 
-        hasSummonedThisTurn = false;
-        hasEvolvedThisTurn = false;
+        hasSummonedThisTurn  = false;
+        hasEvolvedThisTurn   = false;
+        battleAllowedThisTurn = !skipDrawAndBattle;
 
         if (!skipDrawAndBattle)
         {
+            DecreaseEvolutionTimers();
             DrawCards(1);
+            SetUnitsCanAttack(true);
+        }
+        else
+        {
+            SetUnitsCanAttack(false);
         }
 
         Log(skipDrawAndBattle
             ? "你的第一个回合（先手），本回合不能抽牌和战斗。可以上角色 / 进化 / 出牌。"
-            : "轮到你行动。可以上角色 / 进化 / 出牌，然后结束回合。");
+            : "轮到你行动。可以上角色 / 进化 / 出牌，然后使用单位攻击，最后结束回合。");
 
         if (endTurnButton != null)
             endTurnButton.interactable = true;
@@ -148,53 +213,16 @@ public class BattleManager : MonoBehaviour
             if (playerUnits.Count > 0)
             {
                 FieldUnit target = playerUnits[0];
-                Log($"敌人对你的单位 {target.name} 造成 {dmg} 点伤害。");
+                Log($"敌人对你的单位 {target.name} 造成 {dmg} 点战斗伤害。");
 
-                target.health -= dmg;
-
-                if (target.health <= 0)
+                bool died = ApplyBattleDamageToFieldUnit(target, dmg);
+                if (died)
                 {
-                    int overkill = -target.health;
-                    CardColor deadColor = target.color;
-
-                    Log($"你的单位 {target.name} 被击杀了。");
-
-                    playerUnits.RemoveAt(0);
-                    rolesOnField = Mathf.Max(0, rolesOnField - 1);
-
-                    if (deadColor != CardColor.Colorless)
-                    {
-                        bool stillHasColor = false;
-                        foreach (var u in playerUnits)
-                        {
-                            if (u.color == deadColor)
-                            {
-                                stillHasColor = true;
-                                break;
-                            }
-                        }
-                        if (!stillHasColor)
-                        {
-                            activeColors.Remove(deadColor);
-                        }
-                    }
-
-                    UpdateFieldColorsText();
-
-                    if (overkill > 0 && player != null)
-                    {
-                        Log($"溢出伤害 {overkill} 点打在玩家身上。");
-                        player.TakeDamage(overkill);
-                        if (player.IsDead())
-                        {
-                            OnPlayerDefeated();
-                            return;
-                        }
-                    }
+                    HandleUnitDeath(target, "战斗破坏");
                 }
                 else
                 {
-                    Log($"单位 {target.name} 剩余 HP：{target.health}");
+                    Log($"单位 {target.name} 剩余 HP：{target.currentHealth}/{target.maxHealth}");
                 }
             }
             else
@@ -215,14 +243,17 @@ public class BattleManager : MonoBehaviour
         StartPlayerTurn(skipDrawAndBattle: false);
     }
 
+    // ----------------- 玩家点击：手牌 -----------------
+
     public void OnCardClicked(CardUI cardView)
     {
         if (gameEnded) return;
         if (cardView == null || cardView.Data == null) return;
 
-        CardData card = cardView.Data;
+        CardData card   = cardView.Data;
+        bool isUnitCard = (card.kind == CardKind.Unit);
 
-        bool needsColor = card.color != CardColor.Colorless && card.kind != CardKind.Unit;
+        bool needsColor = card.color != CardColor.Colorless && !isUnitCard;
         if (needsColor && !activeColors.Contains(card.color))
         {
             Log($"你场上没有 {card.color} 角色，无法使用这张牌。");
@@ -230,42 +261,133 @@ public class BattleManager : MonoBehaviour
         }
 
         bool played = false;
-        bool isUnitCard = (card.kind == CardKind.Unit);
 
-        switch (card.kind)
+        if (isUnitCard)
         {
-            case CardKind.Unit:
-                played = PlayUnitCard(card);
-                break;
-            case CardKind.Spell:
+            UnitCardState state = FindUnitStateByUI(cardView);
+            if (state == null)
+            {
+                Log("内部错误：未找到对应的 Unit 状态。");
+                return;
+            }
+
+            played = PlayUnitCard(state);
+        }
+        else
+        {
+            if (card.kind == CardKind.Spell)
+            {
                 played = PlaySpellCard(card);
-                break;
-            case CardKind.Evolve:
+            }
+            else if (card.kind == CardKind.Evolve)
+            {
                 played = PlayEvolveCard(card);
-                break;
+            }
         }
 
         if (!played) return;
 
-        if (!isUnitCard)
+        if (isUnitCard)
+        {
+            if (cardView.button != null)
+                cardView.button.interactable = false;
+        }
+        else
         {
             hand.Remove(card);
             discardPile.Add(card);
             Destroy(cardView.gameObject);
         }
-        else
-        {
-            if (cardView.button != null)
-            {
-                cardView.button.interactable = false;
-            }
-        }
 
         CheckWinLose();
     }
 
-    private bool PlayUnitCard(CardData card)
+    private UnitCardState FindUnitStateByUI(CardUI ui)
     {
+        foreach (var s in unitCards)
+        {
+            if (s.ui == ui) return s;
+        }
+        return null;
+    }
+
+    // ----------------- 玩家点击：场上单位（攻击） -----------------
+
+    // 被 FieldUnitUI 调用
+    public void OnFieldUnitAttack(int unitId)
+    {
+        if (gameEnded) return;
+
+        if (!battleAllowedThisTurn)
+        {
+            Log("本回合不能进行战斗阶段。");
+            return;
+        }
+
+        FieldUnit unit = null;
+        foreach (var u in playerUnits)
+        {
+            if (u.id == unitId)
+            {
+                unit = u;
+                break;
+            }
+        }
+        if (unit == null) return;
+
+        if (!unit.canAttackThisTurn)
+        {
+            Log($"{unit.name} 本回合已经攻击过。");
+            return;
+        }
+
+        if (enemy == null || enemy.IsDead())
+        {
+            Log("敌人已经被击败。");
+            return;
+        }
+
+        int dmg = Mathf.Max(0, unit.currentAttack);
+        Log($"{unit.name} 攻击敌人，造成 {dmg} 点伤害。");
+
+        enemy.TakeDamage(dmg);
+
+        unit.canAttackThisTurn = false;
+        if (unit.ui != null)
+            unit.ui.SetCanAttack(false);
+
+        if (enemy.IsDead())
+        {
+            OnEnemyDefeated();
+        }
+    }
+
+    private void SetUnitsCanAttack(bool canAttack)
+    {
+        foreach (var u in playerUnits)
+        {
+            u.canAttackThisTurn = canAttack;
+            if (u.ui != null)
+                u.ui.SetCanAttack(canAttack);
+        }
+    }
+
+    // ----------------- 怪兽上场 -----------------
+
+    private bool PlayUnitCard(UnitCardState state)
+    {
+        if (state.status == UnitStatus.Dead)
+        {
+            Log("这个单位已经死亡，不能再次上场（需要通过复活魔法恢复）。");
+            return false;
+        }
+
+        if (state.status == UnitStatus.OnField)
+        {
+            Log("这个单位已经在场上。");
+            return false;
+        }
+
         if (hasSummonedThisTurn)
         {
             Log("本回合已经上过一个角色，无法再上场。");
@@ -278,42 +400,110 @@ public class BattleManager : MonoBehaviour
             return false;
         }
 
-        if (card.color != CardColor.Colorless)
-        {
-            activeColors.Add(card.color);
-        }
+        CardData card = state.data;
 
-        int hp = card.unitHealth > 0 ? card.unitHealth : 1;
+        if (card.color != CardColor.Colorless)
+            activeColors.Add(card.color);
+
+        int baseHp  = card.unitHealth > 0 ? card.unitHealth : 1;
+        int baseAtk = card.unitAttack;
+
         FieldUnit newUnit = new FieldUnit
         {
-            color = card.color,
-            name = card.cardName,
-            health = hp
+            id             = nextFieldUnitId++,
+            color          = card.color,
+            name           = card.cardName,
+            baseAttack     = baseAtk,
+            baseHealth     = baseHp,
+            maxHealth      = baseHp,
+            currentAttack  = baseAtk,
+            currentHealth  = baseHp,
+            source         = state,
+            evolved        = false,
+            evolveTurnsLeft = 0,
+            canAttackThisTurn = battleAllowedThisTurn
         };
-        playerUnits.Add(newUnit);
 
+        playerUnits.Add(newUnit);
         rolesOnField++;
         hasSummonedThisTurn = true;
+        state.status        = UnitStatus.OnField;
+
+        CreateFieldUnitUI(newUnit);
+        RecalculateUnitStats(newUnit);
         UpdateFieldColorsText();
 
-        Log($"你召唤了一个 {card.color} 角色：{card.cardName}（HP {hp}）。");
+        Log($"你召唤了一个 {card.color} 角色：{card.cardName}（ATK {newUnit.currentAttack} / HP {newUnit.currentHealth}）。");
 
         return true;
     }
 
+    private void CreateFieldUnitUI(FieldUnit unit)
+    {
+        if (fieldUnitPanel == null || fieldUnitPrefab == null) return;
+
+        FieldUnitUI ui = Instantiate(fieldUnitPrefab, fieldUnitPanel);
+        unit.ui = ui;
+        ui.Init(this, unit.id, unit.name, unit.currentAttack, unit.currentHealth,
+                unit.evolved, unit.equips.Count, unit.canAttackThisTurn);
+    }
+
+    // ----------------- 法术 / 装备 / 进化 / 复活 -----------------
+
     private bool PlaySpellCard(CardData card)
     {
-        int dmg = Mathf.Max(0, card.value);
-        if (enemy != null)
+        // 装备牌：先走装备逻辑
+        if (card.isEquipment)
+            return PlayEquipCard(card);
+
+        switch (card.effectType)
         {
-            Log($"你使用 {card.cardName} 对敌人造成 {dmg} 点伤害。");
-            enemy.TakeDamage(dmg);
-            if (enemy.IsDead())
+            case CardEffectType.DamageEnemy:
             {
-                OnEnemyDefeated();
+                int dmg = Mathf.Max(0, card.value);
+                if (enemy != null)
+                {
+                    Log($"你使用 {card.cardName} 对敌人造成 {dmg} 点伤害。");
+                    enemy.TakeDamage(dmg);
+                    if (enemy.IsDead())
+                        OnEnemyDefeated();
+                }
+                return true;
             }
+
+            case CardEffectType.HealPlayer:
+            {
+                int heal = Mathf.Max(0, card.value);
+                if (player != null)
+                {
+                    Log($"你使用 {card.cardName}，回复自己 {heal} 点生命。");
+                    player.Heal(heal);
+                }
+                return true;
+            }
+
+            case CardEffectType.DrawCards:
+            {
+                int draw = Mathf.Max(0, card.value);
+                if (draw > 0)
+                {
+                    Log($"你使用 {card.cardName}，抽取 {draw} 张牌。");
+                    DrawCards(draw);
+                }
+                return true;
+            }
+
+            case CardEffectType.ReviveUnit:
+            {
+                int reviveCount = Mathf.Max(1, card.value);
+                return ReviveDeadUnits(reviveCount);
+            }
+
+            case CardEffectType.None:
+            default:
+                Log($"卡牌 {card.cardName} 未配置效果（effectType=None），不执行任何效果。");
+                return false;
         }
-        return true;
     }
 
     private bool PlayEvolveCard(CardData card)
@@ -324,22 +514,265 @@ public class BattleManager : MonoBehaviour
             return false;
         }
 
-        if (!activeColors.Contains(card.color))
+        bool result;
+
+        if (card.effectType == CardEffectType.FieldEvolve)
         {
-            Log($"你场上没有 {card.color} 角色，无法进化。");
+            result = PlayFieldEvolveCard(card);
+        }
+        else
+        {
+            result = PlaySpellCard(card);
+        }
+
+        if (result)
+            hasEvolvedThisTurn = true;
+
+        return result;
+    }
+
+    private bool PlayEquipCard(CardData card)
+    {
+        if (playerUnits.Count == 0)
+        {
+            Log("场上没有怪兽，无法装备。");
             return false;
         }
 
-        int heal = Mathf.Max(0, card.value);
-        if (player != null)
-        {
-            Log($"你使用 {card.cardName}，回复自己 {heal} 点生命。");
-            player.Heal(heal);
-        }
+        FieldUnit target = playerUnits[0]; // 暂时装备到第一个单位
+        target.equips.Add(card);
+        RecalculateUnitStats(target);
 
-        hasEvolvedThisTurn = true;
+        Log($"你为 {target.name} 装备了 {card.cardName}。");
+
         return true;
     }
+
+    private bool PlayFieldEvolveCard(CardData card)
+    {
+        FieldUnit target = null;
+        foreach (var u in playerUnits)
+        {
+            if (u.equips.Count > 0)
+            {
+                target = u;
+                break;
+            }
+        }
+
+        if (target == null)
+        {
+            Log("没有装备了装备的怪兽，无法使用字段进化卡。");
+            return false;
+        }
+
+        target.evolved         = true;
+        target.evolveTurnsLeft = 3;
+        RecalculateUnitStats(target);
+
+        Log($"你为 {target.name} 使用了字段进化卡，接下来 3 个你的回合内，每张装备提供 +2/+2，装备也受到额外保护。");
+
+        // 进化时：从牌组检索 1 张装备卡（不限制字段）
+        if (!FetchEquipmentFromDeckToHand(1, onlyFieldEquipment: false))
+        {
+            Log("牌组中没有可用的装备卡可以检索。");
+        }
+
+        return true;
+    }
+
+    private void DecreaseEvolutionTimers()
+    {
+        foreach (var u in playerUnits)
+        {
+            if (!u.evolved) continue;
+
+            u.evolveTurnsLeft--;
+            if (u.evolveTurnsLeft <= 0)
+            {
+                u.evolved = false;
+                RecalculateUnitStats(u);
+                Log($"{u.name} 的进化效果结束。");
+            }
+        }
+    }
+
+    // ----------------- 数据计算 -----------------
+
+    private void RecalculateUnitStats(FieldUnit unit)
+    {
+        if (unit == null) return;
+
+        int equipCount = unit.equips.Count;
+        int perEquip   = unit.evolved ? 2 : 1;
+
+        int baseAtk = unit.baseAttack;
+        int baseHp  = unit.baseHealth;
+
+        int traitAtkBonus = equipCount * perEquip;
+        int traitHpBonus  = equipCount * perEquip;
+
+        int equipExtraAtk = 0;
+        int equipExtraHp  = 0;
+        foreach (var eq in unit.equips)
+        {
+            if (eq == null) continue;
+            equipExtraAtk += eq.equipAttackBonus;
+            equipExtraHp  += eq.equipHealthBonus;
+        }
+
+        unit.currentAttack = baseAtk + traitAtkBonus + equipExtraAtk;
+        unit.maxHealth     = Mathf.Max(1, baseHp + traitHpBonus + equipExtraHp);
+
+        if (unit.currentHealth <= 0)
+            unit.currentHealth = unit.maxHealth;
+        if (unit.currentHealth > unit.maxHealth)
+            unit.currentHealth = unit.maxHealth;
+
+        if (unit.ui != null)
+            unit.ui.UpdateStats(unit.currentAttack, unit.currentHealth, unit.evolved, unit.equips.Count);
+    }
+
+    private bool ApplyBattleDamageToFieldUnit(FieldUnit unit, int damage)
+    {
+        if (unit == null) return false;
+
+        bool    hasBattleShield = false;
+        CardData shieldCard     = null;
+
+        foreach (var equip in unit.equips)
+        {
+            if (equip != null && equip.shieldBattleDestroy)
+            {
+                hasBattleShield = true;
+                shieldCard      = equip;
+                break;
+            }
+        }
+
+        if (damage >= unit.currentHealth && hasBattleShield)
+        {
+            DestroyEquipment(unit, shieldCard, "战斗破坏替代");
+            Log($"{unit.name} 将要在战斗中被破坏，改为破坏装备 {shieldCard.cardName} 作为替代。");
+            return false;
+        }
+
+        unit.currentHealth -= damage;
+        if (unit.currentHealth < 0) unit.currentHealth = 0;
+
+        if (unit.ui != null)
+            unit.ui.UpdateStats(unit.currentAttack, unit.currentHealth, unit.evolved, unit.equips.Count);
+
+        return unit.currentHealth <= 0;
+    }
+
+    private void DestroyEquipment(FieldUnit unit, CardData equipCard, string reason)
+    {
+        if (unit == null || equipCard == null) return;
+
+        if (unit.evolved && reason.Contains("效果"))
+        {
+            Log($"由于 {unit.name} 处于进化状态，装备 {equipCard.cardName} 不会被效果破坏。");
+            return;
+        }
+
+        if (unit.equips.Remove(equipCard))
+        {
+            Log($"装备 {equipCard.cardName} 被破坏（{reason}）。");
+            RecalculateUnitStats(unit);
+        }
+    }
+
+    private void HandleUnitDeath(FieldUnit unit, string reason)
+    {
+        if (unit == null) return;
+
+        Log($"你的单位 {unit.name} 被{reason}。");
+
+        if (unit.source != null)
+        {
+            unit.source.status = UnitStatus.Dead;
+            if (unit.source.ui != null && unit.source.ui.button != null)
+                unit.source.ui.button.interactable = false;
+        }
+
+        CardColor deadColor = unit.color;
+
+        if (unit.ui != null)
+            Destroy(unit.ui.gameObject);
+
+        playerUnits.Remove(unit);
+        rolesOnField = Mathf.Max(0, rolesOnField - 1);
+
+        if (deadColor != CardColor.Colorless)
+        {
+            bool stillHasColor = false;
+            foreach (var u in playerUnits)
+            {
+                if (u.color == deadColor)
+                {
+                    stillHasColor = true;
+                    break;
+                }
+            }
+
+            if (!stillHasColor)
+                activeColors.Remove(deadColor);
+        }
+
+        UpdateFieldColorsText();
+    }
+
+    private bool ReviveDeadUnits(int count)
+    {
+        int revived = 0;
+
+        foreach (var state in unitCards)
+        {
+            if (state.status != UnitStatus.Dead) continue;
+
+            state.status = UnitStatus.Ready;
+
+            if (state.ui != null && state.ui.button != null)
+                state.ui.button.interactable = true;
+
+            revived++;
+            if (revived >= count)
+                break;
+        }
+
+        if (revived == 0)
+        {
+            Log("没有死亡的单位可以复活。");
+            return false;
+        }
+
+        Log($"复活了 {revived} 个单位，现在可以再次上场。");
+        return true;
+    }
+
+    private bool FetchEquipmentFromDeckToHand(int count, bool onlyFieldEquipment)
+    {
+        int fetched = 0;
+
+        for (int i = drawPile.Count - 1; i >= 0 && fetched < count; i--)
+        {
+            CardData card = drawPile[i];
+            if (card == null) continue;
+
+            if (!card.isEquipment) continue;
+            if (onlyFieldEquipment && !card.isFieldEquipment) continue;
+
+            drawPile.RemoveAt(i);
+            hand.Add(card);
+            CreateCardView(card);
+            fetched++;
+        }
+
+        return fetched > 0;
+    }
+
+    // ----------------- 抽牌 / UI / 杂项 -----------------
 
     private void DrawCards(int count)
     {
@@ -375,10 +808,14 @@ public class BattleManager : MonoBehaviour
         Transform panel = unitPanel != null ? unitPanel : handPanel;
         if (panel == null || cardPrefab == null) return;
 
-        foreach (var data in unitPool)
+        foreach (var state in unitCards)
         {
             CardUI instance = Instantiate(cardPrefab, panel);
-            instance.Init(data, this);
+            state.ui = instance;
+            instance.Init(state.data, this);
+
+            if (instance.button != null)
+                instance.button.interactable = true;
         }
     }
 
@@ -397,9 +834,9 @@ public class BattleManager : MonoBehaviour
         for (int i = 0; i < list.Count; i++)
         {
             int j = Random.Range(i, list.Count);
-            CardData temp = list[i];
+            CardData tmp = list[i];
             list[i] = list[j];
-            list[j] = temp;
+            list[j] = tmp;
         }
     }
 
@@ -442,7 +879,8 @@ public class BattleManager : MonoBehaviour
         if (gameEnded) return;
         gameEnded = true;
         Log("你击败了敌人，战斗胜利！");
-        if (endTurnButton != null) endTurnButton.interactable = false;
+        if (endTurnButton != null)
+            endTurnButton.interactable = false;
     }
 
     private void OnPlayerDefeated()
@@ -450,18 +888,15 @@ public class BattleManager : MonoBehaviour
         if (gameEnded) return;
         gameEnded = true;
         Log("你被击败了，战斗失败。");
-        if (endTurnButton != null) endTurnButton.interactable = false;
+        if (endTurnButton != null)
+            endTurnButton.interactable = false;
     }
 
     private void Log(string msg)
     {
         if (logText != null)
-        {
             logText.text += "\n" + msg;
-        }
         else
-        {
             Debug.Log(msg);
-        }
     }
 }

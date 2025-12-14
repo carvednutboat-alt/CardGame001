@@ -15,9 +15,20 @@ public enum CardKind
     Evolve
 }
 
+public enum CardEffectType
+{
+    None,
+    DamageEnemy,
+    HealPlayer,
+    DrawCards,
+    ReviveUnit,
+    FieldEvolve
+}
+
 [CreateAssetMenu(fileName = "NewCard", menuName = "Card Game/Card")]
 public class CardData : ScriptableObject
 {
+    [Header("Basic")]
     public string cardName;
     public CardKind kind;
     public CardColor color;
@@ -29,6 +40,19 @@ public class CardData : ScriptableObject
     public int unitAttack;
     public int unitHealth;
 
-    [Header("Value for Spell/Evolve")]
-    public int value;
+    [Header("Effect settings (for Spell / Evolve)")]
+    public CardEffectType effectType = CardEffectType.None;
+    public int value = 0;
+
+    [Header("Equipment settings")]
+    public bool isEquipment;
+    public bool isFieldEquipment; 
+
+    public int equipAttackBonus;
+    public int equipHealthBonus;
+
+    public bool shieldEffectDamage;
+    public bool shieldEffectDestroy;
+    public bool shieldBattleDestroy;
+    public bool extraAttackOnFailedKill;
 }
