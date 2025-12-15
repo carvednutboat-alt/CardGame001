@@ -74,8 +74,14 @@ public class BattleManager : MonoBehaviour
 
         public bool evolved;
         public int evolveTurnsLeft;
-
         public bool canAttackThisTurn;
+        public bool hasOneFreeExtraAttack;
+
+        //状态类
+        public bool isFlying;              // 起飞：可以无视嘲讽、将来可以额外设计效果
+        public bool hasTaunt;              // 嘲讽：优先被攻击
+        public int  damageTakenThisTurn;   // 本回合受到伤害次数（用于“被打两次就落地”）
+
         public FieldUnitUI ui;
     }
 
@@ -213,13 +219,28 @@ public class BattleManager : MonoBehaviour
     {
         if (gameEnded) return;
 
+        // 重置回合伤害计数
+        ResetUnitsDamageTakenThisTurn();
+
         if (enemy != null && !enemy.IsDead())
         {
             int dmg = enemyAttackDamage;
 
             if (playerUnits.Count > 0)
             {
-                FieldUnit target = playerUnits[0];
+                FieldUnit target = null;
+                foreach (var u in playerUnits)
+                {
+                    if (u.hasTaunt)
+                    {
+                        target = u;
+                        break;
+                    }
+                }
+
+                if (target == null)
+                    target = playerUnits[0];
+
                 Log($"敌人对你的单位 {target.name} 造成 {dmg} 点战斗伤害。");
 
                 bool died = ApplyBattleDamageToFieldUnit(target, dmg);
@@ -249,6 +270,59 @@ public class BattleManager : MonoBehaviour
 
         StartPlayerTurn(skipDrawAndBattle: false);
     }
+
+
+    // 统一的单位攻击逻辑：攻击当前这个 enemy
+    // consumeAttackChance = true 时，会消耗本回合的攻击机会
+    private bool DoUnitAttack(FieldUnit unit, bool consumeAttackChance)
+    {
+        if (unit == null) return false;
+        if (gameEnded) return false;
+
+        // 现在还是单一敌人逻辑，就直接用字段 enemy
+        if (enemy == null || enemy.IsDead())
+        {
+            Log("敌人已经被击败。");
+            return false;
+        }
+
+        int dmg = Mathf.Max(0, unit.currentAttack);
+        Log($"{unit.name} 攻击敌人，造成 {dmg} 点伤害。");
+
+        enemy.TakeDamage(dmg);
+
+        // 是否消耗攻击次数
+        if (consumeAttackChance)
+        {
+            unit.canAttackThisTurn = false;
+        }
+
+        // 更新按钮交互状态
+        if (unit.ui != null)
+        {
+            bool canClick = unit.canAttackThisTurn;
+            unit.ui.SetButtonInteractable(canClick);
+        }
+
+        // 胜负判定：沿用你下面已经写好的 OnEnemyDefeated()
+        if (enemy.IsDead())
+        {
+            OnEnemyDefeated();
+        }
+
+        return true;
+    }
+
+
+    // 重置所有我方单位的“本回合受到伤害次数”
+    private void ResetUnitsDamageTakenThisTurn()
+    {
+        foreach (var u in playerUnits)
+        {
+            u.damageTakenThisTurn = 0;
+        }
+    }
+
 
     // ----------------- 玩家点击：手牌 -----------------
 
@@ -291,7 +365,8 @@ public class BattleManager : MonoBehaviour
         {
             // =========== 修改开始 ===========
             // 如果是“指定单位回血”的卡，不要立刻 Play，而是进入选择模式
-            if (card.effectType == CardEffectType.HealUnit)
+            if (card.effectType == CardEffectType.HealUnit ||
+                card.effectType == CardEffectType.UnitBuff)
             {
                 EnterTargetingMode(cardView);
                 return; // 直接返回，不执行下面的销毁逻辑
@@ -337,24 +412,26 @@ public class BattleManager : MonoBehaviour
     // ----------------- 玩家点击：场上单位（攻击） -----------------
 
     // 被 FieldUnitUI 调用
+    // 被 FieldUnitUI 调用
     public void OnFieldUnitClicked(int unitId)
     {
         if (gameEnded) return;
 
-        // =========== 新增逻辑：如果是选择模式，执行治疗 ===========
+        // 1. 如果当前是在“选择目标用卡牌”的模式，就把点击当作选目标
         if (isTargetingMode)
         {
             ApplyPendingCardToUnit(unitId);
             return;
         }
-        // ======================================================
 
+        // 2. 这个回合是否允许战斗（先手第一回合不能战斗）
         if (!battleAllowedThisTurn)
         {
             Log("本回合不能进行战斗阶段。");
             return;
         }
 
+        // 3. 根据 id 找到场上的这个单位
         FieldUnit unit = null;
         foreach (var u in playerUnits)
         {
@@ -366,38 +443,27 @@ public class BattleManager : MonoBehaviour
         }
         if (unit == null) return;
 
+        // 4. 检查这个单位本回合是否还能攻击
         if (!unit.canAttackThisTurn)
         {
             Log($"{unit.name} 本回合已经攻击过。");
             return;
         }
 
-        if (enemy == null || enemy.IsDead())
-        {
-            Log("敌人已经被击败。");
-            return;
-        }
-
-        int dmg = Mathf.Max(0, unit.currentAttack);
-        Log($"{unit.name} 攻击敌人，造成 {dmg} 点伤害。");
-
-        enemy.TakeDamage(dmg);
-
-        unit.canAttackThisTurn = false;
-        if (unit.ui != null)
-            unit.ui.SetButtonInteractable(false);
-
-        if (enemy.IsDead())
-        {
-            OnEnemyDefeated();
-        }
+        // 5. 统一交给 DoUnitAttack 来处理攻击逻辑
+        DoUnitAttack(unit, consumeAttackChance: true);
     }
+
+
 
     private void SetUnitsCanAttack(bool canAttack)
     {
         foreach (var u in playerUnits)
         {
             u.canAttackThisTurn = canAttack;
+            if (canAttack)
+                u.hasOneFreeExtraAttack = false;
+
             if (u.ui != null)
                 u.ui.SetButtonInteractable(canAttack);
         }
@@ -452,7 +518,10 @@ public class BattleManager : MonoBehaviour
             source         = state,
             evolved        = false,
             evolveTurnsLeft = 0,
-            canAttackThisTurn = battleAllowedThisTurn
+            canAttackThisTurn = battleAllowedThisTurn,
+            isFlying       = card.unitStartsFlying,
+            hasTaunt       = card.unitHasTaunt,
+            damageTakenThisTurn  = 0
         };
 
         playerUnits.Add(newUnit);
@@ -476,7 +545,7 @@ public class BattleManager : MonoBehaviour
         FieldUnitUI ui = Instantiate(fieldUnitPrefab, fieldUnitPanel);
         unit.ui = ui;
         ui.Init(this, unit.id, unit.name, unit.currentAttack, unit.currentHealth,
-                unit.evolved, unit.equips.Count, unit.canAttackThisTurn);
+                unit.evolved, unit.equips.Count, unit.canAttackThisTurn, unit.isFlying, unit.hasTaunt);
     }
 
     // ----------------- 法术 / 装备 / 进化 / 复活 -----------------
@@ -499,6 +568,34 @@ public class BattleManager : MonoBehaviour
                     if (enemy.IsDead())
                         OnEnemyDefeated();
                 }
+                return true;
+            }
+
+            case CardEffectType.DamageAllPlayerUnits:
+            {
+                int dmg = Mathf.Max(0, card.value);
+                if (dmg <= 0)
+                {
+                    Log($"卡牌 {card.cardName} 的伤害数值为 {card.value}，不会造成伤害。");
+                    return false;
+                }
+
+                Log($"你使用 {card.cardName}，对己方所有怪兽造成 {dmg} 点效果伤害；【起飞】单位免疫本次伤害。");
+                DamageAllPlayerUnits(dmg, ignoreFlying: true);
+                return true;
+            }
+
+            case CardEffectType.DamageAllEnemyUnits:
+            {
+                int dmg = Mathf.Max(0, card.value);
+                if (dmg <= 0)
+                {
+                    Log($"卡牌 {card.cardName} 的伤害数值为 {card.value}，不会造成伤害。");
+                    return false;
+                }
+
+                Log($"你使用 {card.cardName}，对所有敌人造成 {dmg} 点效果伤害。");
+                DamageAllEnemies(dmg);
                 return true;
             }
 
@@ -661,14 +758,63 @@ public class BattleManager : MonoBehaviour
             unit.currentHealth = unit.maxHealth;
 
         if (unit.ui != null)
-            unit.ui.UpdateStats(unit.currentAttack, unit.currentHealth, unit.evolved, unit.equips.Count);
+            unit.ui.UpdateStats(unit.currentAttack, unit.currentHealth, unit.evolved, unit.equips.Count, unit.isFlying,
+    unit.hasTaunt);
+    }
+
+    // 统一记录单位受到的伤害，用于处理“起飞被打落地”
+    private void RegisterDamageOnUnit(FieldUnit unit, int damage, bool isEffectDamage)
+    {
+        if (unit == null || damage <= 0) return;
+
+        unit.damageTakenThisTurn++;
+
+        //同一回合受到两次伤害 -> 起飞消失
+        if (unit.isFlying && unit.damageTakenThisTurn >= 2)
+        {
+            unit.isFlying = false;
+            Log($"{unit.name} 在同一回合受到了两次伤害，起飞状态失效。");
+
+            if (unit.ui != null)
+            unit.ui.UpdateStats(unit.currentAttack, unit.currentHealth,
+                                unit.evolved, unit.equips.Count,
+                                unit.isFlying, unit.hasTaunt);
+        }
+
+    }
+
+
+    // 效果伤害（法术、技能等）对单位造成伤害
+    private bool ApplyEffectDamageToFieldUnit(FieldUnit unit, int damage)
+    {
+        if (unit == null || damage <= 0) return false;
+
+        unit.currentHealth -= damage;
+        if (unit.currentHealth < 0) unit.currentHealth = 0;
+
+        // 记录这次是“效果伤害”，用于起飞在同回合被打两次落地
+        RegisterDamageOnUnit(unit, damage, isEffectDamage: true);
+
+        if (unit.ui != null)
+        {
+            unit.ui.UpdateStats(
+                unit.currentAttack,
+                unit.currentHealth,
+                unit.evolved,
+                unit.equips.Count,
+                unit.isFlying,
+                unit.hasTaunt
+            );
+        }
+
+        return unit.currentHealth <= 0;
     }
 
     private bool ApplyBattleDamageToFieldUnit(FieldUnit unit, int damage)
     {
-        if (unit == null) return false;
+        if (unit == null || damage <= 0) return false;
 
-        bool    hasBattleShield = false;
+            bool    hasBattleShield = false;
         CardData shieldCard     = null;
 
         foreach (var equip in unit.equips)
@@ -678,7 +824,7 @@ public class BattleManager : MonoBehaviour
                 hasBattleShield = true;
                 shieldCard      = equip;
                 break;
-            }
+            } 
         }
 
         if (damage >= unit.currentHealth && hasBattleShield)
@@ -691,12 +837,68 @@ public class BattleManager : MonoBehaviour
         unit.currentHealth -= damage;
         if (unit.currentHealth < 0) unit.currentHealth = 0;
 
+        // ★ 登记这次伤害（战斗伤害）
+        RegisterDamageOnUnit(unit, damage, isEffectDamage: false);
+
         if (unit.ui != null)
-            unit.ui.UpdateStats(unit.currentAttack, unit.currentHealth, unit.evolved, unit.equips.Count);
+            unit.ui.UpdateStats(unit.currentAttack, unit.currentHealth,
+                                unit.evolved, unit.equips.Count,
+                                unit.isFlying, unit.hasTaunt);
 
         return unit.currentHealth <= 0;
     }
 
+    // 对我方所有场上单位造成效果伤害；ignoreFlying=true 时，起飞单位免疫
+    private void DamageAllPlayerUnits(int damage, bool ignoreFlying)
+    {
+        if (damage <= 0) return;
+
+        List<FieldUnit> deadUnits = new List<FieldUnit>();
+
+        foreach (var unit in playerUnits)
+        {
+            if (unit == null) continue;
+
+            // 起飞免疫群体伤害
+            if (ignoreFlying && unit.isFlying)
+            {
+                Log($"{unit.name} 处于【起飞】状态，免疫本次群体效果伤害。");
+                continue;
+            }
+
+            bool died = ApplyEffectDamageToFieldUnit(unit, damage);
+            if (died)
+            {
+                deadUnits.Add(unit);
+            }
+            else
+            {
+                Log($"{unit.name} 受到 {damage} 点效果伤害，剩余 HP：{unit.currentHealth}/{unit.maxHealth}");
+            }   
+        }
+
+        // 统一处理死亡（避免在遍历列表时修改列表）
+        foreach (var u in deadUnits)
+        {
+            HandleUnitDeath(u, "效果破坏");
+        }
+    }
+
+    private void DamageAllEnemies(int damage)
+    {
+        if (damage <= 0) return;
+
+        if (enemy != null && !enemy.IsDead())
+        {
+            Log($"群体伤害对敌人造成 {damage} 点效果伤害。");
+            enemy.TakeDamage(damage);
+
+            if (enemy.IsDead())
+            {
+                OnEnemyDefeated();
+            }
+        }
+    }   
     private void DestroyEquipment(FieldUnit unit, CardData equipCard, string reason)
     {
         if (unit == null || equipCard == null) return;
@@ -1014,32 +1216,125 @@ public class BattleManager : MonoBehaviour
                 break;
             }
         }
-
-        if (targetUnit == null) return; // 没找到单位
+        if (targetUnit == null) return;
 
         CardData card = pendingCardUI.Data;
-        int healAmount = card.value;
+        bool effectApplied = false;
 
-        // 2. 执行回血逻辑
-        Log($"你对 {targetUnit.name} 使用了 {card.cardName}，恢复 {healAmount} 点生命。");
+        switch (card.effectType)
+        {
+            // ① 原来的回血卡逻辑
+            case CardEffectType.HealUnit:
+            {
+                int healAmount = Mathf.Max(0, card.value);
+                Log($"你对 {targetUnit.name} 使用了 {card.cardName}，恢复 {healAmount} 点生命。");
 
-        targetUnit.currentHealth += healAmount;
-        if (targetUnit.currentHealth > targetUnit.maxHealth)
-            targetUnit.currentHealth = targetUnit.maxHealth;
+                targetUnit.currentHealth += healAmount;
+                if (targetUnit.currentHealth > targetUnit.maxHealth)
+                    targetUnit.currentHealth = targetUnit.maxHealth;
 
-        // 刷新 UI
-        if (targetUnit.ui != null)
-            targetUnit.ui.UpdateStats(targetUnit.currentAttack, targetUnit.currentHealth, targetUnit.evolved, targetUnit.equips.Count);
+                if (targetUnit.ui != null)
+                {
+                    targetUnit.ui.UpdateStats(
+                        targetUnit.currentAttack,
+                        targetUnit.currentHealth,
+                        targetUnit.evolved,
+                        targetUnit.equips.Count,
+                        targetUnit.isFlying,
+                        targetUnit.hasTaunt
+                    );
+                }
 
-        // 3. 消耗手牌 (这是之前 OnCardClicked 里做的事，现在移到这里做)
-        hand.Remove(card);
-        discardPile.Add(card);
-        Destroy(pendingCardUI.gameObject);
+                effectApplied = true;
+                break;
+            }
 
-        // 4. 退出模式
-        isTargetingMode = false;
-        pendingCardUI = null;
+            // ② 通用单位增益：根据配置决定起飞 / 追加攻击
+            case CardEffectType.UnitBuff:
+            {
+                // 起飞
+                if (card.buffGrantFlying)
+                {
+                    ApplyFlyingBuff(targetUnit);
+                }
 
+                // 立刻额外攻击一次（不消耗攻击次数）
+                if (card.buffFreeAttackNow)
+                {
+                    ApplyFreeAttackBuff(targetUnit);
+                }
+
+                if (!card.buffGrantFlying && !card.buffFreeAttackNow)
+                {
+                    Log($"{card.cardName} 没有配置具体的 UnitBuff 效果（buffGrantFlying / buffFreeAttackNow 都是 false）。");
+                    effectApplied = false;
+                }
+                else
+                {
+                    effectApplied = true;
+                }
+
+                break;
+            }
+
+            // 如果哪张卡误配了 effectType，却走进了选目标模式，也给个提示
+            default:
+            {
+                Log($"卡牌 {card.cardName} 的效果类型 {card.effectType} 不适用于选目标模式。");
+                effectApplied = false;
+                break;
+            }
+        }
+
+        // 只有在确实生效的情况下才消耗手牌
+        if (effectApplied)
+        {
+            hand.Remove(card);
+            discardPile.Add(card);
+            Destroy(pendingCardUI.gameObject);
+        }
+
+        // 退出选目标状态 & 恢复按钮交互
+        ExitTargetingMode();
         CheckWinLose();
     }
+
+// ----------------- 效果 / 状态类 -----------------
+// 起飞效果：只负责改状态 + 刷 UI
+    private void ApplyFlyingBuff(FieldUnit unit)
+    {
+        if (unit == null) return;
+
+        if (unit.isFlying)
+        {
+            Log($"{unit.name} 已经处于【起飞】状态。");
+            return;
+        }
+
+        unit.isFlying = true;
+        Log($"{unit.name} 获得了【起飞】状态。");
+
+        if (unit.ui != null)
+        {
+            unit.ui.UpdateStats(
+                unit.currentAttack,
+                unit.currentHealth,
+                unit.evolved,
+                unit.equips.Count,
+                unit.isFlying,
+                unit.hasTaunt
+            );
+        }
 }
+
+    // 立刻追加一次攻击：只负责调用 DoUnitAttack，不改 canAttackThisTurn
+    private void ApplyFreeAttackBuff(FieldUnit unit)
+    {
+        if (unit == null) return;
+
+        Log($"{unit.name} 立刻发动一次额外攻击（不消耗本回合攻击次数）。");
+        DoUnitAttack(unit, consumeAttackChance: false);
+    }
+
+}
+

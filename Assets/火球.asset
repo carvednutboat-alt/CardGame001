@@ -10,21 +10,21 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f1162db1ee20c3947a705dc1078eaefb, type: 3}
-  m_Name: "\u5723\u5251\u5361\u5229\u73ED"
+  m_Name: "\u706B\u7403"
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  cardName: "\u5723\u5251\u5361\u5229\u73ED"
+  cardName: "\u706B\u7403"
   kind: 1
-  color: 1
+  color: 0
   description: 
   unitAttack: 0
   unitHealth: 0
-  effectType: 0
-  value: 0
-  isEquipment: 1
-  isFieldEquipment: 1
+  effectType: 1
+  value: 5
+  isEquipment: 0
+  isFieldEquipment: 0
   equipAttackBonus: 0
-  equipHealthBonus: 2
+  equipHealthBonus: 0
   shieldEffectDamage: 0
   shieldEffectDestroy: 0
-  shieldBattleDestroy: 1
+  shieldBattleDestroy: 0
   extraAttackOnFailedKill: 0

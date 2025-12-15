@@ -10,21 +10,25 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f1162db1ee20c3947a705dc1078eaefb, type: 3}
-  m_Name: "\u5723\u5251\u5361\u5229\u73ED"
+  m_Name: "\u7FA4\u9E26\u98CE\u66B4"
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  cardName: "\u5723\u5251\u5361\u5229\u73ED"
+  cardName: "\u7FA4\u9E26\u98CE\u66B4"
   kind: 1
   color: 1
   description: 
   unitAttack: 0
   unitHealth: 0
-  effectType: 0
-  value: 0
-  isEquipment: 1
-  isFieldEquipment: 1
+  unitStartsFlying: 0
+  unitHasTaunt: 0
+  buffGrantFlying: 0
+  buffFreeAttackNow: 0
+  effectType: 2
+  value: 3
+  isEquipment: 0
+  isFieldEquipment: 0
   equipAttackBonus: 0
-  equipHealthBonus: 2
+  equipHealthBonus: 0
   shieldEffectDamage: 0
   shieldEffectDestroy: 0
-  shieldBattleDestroy: 1
+  shieldBattleDestroy: 0
   extraAttackOnFailedKill: 0

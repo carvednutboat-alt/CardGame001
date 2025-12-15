@@ -20,14 +20,16 @@ public class FieldUnitUI : MonoBehaviour
         int hp,
         bool evolved,
         int equipCount,
-        bool canAttack
+        bool canAttack, 
+        bool isFlying, 
+        bool hasTaunt
     )
     {
         _manager = manager;
         _unitId = unitId;
 
         if (nameText != null)  nameText.text = unitName;
-        UpdateStats(attack, hp, evolved, equipCount);
+        UpdateStats(attack, hp, evolved, equipCount, isFlying, hasTaunt);
         SetButtonInteractable(canAttack);
 
         if (clickButton != null)
@@ -37,15 +39,32 @@ public class FieldUnitUI : MonoBehaviour
         }
     }
 
-    public void UpdateStats(int attack, int hp, bool evolved, int equipCount)
+    public void UpdateStats(
+    int attack, 
+    int hp,
+    bool evolved, 
+    int equipCount, 
+    bool isFlying,
+    bool hasTaunt
+    )
     {
         if (statsText != null)
             statsText.text = $"ATK {attack} / HP {hp}";
 
         if (statusText != null)
-        {
-            string evo = evolved ? "进化" : "";
-            statusText.text = $"{evo} 装备:{equipCount}";
+        {   
+            var parts = new System.Collections.Generic.List<string>();
+
+            if (evolved)
+                parts.Add("进化");
+            if (isFlying)
+                parts.Add("起飞");
+            if (hasTaunt)
+                parts.Add("嘲讽");
+
+            parts.Add($"装备:{equipCount}");
+
+            statusText.text = string.Join(" / ", parts);
         }
     }
 

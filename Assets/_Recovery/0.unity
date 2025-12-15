@@ -2183,8 +2183,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: eb144eac5c43db94ebffd83a275d40f0, type: 2}
   - {fileID: 11400000, guid: 6da4bfef098b8e54dae4ae6eba43cbe9, type: 2}
   - {fileID: 11400000, guid: 03b24e9ead0726247adc6fd8913117ba, type: 2}
-  - {fileID: 11400000, guid: fcff5225af38f3c40a317bf4296912d4, type: 2}
-  - {fileID: 11400000, guid: 7a1055c940210f24a84c7f3757180169, type: 2}
+  - {fileID: 11400000, guid: 65f05e3e33885714d9976dba73328ba6, type: 2}
   handPanel: {fileID: 274415737}
   cardPrefab: {fileID: 8307368059125501416, guid: cdfc37a79dbe7674081524123026931b, type: 3}
   unitPanel: {fileID: 627833377}
