@@ -1297,6 +1297,7 @@ MonoBehaviour:
   DiscardPile: []
   HandPanel: {fileID: 274415737}
   CardPrefab: {fileID: 8307368059125501416, guid: cdfc37a79dbe7674081524123026931b, type: 3}
+  MaxHandSize: 6
 --- !u!1 &1169536268
 GameObject:
   m_ObjectHideFlags: 0
@@ -1822,6 +1823,7 @@ MonoBehaviour:
   EnemyManager: {fileID: 1761782008}
   CombatManager: {fileID: 2120360866}
   UIManager: {fileID: 693258365}
+  PlayerUnit: {fileID: 312151528}
   UnitPanel: {fileID: 627833377}
   StartingSpellDeck:
   - {fileID: 11400000, guid: c5a954ab137bf8a49bb025320694abf8, type: 2}

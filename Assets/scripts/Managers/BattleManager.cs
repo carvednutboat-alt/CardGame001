@@ -10,6 +10,9 @@ public class BattleManager : MonoBehaviour
     public CombatManager CombatManager;
     public BattleUIManager UIManager;
 
+    [Header("Entities")]
+    public Unit PlayerUnit; // === 新增：引用玩家本体的 Unit 脚本 ===
+
     [Header("UI Refs")]
     public Transform UnitPanel;
 
@@ -241,5 +244,12 @@ public class BattleManager : MonoBehaviour
     public void OnGameWin()
     {
         UIManager.Log("战斗胜利！");
+    }
+
+    public void OnPlayerDefeated()
+    {
+        UIManager.Log("【失败】你的生命值归零了...");
+        // 这里可以加 禁用按钮 / 弹出失败面板 的逻辑
+        UnitManager.SetAllAttackStatus(false);
     }
 }

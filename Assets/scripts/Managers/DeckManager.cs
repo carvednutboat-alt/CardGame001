@@ -11,6 +11,9 @@ public class DeckManager : MonoBehaviour
     public Transform HandPanel;
     public CardUI CardPrefab;
 
+    [Header("Settings")]
+    public int MaxHandSize = 6;
+
     private BattleManager _bm;
 
     public void Init(BattleManager bm, List<CardData> startingData)
@@ -40,6 +43,15 @@ public class DeckManager : MonoBehaviour
 
             RuntimeCard card = DrawPile[0];
             DrawPile.RemoveAt(0);
+
+            if (Hand.Count >= MaxHandSize)
+            {
+                // 爆牌逻辑：直接进弃牌堆，不生成 UI
+                DiscardPile.Add(card);
+                _bm.UIManager.Log($"<color=red>手牌已满！</color> {card.Data.cardName} 被弃置。");
+                continue; // 跳过本次循环，处理下一张
+            }
+
             Hand.Add(card);
 
             // 生成 UI

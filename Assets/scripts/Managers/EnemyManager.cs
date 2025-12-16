@@ -44,7 +44,16 @@ public class EnemyManager : MonoBehaviour
         else
         {
             _bm.UIManager.Log($"敌人直接攻击玩家，造成 {AttackDamage} 点伤害！");
-            // 这里应该调用 PlayerManager.TakeDamage，暂时略过
+            if (_bm.PlayerUnit != null)
+            {
+                _bm.PlayerUnit.TakeDamage(AttackDamage);
+
+                // 检查玩家是否死亡
+                if (_bm.PlayerUnit.IsDead())
+                {
+                    _bm.OnPlayerDefeated();
+                }
+            }
         }
     }
 }
