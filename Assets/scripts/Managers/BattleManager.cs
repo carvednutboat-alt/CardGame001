@@ -24,6 +24,10 @@ public class BattleManager : MonoBehaviour
     public bool IsTargetingMode = false;
     private RuntimeCard _pendingCard;
     private GameObject _pendingCardUIObj;
+    // 先手以及群体沉默下能否进行的攻击处理
+    public bool CurrentTurnCanAttack { get; private set; } = true;
+    //进化前后攻击次数的继承
+    private readonly Dictionary<int, bool> _attackStateBackup = new Dictionary<int, bool>();
 
     private void Start()
     {
@@ -76,6 +80,10 @@ public class BattleManager : MonoBehaviour
     // === 修改：增加了参数来控制是否抽牌和是否能攻击 ===
     public void StartPlayerTurn(bool canAttack = true, bool drawCard = true)
     {
+
+        // 记录本回合是否允许攻击（给召唤怪用）
+        CurrentTurnCanAttack = canAttack;
+
         UIManager.Log("--------------------------");
         UIManager.Log(">>> 轮到你的回合 <<<");
 
@@ -90,7 +98,7 @@ public class BattleManager : MonoBehaviour
         }
 
         // 2. 设置攻击状态
-        // 如果是先手第一回合(canAttack=false)，则全设为不可交互
+        // 如果是先手第一回合 (canAttack = false)，则全设为不可交互
         UnitManager.SetAllAttackStatus(canAttack);
 
         if (!canAttack)
@@ -98,6 +106,7 @@ public class BattleManager : MonoBehaviour
             UIManager.Log("【提示】先手第一回合无法进行战斗攻击。");
         }
     }
+
 
     // === 玩家点击结束回合 ===
     public void OnEndTurnButton()
@@ -170,30 +179,96 @@ public class BattleManager : MonoBehaviour
         }
 
         // 4. 不需要选目标的法术
+        if (card.Data.effectType == CardEffectType.ReviveUnit)
+        {
+            if (UnitManager.Graveyard.Count == 0)
+            {
+                UIManager.Log("墓地里没有单位，复活卡不会被消耗。");
+                return;  // 直接返回，不执行 PlaySpell / DiscardCard
+            }
+        }
         PlaySpell(card, null);
         DeckManager.DiscardCard(card, ui.gameObject);
     }
 
     public void OnFieldUnitClicked(int unitId)
     {
+        // ======================
+        // 1）当前在“选目标用卡牌”的模式
+        // ======================
         if (IsTargetingMode)
         {
             RuntimeUnit target = UnitManager.GetUnitById(unitId);
-            if (target != null)
+            if (target == null) return;
+
+            CardData data = _pendingCard.Data;
+            CardEffectType effectType = data.effectType;
+
+            // 单位治疗卡：对满血目标不生效，也不消耗卡
+            if (effectType == CardEffectType.HealUnit)
+            {
+                if (target.CurrentHp >= target.MaxHp)
+                {
+                    UIManager.Log($"{target.Name} 已经是满血，治疗卡不会被消耗，你可以选择其他目标。");
+                    ExitTargetingMode();
+                    return;
+                }
+
+                // 真正执行治疗
+                PlaySpell(_pendingCard, target);
+                DeckManager.DiscardCard(_pendingCard, _pendingCardUIObj);
+                ExitTargetingMode();
+                return;
+            }
+
+            // 进化卡：必须是“已经装备了装备卡的单位”才能使用
+            if (effectType == CardEffectType.FieldEvolve)
+            {
+                if (target.Equips == null || target.Equips.Count == 0)
+                {
+                    UIManager.Log("没有装备的单位不能使用进化卡。");
+                    ExitTargetingMode();
+                    return;
+                }
+
+                PlaySpell(_pendingCard, target);
+                DeckManager.DiscardCard(_pendingCard, _pendingCardUIObj);
+                ExitTargetingMode();
+                return;
+            }
+
+            // 通用单位 Buff（起飞 / 追加攻击等）
+            if (effectType == CardEffectType.UnitBuff)
             {
                 PlaySpell(_pendingCard, target);
                 DeckManager.DiscardCard(_pendingCard, _pendingCardUIObj);
                 ExitTargetingMode();
+                return;
             }
+
+            // 兜底：如果以后误把别的效果类型当成“选目标卡”，这里给个提示，不吃牌
+            UIManager.Log($"卡牌 {data.cardName} 的效果类型 {effectType} 暂不支持在选目标模式下使用。");
+            ExitTargetingMode();
             return;
         }
 
+        // ======================
+        // 2）非选目标模式：点击场上单位 = 尝试攻击
+        // ======================
         RuntimeUnit unit = UnitManager.GetUnitById(unitId);
-        if (unit != null)
+        if (unit == null) return;
+
+        // 先检查这个单位是否有攻击权
+        if (!unit.CanAttack)
         {
-            CombatManager.ProcessUnitAttack(unit, consumeAction: true);
+            UIManager.Log($"{unit.Name} 本回合不能攻击。");
+            return;
         }
+
+        // 正常进行攻击流程
+        CombatManager.ProcessUnitAttack(unit, consumeAction: true);
     }
+
 
     private void PlaySpell(RuntimeCard card, RuntimeUnit target)
     {
@@ -211,32 +286,62 @@ public class BattleManager : MonoBehaviour
         UIManager.Log($"{target.Name} 装备了 {card.Data.cardName}");
     }
 
-    private void EnterTargetingMode(RuntimeCard card, GameObject uiObj)
+    public void EnterTargetingMode(RuntimeCard card, GameObject cardUI)
+{
+    IsTargetingMode   = true;
+    _pendingCard      = card;
+    _pendingCardUIObj = cardUI;
+
+    _attackStateBackup.Clear();
+
+    // 只让按钮亮起，备份原本的 CanAttack，不修改 CanAttack 本身
+    foreach (var unit in UnitManager.PlayerUnits)
     {
-        IsTargetingMode = true;
-        _pendingCard = card;
-        _pendingCardUIObj = uiObj;
-        UIManager.Log($"请选择 {card.Data.cardName} 的目标...");
-        UnitManager.SetAllAttackStatus(true);
+        _attackStateBackup[unit.Id] = unit.CanAttack;
+
+        if (unit.UI != null)
+        {
+            // 为了选目标，暂时让所有单位都“可以点击”
+            unit.UI.SetButtonInteractable(true);
+        }
     }
+
+    UIManager.Log($"请选择一个单位来使用 {card.Data.cardName} ...");
+}
 
     private void ExitTargetingMode()
     {
-        IsTargetingMode = false;
-        _pendingCard = null;
+        IsTargetingMode   = false;
+        _pendingCard      = null;
         _pendingCardUIObj = null;
 
+        // 恢复所有单位原本的 CanAttack 状态 + 按钮交互
         // 恢复正确的攻击状态：
         // 这里有一个小细节：如果是先手第一回合选目标，取消后应该恢复为不能攻击
         // 但为了简单，我们假设选目标时已经是“可以攻击”的回合。
         // 如果想严谨，需要记录 CurrentTurnCanAttack 状态。
         // 暂时简单处理：恢复所有存活单位的可交互性
-        foreach (var u in UnitManager.PlayerUnits)
-            if (u.UI != null) u.UI.SetButtonInteractable(u.CanAttack);
+        foreach (var unit in UnitManager.PlayerUnits)
+        {
+            bool canAttack;
+            if (_attackStateBackup.TryGetValue(unit.Id, out canAttack))
+            {
+                unit.CanAttack = canAttack;
+            }
+
+            if (unit.UI != null)
+            {
+                unit.UI.SetButtonInteractable(unit.CanAttack);
+            }
+        }
+
+        _attackStateBackup.Clear();
     }
 
     private void CancelTargeting()
     {
+        if (!IsTargetingMode) return;
+
         UIManager.Log("已取消施法。");
         ExitTargetingMode();
     }

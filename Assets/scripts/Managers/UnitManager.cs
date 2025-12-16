@@ -34,7 +34,7 @@ public class UnitManager : MonoBehaviour
         }
 
         RuntimeUnit unit = new RuntimeUnit(_nextId++, card);
-        unit.CanAttack = true;
+        unit.CanAttack = _bm.CurrentTurnCanAttack;
         PlayerUnits.Add(unit);
 
         // ´´½¨ UI
