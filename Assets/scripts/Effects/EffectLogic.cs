@@ -25,6 +25,16 @@ public class HealUnitEffect : EffectBase
         bm.UnitManager.RefreshUnitUI(targetUnit);
         bm.UIManager.Log($"{targetUnit.Name} 恢复了 {heal} 点生命。");
     }
+
+    public override bool CheckCondition(BattleManager bm, RuntimeCard sourceCard, RuntimeUnit targetUnit)
+    {
+        if (targetUnit != null && targetUnit.CurrentHp >= targetUnit.MaxHp)
+        {
+            bm.UIManager.Log($"{targetUnit.Name} 已经是满血，治疗卡不会被消耗。");
+            return false;
+        }
+        return true;
+    }
 }
 
 // 3. 抽牌
@@ -92,7 +102,28 @@ public class FieldEvolveEffect : EffectBase
             bm.UIManager.Log($"进化额外效果：抽了 {card.Data.value} 张牌。");
         }
 
+        // === 修复点：进化后重置攻击状态 ===
+        // 只有在“本回合允许攻击”的前提下，进化才重置攻击
+        if (bm.CurrentTurnCanAttack)
+        {
+            targetUnit.CanAttack = true;
+        }
+
         bm.UnitManager.RefreshUnitUI(targetUnit);
+    }
+
+    public override bool CheckCondition(BattleManager bm, RuntimeCard sourceCard, RuntimeUnit targetUnit)
+    {
+        // 检查是否有装备
+        if (targetUnit != null)
+        {
+            if (targetUnit.Equips == null || targetUnit.Equips.Count == 0)
+            {
+                bm.UIManager.Log("没有装备的单位不能使用进化卡。");
+                return false;
+            }
+        }
+        return true;
     }
 }
 
@@ -147,5 +178,16 @@ public class ReviveUnitEffect : EffectBase
                 revivedCount++;
             }
         }
+    }
+
+    public override bool CheckCondition(BattleManager bm, RuntimeCard sourceCard, RuntimeUnit targetUnit)
+    {
+        // 检查墓地
+        if (bm.UnitManager.Graveyard.Count == 0)
+        {
+            bm.UIManager.Log("墓地里没有单位，复活卡不会被消耗。");
+            return false;
+        }
+        return true;
     }
 }

@@ -69,6 +69,16 @@ public class DeckManager : MonoBehaviour
         }
     }
 
+    public void RemoveCardFromHand(RuntimeCard card, GameObject uiObj)
+    {
+        if (Hand.Contains(card))
+        {
+            Hand.Remove(card);
+            Destroy(uiObj);
+            // 注意：这里没有 DiscardPile.Add
+        }
+    }
+
     private void CreateCardUI(RuntimeCard card)
     {
         CardUI ui = Instantiate(CardPrefab, HandPanel);
