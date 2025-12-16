@@ -65,7 +65,7 @@ public class BattleManager : MonoBehaviour
         public int baseAttack;
         public int baseHealth;
 
-        public int maxHealth;
+        public int bonusHealth;
         public int currentAttack;
         public int currentHealth;
 
@@ -250,7 +250,7 @@ public class BattleManager : MonoBehaviour
                 }
                 else
                 {
-                    Log($"单位 {target.name} 剩余 HP：{target.currentHealth}/{target.maxHealth}");
+                    Log($"单位 {target.name} 剩余 HP：{target.currentHealth}/{GetUnitMaxHp(target)}");
                 }
             }
             else
@@ -512,7 +512,7 @@ public class BattleManager : MonoBehaviour
             name           = card.cardName,
             baseAttack     = baseAtk,
             baseHealth     = baseHp,
-            maxHealth      = baseHp,
+            bonusHealth    = 0,
             currentAttack  = baseAtk,
             currentHealth  = baseHp,
             source         = state,
@@ -547,6 +547,13 @@ public class BattleManager : MonoBehaviour
         ui.Init(this, unit.id, unit.name, unit.currentAttack, unit.currentHealth,
                 unit.evolved, unit.equips.Count, unit.canAttackThisTurn, unit.isFlying, unit.hasTaunt);
     }
+
+    private int GetUnitMaxHp(FieldUnit unit)
+    {
+        if (unit == null) return 0;
+        return Mathf.Max(1, unit.baseHealth + unit.bonusHealth);
+    }
+
 
     // ----------------- 法术 / 装备 / 进化 / 复活 -----------------
 
@@ -731,6 +738,9 @@ public class BattleManager : MonoBehaviour
     {
         if (unit == null) return;
 
+        // 1. 调整前的生命上限，用来计算差值
+        int oldMaxHp = GetUnitMaxHp(unit);
+
         int equipCount = unit.equips.Count;
         int perEquip   = unit.evolved ? 2 : 1;
 
@@ -749,40 +759,69 @@ public class BattleManager : MonoBehaviour
             equipExtraHp  += eq.equipHealthBonus;
         }
 
+        // 2. 攻击 = 本体 + 特性 + 装备
         unit.currentAttack = baseAtk + traitAtkBonus + equipExtraAtk;
-        unit.maxHealth     = Mathf.Max(1, baseHp + traitHpBonus + equipExtraHp);
 
-        if (unit.currentHealth <= 0)
-            unit.currentHealth = unit.maxHealth;
-        if (unit.currentHealth > unit.maxHealth)
-            unit.currentHealth = unit.maxHealth;
+        // 3. 额外生命单独存储（特性 + 装备）
+        int newBonusHp = traitHpBonus + equipExtraHp;
+        unit.bonusHealth = newBonusHp;
 
+        int newMaxHp = GetUnitMaxHp(unit);
+        int delta    = newMaxHp - oldMaxHp;
+
+        // 4. 如果上限被提高了，同步把当前生命也提高同样的差值（类似 +0/+2 装备会顺带加血）
+        if (delta > 0)
+        {
+            unit.currentHealth += delta;
+        }
+
+        // 5. 把当前生命夹在 [0, 新上限] 之间
+        if (unit.currentHealth > newMaxHp)
+            unit.currentHealth = newMaxHp;
+        if (unit.currentHealth < 0)
+            unit.currentHealth = 0;
+
+        // 6. 刷 UI
         if (unit.ui != null)
-            unit.ui.UpdateStats(unit.currentAttack, unit.currentHealth, unit.evolved, unit.equips.Count, unit.isFlying,
-    unit.hasTaunt);
+        {
+            unit.ui.UpdateStats(
+                unit.currentAttack,
+                unit.currentHealth,
+                unit.evolved,
+                unit.equips.Count,
+                unit.isFlying,
+                unit.hasTaunt
+            );
+        }
     }
 
-    // 统一记录单位受到的伤害，用于处理“起飞被打落地”
+
     private void RegisterDamageOnUnit(FieldUnit unit, int damage, bool isEffectDamage)
     {
         if (unit == null || damage <= 0) return;
 
+        // 记录本回合受伤次数
         unit.damageTakenThisTurn++;
 
-        //同一回合受到两次伤害 -> 起飞消失
+        // 同一回合受到两次伤害 -> 起飞消失
         if (unit.isFlying && unit.damageTakenThisTurn >= 2)
         {
             unit.isFlying = false;
             Log($"{unit.name} 在同一回合受到了两次伤害，起飞状态失效。");
 
             if (unit.ui != null)
-            unit.ui.UpdateStats(unit.currentAttack, unit.currentHealth,
-                                unit.evolved, unit.equips.Count,
-                                unit.isFlying, unit.hasTaunt);
+            {
+                unit.ui.UpdateStats(
+                    unit.currentAttack,
+                    unit.currentHealth,
+                    unit.evolved,
+                    unit.equips.Count,
+                    unit.isFlying,
+                    unit.hasTaunt
+                );
+            }
         }
-
     }
-
 
     // 效果伤害（法术、技能等）对单位造成伤害
     private bool ApplyEffectDamageToFieldUnit(FieldUnit unit, int damage)
@@ -873,7 +912,7 @@ public class BattleManager : MonoBehaviour
             }
             else
             {
-                Log($"{unit.name} 受到 {damage} 点效果伤害，剩余 HP：{unit.currentHealth}/{unit.maxHealth}");
+                Log($"{unit.name} 受到 {damage} 点效果伤害，剩余 HP：{unit.currentHealth}/{GetUnitMaxHp(unit)}");
             }   
         }
 
@@ -1226,13 +1265,13 @@ public class BattleManager : MonoBehaviour
             // ① 原来的回血卡逻辑
             case CardEffectType.HealUnit:
             {
-                int healAmount = Mathf.Max(0, card.value);
+                int healAmount = card.value;
                 Log($"你对 {targetUnit.name} 使用了 {card.cardName}，恢复 {healAmount} 点生命。");
 
                 targetUnit.currentHealth += healAmount;
-                if (targetUnit.currentHealth > targetUnit.maxHealth)
-                    targetUnit.currentHealth = targetUnit.maxHealth;
-
+                int maxHp = GetUnitMaxHp(targetUnit);
+                if (targetUnit.currentHealth > maxHp)
+                    targetUnit.currentHealth = maxHp;
                 if (targetUnit.ui != null)
                 {
                     targetUnit.ui.UpdateStats(

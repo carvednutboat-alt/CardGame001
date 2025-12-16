@@ -691,7 +691,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 340, y: -143.92}
+  m_AnchoredPosition: {x: 425.36, y: -143.91997}
   m_SizeDelta: {x: -880, y: -354.62057}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &627833378
@@ -2185,6 +2185,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 03b24e9ead0726247adc6fd8913117ba, type: 2}
   - {fileID: 11400000, guid: fcff5225af38f3c40a317bf4296912d4, type: 2}
   - {fileID: 11400000, guid: 7a1055c940210f24a84c7f3757180169, type: 2}
+  - {fileID: 11400000, guid: 106e1932585721b4987578afbcddd1cf, type: 2}
   handPanel: {fileID: 274415737}
   cardPrefab: {fileID: 8307368059125501416, guid: cdfc37a79dbe7674081524123026931b, type: 3}
   unitPanel: {fileID: 627833377}

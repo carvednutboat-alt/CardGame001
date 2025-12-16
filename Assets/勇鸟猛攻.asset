@@ -22,7 +22,7 @@ MonoBehaviour:
   unitHasTaunt: 0
   buffGrantFlying: 1
   buffFreeAttackNow: 1
-  effectType: 7
+  effectType: 9
   value: 0
   isEquipment: 0
   isFieldEquipment: 0
