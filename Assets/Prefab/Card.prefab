@@ -74,8 +74,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4281479730
-  m_fontColor: {r: 0.19607843, g: 0.19607843, b: 0.19607843, a: 1}
+    rgba: 4281874488
+  m_fontColor: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -269,12 +269,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 5358508629697538304}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 669fbe5f7747ef8488c93d586ca7678e, type: 3}
+  m_Script: {fileID: 11500000, guid: 8534b323a541cbc4e90fe34ddafd6915, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CardUI
   nameText: {fileID: 1125665706242689989}
-  descText: {fileID: 6872650883029680407}
-  extraText: {fileID: 8104515647193898988}
+  descriptionText: {fileID: 6872650883029680407}
+  costText: {fileID: 8104515647193898988}
+  cardImage: {fileID: 0}
   button: {fileID: 6278968120696882445}
 --- !u!1 &5644863870991663266
 GameObject:

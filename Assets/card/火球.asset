@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07b54b35d8588e44d9baa982855cf548, type: 3}
+  m_Name: "\u706B\u7403"
+  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  cardName: "\u706B\u7403"
+  kind: 1
+  color: 0
+  description: 
+  unitAttack: 0
+  unitHealth: 0
+  unitStartsFlying: 0
+  unitHasTaunt: 0
+  buffGrantFlying: 0
+  buffFreeAttackNow: 0
+  effectType: 1
+  value: 5
+  isEquipment: 0
+  isFieldEquipment: 0
+  equipAttackBonus: 0
+  equipHealthBonus: 0
+  shieldEffectDamage: 0
+  shieldEffectDestroy: 0
+  shieldBattleDestroy: 0
+  extraAttackOnFailedKill: 0
