@@ -3,14 +3,21 @@ using UnityEngine;
 public class EnemyManager : MonoBehaviour
 {
     public Unit EnemyUnit;
-    public int AttackDamage = 5;
+    public EnemyUnitUI EnemyUI; // === 新增：敌人的 UI 交互脚本 ===
 
+    public int AttackDamage = 5;
     private BattleManager _bm;
 
     public void Init(BattleManager bm)
     {
         _bm = bm;
         if (EnemyUnit != null) EnemyUnit.ResetHp();
+
+        // === 新增：初始化 UI ===
+        if (EnemyUI != null)
+        {
+            EnemyUI.Init(bm);
+        }
     }
 
     public void TakeDamage(int damage)

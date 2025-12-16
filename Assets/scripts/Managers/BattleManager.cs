@@ -11,55 +11,53 @@ public class BattleManager : MonoBehaviour
     public BattleUIManager UIManager;
 
     [Header("Entities")]
-    public Unit PlayerUnit; // === 新增：引用玩家本体的 Unit 脚本 ===
+    public Unit PlayerUnit;
 
     [Header("UI Refs")]
     public Transform UnitPanel;
 
     [Header("Data Config")]
-    public List<CardData> StartingSpellDeck;   // 法术/装备卡
-    public List<CardData> StartingUnitLibrary; // 怪兽卡
+    public List<CardData> StartingSpellDeck;
+    public List<CardData> StartingUnitLibrary;
 
     // === 内部状态 ===
     public bool IsTargetingMode = false;
     private RuntimeCard _pendingCard;
     private GameObject _pendingCardUIObj;
-    // 先手以及群体沉默下能否进行的攻击处理
+
+    // 控制当前回合是否允许攻击 (先手限制)
     public bool CurrentTurnCanAttack { get; private set; } = true;
-    //进化前后攻击次数的继承
-    private readonly Dictionary<int, bool> _attackStateBackup = new Dictionary<int, bool>();
+
+    // === 新增状态 1：召唤限制 ===
+    public bool HasSummonedThisTurn { get; private set; } = false;
+
+    // === 新增状态 2：攻击选目标模式 ===
+    // 当玩家点击了自己的怪兽，准备攻击时，记录谁要攻击
+    private RuntimeUnit _selectedAttacker;
 
     private void Start()
     {
         UIManager.Log("=== 游戏初始化 ===");
-
-        // 1. 初始化各模块
         UIManager.Init(this);
         CombatManager.Init(this);
         EnemyManager.Init(this);
         UnitManager.Init(this);
         DeckManager.Init(this, StartingSpellDeck);
 
-        // 2. 生成怪兽备战区 (宝可梦式板凳席)
         SpawnUnitBench();
 
-        // 3. === 新增：起手发4张手牌 ===
         UIManager.Log("发放初始手牌 (4张)...");
         DeckManager.DrawCards(4);
 
-        // 4. === 新增：决定先后手 ===
-        bool playerGoesFirst = Random.value > 0.5f; // 50% 概率
-
+        bool playerGoesFirst = Random.value > 0.5f;
         if (playerGoesFirst)
         {
             UIManager.Log("【随机结果】玩家先手！");
-            // 玩家先手：本回合不能攻击，且通常规则下先手第一回合不抽卡
             StartPlayerTurn(canAttack: false, drawCard: false);
         }
         else
         {
             UIManager.Log("【随机结果】敌人先手！");
-            // 敌人先行动
             EnemyTurn(canAttack: false);
         }
     }
@@ -67,7 +65,6 @@ public class BattleManager : MonoBehaviour
     private void SpawnUnitBench()
     {
         if (DeckManager.CardPrefab == null || UnitPanel == null) return;
-
         foreach (var data in StartingUnitLibrary)
         {
             if (data == null) continue;
@@ -77,65 +74,43 @@ public class BattleManager : MonoBehaviour
         }
     }
 
-    // === 修改：增加了参数来控制是否抽牌和是否能攻击 ===
     public void StartPlayerTurn(bool canAttack = true, bool drawCard = true)
     {
-
-        // 记录本回合是否允许攻击（给召唤怪用）
-        CurrentTurnCanAttack = canAttack;
+        CurrentTurnCanAttack = canAttack; // 记录状态
+        HasSummonedThisTurn = false; // === 新增：新回合重置召唤次数 ===
+        _selectedAttacker = null;    // 重置攻击选择
 
         UIManager.Log("--------------------------");
         UIManager.Log(">>> 轮到你的回合 <<<");
 
-        // 1. 抽牌阶段
-        if (drawCard)
-        {
-            DeckManager.DrawCards(1);
-        }
-        else
-        {
-            UIManager.Log("（先手第一回合不抽牌）");
-        }
+        if (drawCard) DeckManager.DrawCards(1);
+        else UIManager.Log("（先手第一回合不抽牌）");
 
-        // 2. 设置攻击状态
-        // 如果是先手第一回合 (canAttack = false)，则全设为不可交互
+        // 设置攻击状态
         UnitManager.SetAllAttackStatus(canAttack);
 
-        if (!canAttack)
-        {
-            UIManager.Log("【提示】先手第一回合无法进行战斗攻击。");
-        }
+        if (!canAttack) UIManager.Log("【提示】先手第一回合无法进行战斗攻击。");
     }
 
-
-    // === 玩家点击结束回合 ===
     public void OnEndTurnButton()
     {
         if (IsTargetingMode) return;
-
-        // 1. 玩家回合结束处理
-        UnitManager.SetAllAttackStatus(false); // 锁住攻击
-
-        // 2. 进入敌人回合
+        // 取消可能的攻击选择
+        _selectedAttacker = null;
+        UnitManager.SetAllAttackStatus(false);
         EnemyTurn(canAttack: true);
     }
 
-    // === 敌人回合逻辑 ===
     private void EnemyTurn(bool canAttack)
     {
         UIManager.Log("--------------------------");
         UIManager.Log(">>> 轮到敌人回合 <<<");
-
-        // 敌人执行AI逻辑
         EnemyManager.ExecuteTurn(canAttack);
-
-        // 敌人回合结束后，立刻开始玩家的下一回合
-        // 此时玩家肯定可以攻击，且可以抽牌
         StartPlayerTurn(canAttack: true, drawCard: true);
     }
 
     // ---------------------------------------------------------
-    // 下面是卡牌点击和交互逻辑 (保持不变)
+    // 卡牌交互逻辑 
     // ---------------------------------------------------------
 
     public void OnCardClicked(CardUI ui, RuntimeCard card)
@@ -146,17 +121,32 @@ public class BattleManager : MonoBehaviour
             return;
         }
 
-        // 1. 单位卡
+        // 如果正在选攻击目标时点了卡牌，取消攻击选择
+        if (_selectedAttacker != null)
+        {
+            UIManager.Log("取消攻击选择。");
+            _selectedAttacker = null;
+        }
+
+        // 1. 单位卡 (增加召唤限制)
         if (card.Data.kind == CardKind.Unit)
         {
+            // === 修改：检查召唤限制 ===
+            if (HasSummonedThisTurn)
+            {
+                UIManager.Log("<color=red>本回合已经召唤过怪兽了！</color>");
+                return;
+            }
+
             if (UnitManager.TrySummonUnit(card))
             {
+                HasSummonedThisTurn = true; // 标记已召唤
                 Destroy(ui.gameObject);
             }
             return;
         }
 
-        // 2. 装备卡
+        // 2. 装备卡 (修改生命周期)
         if (card.Data.isEquipment)
         {
             if (UnitManager.PlayerUnits.Count == 0)
@@ -165,11 +155,13 @@ public class BattleManager : MonoBehaviour
                 return;
             }
             ApplyEquipment(card, UnitManager.PlayerUnits[0]);
-            DeckManager.DiscardCard(card, ui.gameObject);
+            // === 修改：移出手牌，但不进弃牌堆 ===
+            DeckManager.RemoveCardFromHand(card, ui.gameObject);
             return;
         }
 
-        // 3. 需选目标的法术
+        // 3. 需选目标的法术 (Heal / Buff / Evolve)
+        // 这些卡需要先点一下进模式，再点怪兽生效
         if (card.Data.effectType == CardEffectType.HealUnit ||
             card.Data.effectType == CardEffectType.UnitBuff ||
             card.Data.effectType == CardEffectType.FieldEvolve)
@@ -178,105 +170,75 @@ public class BattleManager : MonoBehaviour
             return;
         }
 
-        // 4. 不需要选目标的法术
-        if (card.Data.effectType == CardEffectType.ReviveUnit)
+        // 4. 不需要选目标的法术 (Revive / Draw / AOE)
+        EffectBase effect = EffectFactory.GetEffect(card.Data.effectType);
+        if (effect != null)
         {
-            if (UnitManager.Graveyard.Count == 0)
-            {
-                UIManager.Log("墓地里没有单位，复活卡不会被消耗。");
-                return;  // 直接返回，不执行 PlaySpell / DiscardCard
-            }
+            // 如果条件不满足 (比如墓地为空)，CheckCondition 内部会报Log并返回 false
+            if (!effect.CheckCondition(this, card, null)) return;
+
+            effect.Execute(this, card, null);
+            DeckManager.DiscardCard(card, ui.gameObject);
         }
-        PlaySpell(card, null);
-        DeckManager.DiscardCard(card, ui.gameObject);
+        else
+        {
+            UIManager.Log($"未配置效果: {card.Data.effectType}");
+        }
     }
 
     public void OnFieldUnitClicked(int unitId)
     {
-        // ======================
-        // 1）当前在“选目标用卡牌”的模式
-        // ======================
+        // 1. 施法模式
         if (IsTargetingMode)
         {
             RuntimeUnit target = UnitManager.GetUnitById(unitId);
             if (target == null) return;
 
-            CardData data = _pendingCard.Data;
-            CardEffectType effectType = data.effectType;
-
-            // 单位治疗卡：对满血目标不生效，也不消耗卡
-            if (effectType == CardEffectType.HealUnit)
+            EffectBase effect = EffectFactory.GetEffect(_pendingCard.Data.effectType);
+            if (effect != null)
             {
-                if (target.CurrentHp >= target.MaxHp)
-                {
-                    UIManager.Log($"{target.Name} 已经是满血，治疗卡不会被消耗，你可以选择其他目标。");
-                    ExitTargetingMode();
-                    return;
-                }
-
-                // 真正执行治疗
-                PlaySpell(_pendingCard, target);
+                if (!effect.CheckCondition(this, _pendingCard, target)) { ExitTargetingMode(); return; }
+                effect.Execute(this, _pendingCard, target);
                 DeckManager.DiscardCard(_pendingCard, _pendingCardUIObj);
-                ExitTargetingMode();
-                return;
             }
-
-            // 进化卡：必须是“已经装备了装备卡的单位”才能使用
-            if (effectType == CardEffectType.FieldEvolve)
-            {
-                if (target.Equips == null || target.Equips.Count == 0)
-                {
-                    UIManager.Log("没有装备的单位不能使用进化卡。");
-                    ExitTargetingMode();
-                    return;
-                }
-
-                PlaySpell(_pendingCard, target);
-                DeckManager.DiscardCard(_pendingCard, _pendingCardUIObj);
-                ExitTargetingMode();
-                return;
-            }
-
-            // 通用单位 Buff（起飞 / 追加攻击等）
-            if (effectType == CardEffectType.UnitBuff)
-            {
-                PlaySpell(_pendingCard, target);
-                DeckManager.DiscardCard(_pendingCard, _pendingCardUIObj);
-                ExitTargetingMode();
-                return;
-            }
-
-            // 兜底：如果以后误把别的效果类型当成“选目标卡”，这里给个提示，不吃牌
-            UIManager.Log($"卡牌 {data.cardName} 的效果类型 {effectType} 暂不支持在选目标模式下使用。");
             ExitTargetingMode();
             return;
         }
 
-        // ======================
-        // 2）非选目标模式：点击场上单位 = 尝试攻击
-        // ======================
+        // 2. 攻击选择模式 (新逻辑)
         RuntimeUnit unit = UnitManager.GetUnitById(unitId);
-        if (unit == null) return;
-
-        // 先检查这个单位是否有攻击权
-        if (!unit.CanAttack)
+        if (unit != null)
         {
-            UIManager.Log($"{unit.Name} 本回合不能攻击。");
-            return;
-        }
+            // 检查是否能攻击
+            if (!CurrentTurnCanAttack) { UIManager.Log("本回合无法进行攻击。"); return; }
+            if (!unit.CanAttack) { UIManager.Log($"{unit.Name} 本回合已经攻击过或无法行动。"); return; }
 
-        // 正常进行攻击流程
-        CombatManager.ProcessUnitAttack(unit, consumeAction: true);
+            // 选中这个单位作为攻击者
+            _selectedAttacker = unit;
+            UIManager.Log($"已选择 {unit.Name}，<color=yellow>请点击敌人进行攻击！</color>");
+        }
     }
 
-
-    private void PlaySpell(RuntimeCard card, RuntimeUnit target)
+    // === 新增：点击了敌人 ===
+    // 由 EnemyUnitUI 调用
+    public void OnEnemyClicked()
     {
-        EffectBase effect = EffectFactory.GetEffect(card.Data.effectType);
-        if (effect != null)
-            effect.Execute(this, card, target);
+        // 1. 如果处于施法模式，也许未来会有指向敌人的法术，暂时先不管
+        if (IsTargetingMode) return;
+
+        // 2. 攻击结算
+        if (_selectedAttacker != null)
+        {
+            // 执行攻击
+            CombatManager.ProcessUnitAttack(_selectedAttacker, consumeAction: true);
+
+            // 攻击完重置
+            _selectedAttacker = null;
+        }
         else
-            UIManager.Log($"未配置效果: {card.Data.effectType}");
+        {
+            UIManager.Log("请先选择我方怪兽，再点击敌人进行攻击。");
+        }
     }
 
     private void ApplyEquipment(RuntimeCard card, RuntimeUnit target)
@@ -286,75 +248,31 @@ public class BattleManager : MonoBehaviour
         UIManager.Log($"{target.Name} 装备了 {card.Data.cardName}");
     }
 
-    public void EnterTargetingMode(RuntimeCard card, GameObject cardUI)
-{
-    IsTargetingMode   = true;
-    _pendingCard      = card;
-    _pendingCardUIObj = cardUI;
-
-    _attackStateBackup.Clear();
-
-    // 只让按钮亮起，备份原本的 CanAttack，不修改 CanAttack 本身
-    foreach (var unit in UnitManager.PlayerUnits)
+    private void EnterTargetingMode(RuntimeCard card, GameObject uiObj)
     {
-        _attackStateBackup[unit.Id] = unit.CanAttack;
-
-        if (unit.UI != null)
-        {
-            // 为了选目标，暂时让所有单位都“可以点击”
-            unit.UI.SetButtonInteractable(true);
-        }
+        IsTargetingMode = true;
+        _pendingCard = card;
+        _pendingCardUIObj = uiObj;
+        _selectedAttacker = null; // 施法时取消攻击选择
+        UIManager.Log($"请选择 {card.Data.cardName} 的目标...");
+        UnitManager.EnableTargetingSelection();
     }
-
-    UIManager.Log($"请选择一个单位来使用 {card.Data.cardName} ...");
-}
 
     private void ExitTargetingMode()
     {
-        IsTargetingMode   = false;
-        _pendingCard      = null;
+        IsTargetingMode = false;
+        _pendingCard = null;
         _pendingCardUIObj = null;
-
-        // 恢复所有单位原本的 CanAttack 状态 + 按钮交互
-        // 恢复正确的攻击状态：
-        // 这里有一个小细节：如果是先手第一回合选目标，取消后应该恢复为不能攻击
-        // 但为了简单，我们假设选目标时已经是“可以攻击”的回合。
-        // 如果想严谨，需要记录 CurrentTurnCanAttack 状态。
-        // 暂时简单处理：恢复所有存活单位的可交互性
-        foreach (var unit in UnitManager.PlayerUnits)
-        {
-            bool canAttack;
-            if (_attackStateBackup.TryGetValue(unit.Id, out canAttack))
-            {
-                unit.CanAttack = canAttack;
-            }
-
-            if (unit.UI != null)
-            {
-                unit.UI.SetButtonInteractable(unit.CanAttack);
-            }
-        }
-
-        _attackStateBackup.Clear();
+        UnitManager.RestoreStateAfterTargeting();
     }
 
     private void CancelTargeting()
     {
         if (!IsTargetingMode) return;
-
         UIManager.Log("已取消施法。");
         ExitTargetingMode();
     }
 
-    public void OnGameWin()
-    {
-        UIManager.Log("战斗胜利！");
-    }
-
-    public void OnPlayerDefeated()
-    {
-        UIManager.Log("【失败】你的生命值归零了...");
-        // 这里可以加 禁用按钮 / 弹出失败面板 的逻辑
-        UnitManager.SetAllAttackStatus(false);
-    }
+    public void OnGameWin() => UIManager.Log("战斗胜利！");
+    public void OnPlayerDefeated() => UIManager.Log("【失败】你的生命值归零了...");
 }
