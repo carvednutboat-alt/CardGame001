@@ -2,12 +2,13 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
+using TMPro;
 
 public class EventSceneManager : MonoBehaviour
 {
     [Header("UI Refs")]
-    public Text TitleText;
-    public Text DescText;
+    public TMP_Text TitleText;
+    public TMP_Text DescText;
     public Image EventImage;
     public Transform OptionsContainer; // 按钮的父节点
     public GameObject OptionButtonPrefab; // 按钮预制体
@@ -45,8 +46,8 @@ public class EventSceneManager : MonoBehaviour
         foreach (var opt in profile.Options)
         {
             GameObject btnObj = Instantiate(OptionButtonPrefab, OptionsContainer);
-            // 假设按钮下有个 Text 组件
-            btnObj.GetComponentInChildren<Text>().text = opt.OptionText;
+            var btnText = btnObj.GetComponentInChildren<TMP_Text>();
+            if (btnText != null) btnText.text = opt.OptionText;
 
             Button btn = btnObj.GetComponent<Button>();
             btn.onClick.AddListener(() => OnOptionSelected(opt));

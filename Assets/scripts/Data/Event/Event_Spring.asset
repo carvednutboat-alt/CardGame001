@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 644f9c2a4a6fc2b46969f66ea6781c3a, type: 3}
+  m_Name: Event_Spring
+  m_EditorClassIdentifier: Assembly-CSharp::EventProfile
+  EventID: Spring_01
+  Title: "\u795E\u79D8\u7684\u6CC9\u6C34"
+  Description: "\u4F60\u8D70\u5728\u68EE\u6797\u6DF1\u5904\uFF0C\u53D1\u73B0\u4E86\u4E00\u53E3\u95EA\u95EA\u53D1\u5149\u7684\u6CC9\u6C34\u3002\u6C34\u770B\u8D77\u6765\u5F88\u6E05\u6F88\uFF0C\u4F60\u89C9\u5F97\u53E3\u6E34\u96BE\u8010\u3002"
+  EventImage: {fileID: 0}
+  Options:
+  - OptionText: "[\u559D\u4E00\u53E3] \u6062\u590D 20 \u70B9\u751F\u547D"
+    ResultText: "\u6CC9\u6C34\u7518\u751C\u53EF\u53E3\uFF0C\u4F60\u7684\u4F24\u53E3\u6108\u5408\u4E86\uFF01"
+    Effect: 1
+    Value: 20
+    TargetCard: {fileID: 0}
+  - OptionText: "[\u88C5\u6EE1\u6C34\u74F6] \u83B7\u5F97\u4E00\u5F20\u201C\u5347\u9636\u201D\u5361"
+    ResultText: "\u4F60\u5C0F\u5FC3\u7FFC\u7FFC\u5730\u88C5\u4E86\u4E00\u74F6\u6C34\u5E26\u5728\u8EAB\u4E0A\u3002"
+    Effect: 4
+    Value: 0
+    TargetCard: {fileID: 11400000, guid: c5a954ab137bf8a49bb025320694abf8, type: 2}
