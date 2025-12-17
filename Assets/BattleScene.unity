@@ -3304,7 +3304,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyManager
   EnemyUnit: {fileID: 837258601}
   EnemyUI: {fileID: 837258605}
-  AttackDamage: 5
+  AttackDamage: 3
+  StartingDeck:
+  - {fileID: 11400000, guid: ef4f8d353cba3b841b6ee747fd2325a0, type: 2}
+  - {fileID: 11400000, guid: dfca7d1682d405f4ebe8974fae4fe3a7, type: 2}
+  EnemyDeck: []
+  UseRandomOrder: 1
+  CardsUsedThisBattle: []
 --- !u!1 &1906188991
 GameObject:
   m_ObjectHideFlags: 0
