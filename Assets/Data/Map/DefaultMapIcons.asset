@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eeeafb58a8fe6ce4685d8a66435bb8e3, type: 3}
+  m_Name: DefaultMapIcons
+  m_EditorClassIdentifier: Assembly-CSharp::MapIconsConfig
+  MinorEnemyIcon: {fileID: 21300000, guid: e1fbb7f164f308246b9a817acdbb2871, type: 3}
+  EliteEnemyIcon: {fileID: 21300000, guid: e1fbb7f164f308246b9a817acdbb2871, type: 3}
+  BossIcon: {fileID: 21300000, guid: e1fbb7f164f308246b9a817acdbb2871, type: 3}
+  EventIcon: {fileID: 21300000, guid: d06bd1252f7d79a449075c334aa39b97, type: 3}
+  RestIcon: {fileID: 21300000, guid: 8687ec997a2b926469703090c89b88be, type: 3}
+  ShopIcon: {fileID: 21300000, guid: 7a02ed0d17f73b1469e7fe5261d276f1, type: 3}
+  TreasureIcon: {fileID: 21300000, guid: c387f5addbf5cc3479598f99077be331, type: 3}

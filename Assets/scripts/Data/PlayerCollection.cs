@@ -28,22 +28,41 @@ public class PlayerCollection : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
-    // ==== 工具方法：用于战利品、构筑界面调用 ====
+    // ==== 修改后的工具方法 ====
 
-    public void AddCardToCollection(CardData card)
+    /// <summary>
+    /// 添加卡牌到收藏
+    /// </summary>
+    /// <param name="card">卡牌数据</param>
+    /// <param name="allowDuplicates">是否允许重复？默认 true (允许)。如果填 false，已有同名卡时将不会添加。</param>
+    public void AddCardToCollection(CardData card, bool allowDuplicates = true)
     {
         if (card == null) return;
 
-        if (card.kind == CardKind.Unit)
+        // 1. 确定目标列表
+        List<CardData> targetList;
+        if (card.kind == CardKind.Unit) // 假设 CardData 有 kind 字段
         {
-            if (!OwnedUnits.Contains(card))
-                OwnedUnits.Add(card);
+            targetList = OwnedUnits;
         }
         else
         {
-            if (!OwnedCards.Contains(card))
-                OwnedCards.Add(card);
+            targetList = OwnedCards;
         }
+
+        // 2. 检查重复逻辑
+        if (!allowDuplicates)
+        {
+            // 如果不允许重复，且列表里已经有了
+            if (targetList.Contains(card))
+            {
+                Debug.Log($"[PlayerCollection] 已拥有 {card.cardName}，跳过添加 (Unique Mode)。");
+                return;
+            }
+        }
+
+        // 3. 添加
+        targetList.Add(card);
     }
 
     public void SetCurrentDeck(List<CardData> units, List<CardData> deck)

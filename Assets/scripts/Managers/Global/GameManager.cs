@@ -78,7 +78,7 @@ public class GameManager : MonoBehaviour
         {
             // 随机一个事件 (实际项目中应该从配置表随机)
             // 这里为了演示，你需要自己Load一个资源或者在Inspector配置一个列表
-            CurrentEventProfile = Resources.Load<EventProfile>("Events/Event_Fountain");
+            CurrentEventProfile = Resources.Load<EventProfile>("Events/Event_Spring");
             SceneManager.LoadScene("EventScene");
         }
         else
@@ -101,6 +101,24 @@ public class GameManager : MonoBehaviour
             var nextNode = GetNode(nextCoord);
             if (nextNode != null) nextNode.Status = NodeStatus.Attainable;
         }
+
+        // 3. 【新增修复】 锁定同层的所有其他节点
+        // ==========================================
+        // 获取当前层的所有节点
+        if (CurrentNode.Coordinate.y < CurrentMap.Layers.Count)
+        {
+            var currentLayer = CurrentMap.Layers[CurrentNode.Coordinate.y];
+
+            foreach (var node in currentLayer)
+            {
+                // 如果这个节点不是我刚才打过的那个，并且它是可达的，就把它锁住
+                if (node != CurrentNode && node.Status == NodeStatus.Attainable)
+                {
+                    node.Status = NodeStatus.Locked;
+                }
+            }
+        }
+        // ==========================================
 
         // 3. 回到地图
         SceneManager.LoadScene("MapScene");
