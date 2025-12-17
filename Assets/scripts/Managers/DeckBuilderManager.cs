@@ -209,7 +209,7 @@ public class DeckBuilderManager : MonoBehaviour
             return;
         }
 
-        if (deckCount < 20 || deckCount > 40)
+        if (deckCount < 5 || deckCount > 40)
         {
             Debug.LogWarning($"当前卡组为 {deckCount} 张，不在 20–40 范围内。");
             if (DeckInfoText != null)

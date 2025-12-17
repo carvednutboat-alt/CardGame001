@@ -20,6 +20,10 @@ public class BattleManager : MonoBehaviour
     public List<CardData> StartingSpellDeck;
     public List<CardData> StartingUnitLibrary;
 
+    [Header("Player Status")]
+    public int PlayerCurrentHP = 80;
+    public int PlayerMaxHP = 80;
+
     // === 内部状态 ===
     public bool IsTargetingMode = false;
     private RuntimeCard _pendingCard;
@@ -42,31 +46,52 @@ public class BattleManager : MonoBehaviour
         CombatManager.Init(this);
         EnemyManager.Init(this);
         UnitManager.Init(this);
-        
-        // ========= 新增：决定本局用哪套卡组 / Unit =========
-        List<CardData> spellDeckToUse = StartingSpellDeck;
-        List<CardData> unitLibToUse   = StartingUnitLibrary;
 
-        var pc = PlayerCollection.Instance;
-        if (pc != null)
+        // --- 修改开始：对接 GameManager ---
+        List<CardData> spellsForHand = new List<CardData>();
+        List<CardData> unitsForBench = new List<CardData>();
+
+        // 2. 从全局获取所有卡牌
+        if (GameManager.Instance != null)
         {
-            // 如果玩家在构筑界面已经选好了卡组，就用玩家的
-            if (pc.CurrentDeck != null && pc.CurrentDeck.Count > 0)
+            // 分类：法术进牌库，随从进备战席
+            foreach (var card in GameManager.Instance.MasterDeck)
             {
-                spellDeckToUse = pc.CurrentDeck;
+                if (card.kind == CardKind.Unit) // 假设你的 CardData 有 kind 字段
+                {
+                    unitsForBench.Add(card);
+                }
+                else
+                {
+                    spellsForHand.Add(card);
+                }
             }
 
-            if (pc.CurrentUnits != null && pc.CurrentUnits.Count > 0)
+            // --- 新增：同步玩家血量 ---
+            if (GameManager.Instance != null && PlayerUnit != null)
             {
-                unitLibToUse = pc.CurrentUnits;
+                // 从全局管理器读取血量，赋值给场上的玩家单位
+                PlayerUnit.InitData(GameManager.Instance.PlayerCurrentHP, GameManager.Instance.PlayerMaxHP);
+                UIManager.Log($"玩家血量已同步: {PlayerUnit.CurrentHp}/{PlayerUnit.maxHp}");
+            }
+            else if (PlayerUnit != null)
+            {
+                // 如果没有GameManager (单独调试战斗场景)，默认满血
+                PlayerUnit.InitData(PlayerUnit.maxHp, PlayerUnit.maxHp);
             }
         }
+        else
+        {
+            // 调试模式：使用 BattleManager 面板上的默认配置
+            spellsForHand = StartingSpellDeck;
+            unitsForBench = StartingUnitLibrary;
+        }
 
-        // 用最终决定的 spellDeckToUse 初始化牌库
-        DeckManager.Init(this, spellDeckToUse);
+        // 3. 初始化模块
+        DeckManager.Init(this, spellsForHand); // 初始化法术牌库
 
-        // 用最终决定的 unitLibToUse 在 bench 面板生成 Unit 卡
-        SpawnUnitBench(unitLibToUse);
+        // 4. 初始化随从 (修复了你的bug：现在是动态生成的)
+        SpawnUnitBench(unitsForBench);
 
         UIManager.Log("发放初始手牌 (4张)...");
         DeckManager.DrawCards(4);
@@ -84,20 +109,17 @@ public class BattleManager : MonoBehaviour
         }
     }
 
-    private void SpawnUnitBench(List<CardData> unitSource)
+    // 修改 SpawnUnitBench 接受参数
+    private void SpawnUnitBench(List<CardData> units)
     {
+        // 清理旧的（如果是重用场景）
+        foreach (Transform child in UnitPanel) Destroy(child.gameObject);
+
         if (DeckManager.CardPrefab == null || UnitPanel == null) return;
 
-        // 清空原有的 bench UI（避免重复进入场景时叠加）
-        foreach (Transform child in UnitPanel)
-        {
-            Destroy(child.gameObject);
-        }
-
-        foreach (var data in unitSource)
+        foreach (var data in units)
         {
             if (data == null) continue;
-
             RuntimeCard runCard = new RuntimeCard(data);
             CardUI ui = Instantiate(DeckManager.CardPrefab, UnitPanel);
             ui.Init(runCard, this);
@@ -303,6 +325,52 @@ public class BattleManager : MonoBehaviour
         ExitTargetingMode();
     }
 
-    public void OnGameWin() => UIManager.Log("战斗胜利！");
-    public void OnPlayerDefeated() => UIManager.Log("【失败】你的生命值归零了...");
+    public void OnGameWin()
+    {
+        UIManager.Log("战斗胜利！");
+
+        // --- 新增：保存血量回全局 ---
+        if (GameManager.Instance != null && PlayerUnit != null)
+        {
+            GameManager.Instance.PlayerCurrentHP = PlayerUnit.CurrentHp;
+            // 如果你有逻辑能在战斗中提升最大生命值，也要保存 MaxHP
+            // GameManager.Instance.PlayerMaxHP = PlayerUnit.maxHp; 
+        }
+        // -------------------------
+
+        // 延迟回地图
+        if (GameManager.Instance != null)
+        {
+            Invoke(nameof(ReturnToMap), 2.0f);
+        }
+    }
+
+    void ReturnToMap()
+    {
+        GameManager.Instance.OnNodeCompleted();
+    }
+    public void OnPlayerDefeated()
+    {
+        UIManager.Log("<color=red>【失败】你的生命值归零了...</color>");
+
+        // 1. 锁定状态，禁止任何操作
+        CurrentTurnCanAttack = false;
+        UnitManager.SetAllAttackStatus(false);
+        // 如果有“结束回合”按钮，最好也禁用掉（可以通过 UIManager 暴露接口来做）
+
+        // 2. 停止所有协程（防止敌人继续攻击或者动画继续播放）
+        StopAllCoroutines();
+        EnemyManager.StopAllCoroutines(); // 如果 EnemyManager 也有协程
+
+        // 3. 显示失败 UI
+        if (UIManager != null)
+        {
+            UIManager.ShowGameOver();
+        }
+    }
+
+    void FailGame()
+    {
+        GameManager.Instance.OnRunFailed();
+    }
 }

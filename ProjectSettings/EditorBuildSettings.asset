@@ -6,8 +6,17 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/SampleScene.unity
-    guid: 99c9720ab356a0642a771bea13969a05
+    path: Assets/MainEntry.unity
+    guid: 9edaa18b50a58c14097ae73ade9d845e
+  - enabled: 1
+    path: Assets/MapScene.unity
+    guid: 9650958a131d9ca478eeb3deaa51f052
+  - enabled: 1
+    path: Assets/BattleScene.unity
+    guid: 9b23af290a3972c4ca1c1d7823ece8c7
+  - enabled: 1
+    path: Assets/DeckBuilderScene.unity
+    guid: 0ea9055833dd16644bafaa3687d127eb
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0
