@@ -201,56 +201,58 @@ Target Card: (留空)。
 
 ## 📂 项目文件结构与功能标注
 
+```
 Assets/scripts/
 │
-├── 📂 Data/ (数据定义与持久化)
-│ │
-│ ├── 📂 Event/
-│ │ └── 📄 EventProfile.cs [配置] 剧情事件的数据模版（标题/文案/选项/奖励）
-│ │
-│ ├── 📂 Map/
-│ │ ├── 📄 MapConfig.cs [配置] 定义地图层数、节点密度
-│ │ ├── 📄 MapData.cs [数据] 定义节点(MapNode)结构、连线关系
-│ │ └── 📄 MapIconsConfig.cs [配置] 定义不同类型节点对应的 Sprite 图标
-│ │
-│ ├── 📄 CardData.cs [配置] 卡牌/随从的基础属性 (ScriptableObject)
-│ ├── 📄 PlayerCollection.cs [单例] 玩家库存管理 (已拥有卡牌 vs 当前构筑卡牌)
-│ ├── 📄 RuntimeCard.cs [逻辑] 战斗中的卡牌实例 (处理消耗/临时状态)
-│ └── 📄 RuntimeUnit.cs [逻辑] 战斗中的单位实例 (处理 Buff/实时血量)
+├── 📂 Data/  (数据定义与持久化)
+│   │
+│   ├── 📂 Event/
+│   │   └── 📄 EventProfile.cs        [配置] 剧情事件的数据模版（标题/文案/选项/奖励）
+│   │
+│   ├── 📂 Map/
+│   │   ├── 📄 MapConfig.cs           [配置] 定义地图层数、节点密度
+│   │   ├── 📄 MapData.cs             [数据] 定义节点(MapNode)结构、连线关系
+│   │   └── 📄 MapIconsConfig.cs      [配置] 定义不同类型节点对应的 Sprite 图标
+│   │
+│   ├── 📄 CardData.cs                [配置] 卡牌/随从的基础属性 (ScriptableObject)
+│   ├── 📄 PlayerCollection.cs        [单例] 玩家库存管理 (已拥有卡牌 vs 当前构筑卡牌)
+│   ├── 📄 RuntimeCard.cs             [逻辑] 战斗中的卡牌实例 (处理消耗/临时状态)
+│   └── 📄 RuntimeUnit.cs             [逻辑] 战斗中的单位实例 (处理Buff/实时血量)
 │
-├── 📂 Effects/ (卡牌效果 - 命令模式)
-│ │
-│ ├── 📄 EffectBase.cs [基类] 所有卡牌效果的父类
-│ ├── 📄 EffectFactory.cs [工厂] 根据枚举生成具体效果实例
-│ ├── 📄 EffectLogic.cs [工具] 具体的数值运算逻辑库
-│ ├── 📄 DamageEffect.cs [实现] 造成伤害
-│ ├── 📄 HealEffect.cs [实现] 治疗单位/玩家
-│ └── 📄 BuffEffect.cs [实现] 施加状态效果
+├── 📂 Effects/  (卡牌效果 - 命令模式)
+│   │
+│   ├── 📄 EffectBase.cs              [基类] 所有卡牌效果的父类
+│   ├── 📄 EffectFactory.cs           [工厂] 根据枚举生成具体效果实例
+│   ├── 📄 EffectLogic.cs             [工具] 具体的数值运算逻辑库
+│   ├── 📄 DamageEffect.cs            [实现] 造成伤害
+│   ├── 📄 HealEffect.cs              [实现] 治疗单位/玩家
+│   └── 📄 BuffEffect.cs              [实现] 施加状态效果
 │
-├── 📂 Managers/ (游戏逻辑控制器)
-│ │
-│ ├── 📂 Global/ (全局跨场景)
-│ │ ├── 📄 GameManager.cs [核心单例] 总控：血量/总卡组/地图状态/场景切换
-│ │ ├── 📄 MapGenerator.cs [算法] 纯逻辑：生成双向连通的网状地图
-│ │ └── 📄 EventSceneManager.cs [场景控] 剧情场景：解析 EventProfile 并生成 UI
-│ │
-│ ├── 📄 BattleManager.cs [场景控] 战斗场景总控：流程/回合/胜负判定
-│ ├── 📄 DeckBuilderManager.cs [场景控] 构筑场景总控：UI 交互/数据同步
-│ ├── 📄 CombatManager.cs [逻辑] 伤害结算与攻击流程处理
-│ ├── 📄 DeckManager.cs [逻辑] 战斗内牌堆管理 (抽牌/弃牌/洗牌)
-│ ├── 📄 EnemyManager.cs [逻辑] 敌人生成与 AI 行为控制
-│ ├── 📄 UnitManager.cs [逻辑] 场上单位的槽位管理与点击交互
-│ └── 📄 Unit.cs [组件] 挂载于物体：维护血量数值与血条显示
+├── 📂 Managers/  (游戏逻辑控制器)
+│   │
+│   ├── 📂 Global/  (全局跨场景)
+│   │   ├── 📄 GameManager.cs         [核心单例] 总控：血量/总卡组/地图状态/场景切换
+│   │   ├── 📄 MapGenerator.cs        [算法] 纯逻辑：生成双向连通的网状地图
+│   │   └── 📄 EventSceneManager.cs   [场景控] 剧情场景：解析EventProfile并生成UI
+│   │
+│   ├── 📄 BattleManager.cs           [场景控] 战斗场景总控：流程/回合/胜负判定
+│   ├── 📄 DeckBuilderManager.cs      [场景控] 构筑场景总控：UI交互/数据同步
+│   ├── 📄 CombatManager.cs           [逻辑] 伤害结算与攻击流程处理
+│   ├── 📄 DeckManager.cs             [逻辑] 战斗内牌堆管理 (抽牌/弃牌/洗牌)
+│   ├── 📄 EnemyManager.cs            [逻辑] 敌人生成与AI行为控制
+│   ├── 📄 UnitManager.cs             [逻辑] 场上单位的槽位管理与点击交互
+│   └── 📄 Unit.cs                    [组件] 挂载于物体：维护血量数值与血条显示
 │
-└── 📂 UI/ (界面表现与交互)
-│
-├── 📂 Map/
-│ ├── 📄 MapSceneManager.cs [生成] 实例化地图节点 UI、计算高度、画线
-│ ├── 📄 MapNodeUI.cs [组件] 单个节点的交互、图标更换、呼吸动画
-│ └── 📄 MapUIController.cs [交互] 地图界面的辅助按钮 (如打开卡组构筑)
-│
-├── 📄 BattleUIManager.cs [组件] 战斗日志(Log)、回合按钮、失败面板控制
-├── 📄 CardUI.cs [组件] 手牌的显示、拖拽、点击事件
-├── 📄 FieldUnitUI.cs [组件] 我方随从的头像与状态显示
-├── 📄 EnemyUnitUI.cs [组件] 敌方单位的意图显示与点击检测
-└── 📄 StartGameDebug.cs [调试] 快速启动游戏并初始化全局数据
+└── 📂 UI/  (界面表现与交互)
+    │
+    ├── 📂 Map/
+    │   ├── 📄 MapSceneManager.cs     [生成] 实例化地图节点UI、计算高度、画线
+    │   ├── 📄 MapNodeUI.cs           [组件] 单个节点的交互、图标更换、呼吸动画
+    │   └── 📄 MapUIController.cs     [交互] 地图界面的辅助按钮 (如打开卡组构筑)
+    │
+    ├── 📄 BattleUIManager.cs         [组件] 战斗日志(Log)、回合按钮、失败面板控制
+    ├── 📄 CardUI.cs                  [组件] 手牌的显示、拖拽、点击事件
+    ├── 📄 FieldUnitUI.cs             [组件] 我方随从的头像与状态显示
+    ├── 📄 EnemyUnitUI.cs             [组件] 敌方单位的意图显示与点击检测
+    └── 📄 StartGameDebug.cs          [调试] 快速启动游戏并初始化全局数据
+```
