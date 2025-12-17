@@ -42,9 +42,31 @@ public class BattleManager : MonoBehaviour
         CombatManager.Init(this);
         EnemyManager.Init(this);
         UnitManager.Init(this);
-        DeckManager.Init(this, StartingSpellDeck);
+        
+        // ========= 新增：决定本局用哪套卡组 / Unit =========
+        List<CardData> spellDeckToUse = StartingSpellDeck;
+        List<CardData> unitLibToUse   = StartingUnitLibrary;
 
-        SpawnUnitBench();
+        var pc = PlayerCollection.Instance;
+        if (pc != null)
+        {
+            // 如果玩家在构筑界面已经选好了卡组，就用玩家的
+            if (pc.CurrentDeck != null && pc.CurrentDeck.Count > 0)
+            {
+                spellDeckToUse = pc.CurrentDeck;
+            }
+
+            if (pc.CurrentUnits != null && pc.CurrentUnits.Count > 0)
+            {
+                unitLibToUse = pc.CurrentUnits;
+            }
+        }
+
+        // 用最终决定的 spellDeckToUse 初始化牌库
+        DeckManager.Init(this, spellDeckToUse);
+
+        // 用最终决定的 unitLibToUse 在 bench 面板生成 Unit 卡
+        SpawnUnitBench(unitLibToUse);
 
         UIManager.Log("发放初始手牌 (4张)...");
         DeckManager.DrawCards(4);
@@ -62,12 +84,20 @@ public class BattleManager : MonoBehaviour
         }
     }
 
-    private void SpawnUnitBench()
+    private void SpawnUnitBench(List<CardData> unitSource)
     {
         if (DeckManager.CardPrefab == null || UnitPanel == null) return;
-        foreach (var data in StartingUnitLibrary)
+
+        // 清空原有的 bench UI（避免重复进入场景时叠加）
+        foreach (Transform child in UnitPanel)
+        {
+            Destroy(child.gameObject);
+        }
+
+        foreach (var data in unitSource)
         {
             if (data == null) continue;
+
             RuntimeCard runCard = new RuntimeCard(data);
             CardUI ui = Instantiate(DeckManager.CardPrefab, UnitPanel);
             ui.Init(runCard, this);
