@@ -10,24 +10,25 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 07b54b35d8588e44d9baa982855cf548, type: 3}
-  m_Name: "\u5F80\u65E5\u79CD\u79CD"
+  m_Name: "\u53F2\u83B1\u59C6"
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  cardName: "\u5F80\u65E5\u79CD\u79CD"
-  kind: 1
+  cardName: "\u53F2\u83B1\u59C6"
+  kind: 0
   color: 0
-  description: "\u5F80\u65E5\u79CD\u79CD\u2026\u2026\u4F60\u8BF4\u7684\u53EF\u662F\u5F80\u65E5\u79CD\u79CD\uFF1F"
-  unitAttack: 0
-  unitHealth: 0
+  description: 
+  unitAttack: 1
+  unitHealth: 1
   unitStartsFlying: 0
   unitHasTaunt: 0
   buffGrantFlying: 0
   buffFreeAttackNow: 0
-  effectType: 8
-  value: 5
+  effectType: 0
+  value: 0
   isEquipment: 0
   isFieldEquipment: 0
-  EnemyMoves: []
-  targetType: 1
+  EnemyMoves:
+  - {fileID: 11400000, guid: dfca7d1682d405f4ebe8974fae4fe3a7, type: 2}
+  targetType: 0
   equipAttackBonus: 0
   equipHealthBonus: 0
   shieldEffectDamage: 0

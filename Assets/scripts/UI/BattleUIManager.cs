@@ -137,4 +137,43 @@ public class BattleUIManager : MonoBehaviour
             Debug.LogError("GameOverPanel 还没有赋值！请在 Inspector 里拖拽。");
         }
     }
+
+    // === 新增：选择模式 ===
+    // 参数 onSelect 是一个回调函数，告诉 BattleManager 选了哪张卡
+    public void ShowGraveyardSelection(List<RuntimeCard> graveyard, System.Action<RuntimeCard> onSelect)
+    {
+        if (GraveyardPanel == null) return;
+
+        // 1. 打开面板
+        GraveyardPanel.SetActive(true);
+
+        // 2. 清空旧内容
+        foreach (Transform child in GraveyardContent) Destroy(child.gameObject);
+
+        // 3. 生成卡牌
+        foreach (var card in graveyard)
+        {
+            CardUI ui = Instantiate(CardPrefab, GraveyardContent);
+
+            // 初始化显示：传 null 给 manager，防止触发原本的手牌点击逻辑
+            ui.Init(card, null);
+
+            // 4. 绑定选择事件
+            if (ui.button != null)
+            {
+                // 确保它是可点的
+                ui.button.interactable = true;
+
+                // 清除旧事件，绑定新事件
+                ui.button.onClick.RemoveAllListeners();
+                ui.button.onClick.AddListener(() =>
+                {
+                    // 触发回调
+                    onSelect?.Invoke(card);
+                    // 选完自动关闭
+                    HideGraveyard();
+                });
+            }
+        }
+    }
 }

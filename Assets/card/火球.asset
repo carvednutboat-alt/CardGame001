@@ -26,6 +26,8 @@ MonoBehaviour:
   value: 5
   isEquipment: 0
   isFieldEquipment: 0
+  EnemyMoves: []
+  targetType: 2
   equipAttackBonus: 0
   equipHealthBonus: 0
   shieldEffectDamage: 0

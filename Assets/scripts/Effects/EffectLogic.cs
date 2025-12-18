@@ -1,13 +1,24 @@
 using UnityEngine;
+using System.Collections.Generic;
 
-// 1. 对敌人造成伤害
+// 1. 对敌人造成伤害 (单体)
 public class DamageEnemyEffect : EffectBase
 {
     public override void Execute(BattleManager bm, RuntimeCard card, RuntimeUnit targetUnit)
     {
+        // 必须要有目标才能造成单体伤害
+        if (targetUnit == null)
+        {
+            bm.UIManager.Log("没有指定伤害目标！");
+            return;
+        }
+
         int dmg = card.Data.value;
-        bm.EnemyManager.TakeDamage(dmg);
-        bm.UIManager.Log($"对敌人造成 {dmg} 点伤害！");
+
+        // 使用 CombatManager 的通用伤害接口
+        bm.CombatManager.ApplyDamage(targetUnit, dmg);
+
+        bm.UIManager.Log($"对 {targetUnit.Name} 造成 {dmg} 点法术伤害！");
     }
 }
 
@@ -22,7 +33,10 @@ public class HealUnitEffect : EffectBase
         // 逻辑：直接加血，然后Clamp
         targetUnit.CurrentHp = Mathf.Min(targetUnit.CurrentHp + heal, targetUnit.MaxHp);
 
-        bm.UnitManager.RefreshUnitUI(targetUnit);
+        // 刷新 UI (兼容玩家和敌人)
+        if (targetUnit.UI != null) targetUnit.UI.UpdateState();
+        else if (targetUnit.EnemyUI != null) targetUnit.EnemyUI.UpdateHP();
+
         bm.UIManager.Log($"{targetUnit.Name} 恢复了 {heal} 点生命。");
     }
 
@@ -70,12 +84,27 @@ public class UnitBuffEffect : EffectBase
         // 立刻攻击 (万具武效果)
         if (data.buffFreeAttackNow)
         {
-            bm.UIManager.Log($"{targetUnit.Name} 发动了额外攻击！");
-            // 调用战斗管理器让单位攻击，不消耗行动机会
-            bm.CombatManager.ProcessUnitAttack(targetUnit, consumeAction: false);
+            // 逻辑修正：因为这是给己方单位加Buff，但我们并没有指定要攻击哪个敌人。
+            // 所以这里设定为：随机攻击一个前排敌人。
+            if (bm.EnemyManager.ActiveEnemies.Count > 0)
+            {
+                // 随机选一个敌人
+                int idx = Random.Range(0, bm.EnemyManager.ActiveEnemies.Count);
+                var randomEnemy = bm.EnemyManager.ActiveEnemies[idx];
+
+                bm.UIManager.Log($"{targetUnit.Name} 发动了额外攻击！目标：{randomEnemy.UnitData.Name}");
+
+                // === 修改：额外攻击不消耗行动次数 (consumeAction: false) ===
+                bm.CombatManager.ProcessUnitAttack(targetUnit, randomEnemy.UnitData, consumeAction: false);
+            }
+            else
+            {
+                bm.UIManager.Log("场上没有敌人，无法发动额外攻击。");
+            }
         }
 
-        bm.UnitManager.RefreshUnitUI(targetUnit);
+        // 刷新 UI
+        if (targetUnit.UI != null) targetUnit.UI.UpdateState();
     }
 }
 
@@ -109,7 +138,7 @@ public class FieldEvolveEffect : EffectBase
             targetUnit.CanAttack = true;
         }
 
-        bm.UnitManager.RefreshUnitUI(targetUnit);
+        if (targetUnit.UI != null) targetUnit.UI.UpdateState();
     }
 
     public override bool CheckCondition(BattleManager bm, RuntimeCard sourceCard, RuntimeUnit targetUnit)
@@ -133,8 +162,19 @@ public class DamageAllEnemiesEffect : EffectBase
     public override void Execute(BattleManager bm, RuntimeCard card, RuntimeUnit targetUnit)
     {
         int dmg = card.Data.value;
-        bm.EnemyManager.TakeDamage(dmg); // 简单处理：目前只有一个敌人Boss
-        bm.UIManager.Log($"全场伤害对敌人造成 {dmg} 点！");
+
+        // === 修复：遍历所有敌人造成伤害 ===
+        // 注意：要倒序遍历或者拷贝列表，因为如果伤害导致敌人死亡，列表可能会变
+        // 但我们在 EnemyManager.OnEnemyDie 里移除的是 ActiveEnemies，所以这里用副本比较安全
+        var enemiesSnapshot = new List<EnemyManager.RuntimeEnemy>(bm.EnemyManager.ActiveEnemies);
+
+        foreach (var enemy in enemiesSnapshot)
+        {
+            // 对每个敌人的 UnitData 造成伤害
+            bm.CombatManager.ApplyDamage(enemy.UnitData, dmg);
+        }
+
+        bm.UIManager.Log($"对所有敌人造成 {dmg} 点 AOE 伤害！");
     }
 }
 

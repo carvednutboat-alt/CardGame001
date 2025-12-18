@@ -46,11 +46,22 @@ public class GameManager : MonoBehaviour
         PlayerCurrentHP = PlayerMaxHP;
 
         // 初始化 MasterDeck
-        MasterDeck = new List<CardData>();
-        foreach (var card in starterDeck) MasterDeck.Add(card);
+        MasterDeck = new List<CardData>(starterDeck);
+        // 2. === 修复：初始化 PlayerCollection ===
+        if (PlayerCollection.Instance != null)
+        {
+            // 清空旧数据 (防止上一局游戏的残留)
+            PlayerCollection.Instance.OwnedUnits.Clear();
+            PlayerCollection.Instance.OwnedCards.Clear();
+            PlayerCollection.Instance.CurrentUnits.Clear();
+            PlayerCollection.Instance.CurrentDeck.Clear();
 
-        CurrentDeck = new List<CardData>(starterDeck); // 复制初始卡组
-        CurrentNode = null;
+            // 把初始卡组全部录入“仓库”
+            foreach (var card in starterDeck)
+            {
+                PlayerCollection.Instance.AddCardToCollection(card, true);
+            }
+        }
 
         // 2. 生成地图
         CurrentMap = MapGenerator.GenerateMap(MapConfig);
@@ -145,6 +156,13 @@ public class GameManager : MonoBehaviour
         // 建议复制一份数据，防止修改原始配置
         // 如果 CardData 是 ScriptableObject 且不修改内部值，直接添加引用也行
         MasterDeck.Add(newCard);
+        // 2. === 修复：同时加入玩家的收藏库(Owned) ===
+        if (PlayerCollection.Instance != null)
+        {
+            // true 表示允许重复 (Roguelike通常允许)
+            PlayerCollection.Instance.AddCardToCollection(newCard, true);
+        }
+        // ==========================================
         Debug.Log($"获得了卡牌: {newCard.cardName}");
     }
 

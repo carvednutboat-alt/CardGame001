@@ -29,6 +29,9 @@ public class BattleManager : MonoBehaviour
     private RuntimeCard _pendingCard;
     private GameObject _pendingCardUIObj;
 
+    private RuntimeCard _pendingCard2;
+    private GameObject _pendingCardUIObj2;
+
     // 控制当前回合是否允许攻击 (先手限制)
     public bool CurrentTurnCanAttack { get; private set; } = true;
 
@@ -158,7 +161,6 @@ public class BattleManager : MonoBehaviour
         UIManager.Log("--------------------------");
         UIManager.Log(">>> 轮到敌人回合 <<<");
         EnemyManager.ExecuteTurn(canAttack);
-        StartPlayerTurn(canAttack: true, drawCard: true);
     }
 
     // ---------------------------------------------------------
@@ -206,9 +208,7 @@ public class BattleManager : MonoBehaviour
                 UIManager.Log("场上没有怪兽，无法装备。");
                 return;
             }
-            ApplyEquipment(card, UnitManager.PlayerUnits[0]);
-            // === 修改：移出手牌，但不进弃牌堆 ===
-            DeckManager.RemoveCardFromHand(card, ui.gameObject);
+            EnterTargetingMode(card, ui.gameObject);
             return;
         }
 
@@ -216,10 +216,32 @@ public class BattleManager : MonoBehaviour
         // 这些卡需要先点一下进模式，再点怪兽生效
         if (card.Data.effectType == CardEffectType.HealUnit ||
             card.Data.effectType == CardEffectType.UnitBuff ||
-            card.Data.effectType == CardEffectType.FieldEvolve)
+            card.Data.effectType == CardEffectType.FieldEvolve ||
+            card.Data.effectType == CardEffectType.DamageEnemy)
         {
             EnterTargetingMode(card, ui.gameObject);
             return;
+        }
+
+        // === 核心修改：拦截复活卡 ===
+        if (card.Data.effectType == CardEffectType.ReviveUnit)
+        {
+            // 1. 检查墓地是否为空
+            if (UnitManager.Graveyard.Count == 0)
+            {
+                UIManager.Log("墓地是空的，无法使用。");
+                return;
+            }
+
+            // 2. 暂存这张牌 (因为它还没生效，不能立刻弃牌)
+            _pendingCard2 = card;
+            _pendingCardUIObj2 = ui.gameObject;
+
+            // 3. 打开墓地选择面板，并传入回调函数
+            UIManager.ShowGraveyardSelection(UnitManager.Graveyard, OnGraveyardCardSelected);
+
+            UIManager.Log("请从墓地选择要复活的怪兽...");
+            return; // 拦截成功，不再往下执行
         }
 
         // 4. 不需要选目标的法术 (Revive / Draw / AOE)
@@ -243,8 +265,28 @@ public class BattleManager : MonoBehaviour
         // 1. 施法模式
         if (IsTargetingMode)
         {
+            // 检查：这张卡必须是针对“友军”或“所有人”的
+            if (_pendingCard.Data.targetType != CardTargetType.Ally &&
+                _pendingCard.Data.targetType != CardTargetType.All)
+            {
+                UIManager.Log("<color=red>这张卡不能对己方怪兽使用！</color>");
+                return; // 拦截！不退出模式，让玩家重选
+            }
             RuntimeUnit target = UnitManager.GetUnitById(unitId);
             if (target == null) return;
+
+            // 2. === 新增：如果是装备牌，执行装备逻辑 ===
+            if (_pendingCard.Data.isEquipment)
+            {
+                ApplyEquipment(_pendingCard, target); // 传参：把卡给目标穿上
+
+                // 装备牌特殊处理：从手牌移除，但不进墓地 (因为它在场上)
+                DeckManager.RemoveCardFromHand(_pendingCard, _pendingCardUIObj);
+
+                ExitTargetingMode();
+                return;
+            }
+            // =======================================
 
             EffectBase effect = EffectFactory.GetEffect(_pendingCard.Data.effectType);
             if (effect != null)
@@ -271,33 +313,84 @@ public class BattleManager : MonoBehaviour
         }
     }
 
-    // === 新增：点击了敌人 ===
-    // 由 EnemyUnitUI 调用
-    public void OnEnemyClicked()
+    // 接收来自 EnemyUnitUI 的点击
+    public void OnEnemyClicked(EnemyUnitUI enemyUI)
     {
-        // 1. 如果处于施法模式，也许未来会有指向敌人的法术，暂时先不管
-        if (IsTargetingMode) return;
+        // 1. === 新增：如果是“施法瞄准模式” ===
+        if (IsTargetingMode)
+        {
+            // 检查：这张卡必须是针对“敌人”或“所有人”的
+            if (_pendingCard.Data.targetType != CardTargetType.Enemy &&
+                _pendingCard.Data.targetType != CardTargetType.All)
+            {
+                UIManager.Log("<color=red>这张卡只能对自己人使用！</color>");
+                return; // 拦截！
+            }
+            RuntimeUnit target = enemyUI.MyUnit;
+            if (target == null) return;
 
-        // 2. 攻击结算
+            // 获取待打出的法术效果
+            EffectBase effect = EffectFactory.GetEffect(_pendingCard.Data.effectType);
+            if (effect != null)
+            {
+                // 执行效果 (传入火球卡, 和选中的敌人目标)
+                effect.Execute(this, _pendingCard, target);
+
+                // 扣费、丢弃手牌
+                DeckManager.DiscardCard(_pendingCard, _pendingCardUIObj);
+            }
+
+            // 退出瞄准模式
+            ExitTargetingMode();
+            return;
+        }
+
+        // 2. 怪兽普攻模式
         if (_selectedAttacker != null)
         {
-            // 执行攻击
-            CombatManager.ProcessUnitAttack(_selectedAttacker, consumeAction: true);
+            RuntimeUnit target = enemyUI.MyUnit;
+            UIManager.Log($"发起攻击：{_selectedAttacker.Name} -> {target.Name}");
 
-            // 攻击完重置
+            // === 修改：明确传入 consumeAction: true ===
+            CombatManager.ProcessUnitAttack(_selectedAttacker, target, consumeAction: true);
+
             _selectedAttacker = null;
         }
         else
         {
-            UIManager.Log("请先选择我方怪兽，再点击敌人进行攻击。");
+            UIManager.Log($"请先选择我方怪兽，再点击 {enemyUI.MyUnit.Name}。");
         }
     }
 
     private void ApplyEquipment(RuntimeCard card, RuntimeUnit target)
     {
         target.Equips.Add(card.Data);
+        CombatManager.RecalculateUnitStats(target);
         UnitManager.RefreshUnitUI(target);
         UIManager.Log($"{target.Name} 装备了 {card.Data.cardName}");
+    }
+
+    // === 回调函数：玩家点选了某张墓地卡 ===
+    private void OnGraveyardCardSelected(RuntimeCard selectedUnitCard)
+    {
+        // 1. 尝试召唤
+        if (UnitManager.TrySummonUnit(selectedUnitCard))
+        {
+            // 2. 从墓地移除这张卡 (它复活了)
+            UnitManager.Graveyard.Remove(selectedUnitCard);
+
+            // 3. 结算“死者苏生”这张牌 (丢进弃牌堆)
+            if (_pendingCard2 != null && _pendingCardUIObj2 != null)
+            {
+                DeckManager.DiscardCard(_pendingCard2, _pendingCardUIObj2);
+            }
+
+            UIManager.Log($"复活了 {selectedUnitCard.Data.cardName}！");
+        }
+
+        // 清理暂存引用
+        _pendingCard2 = null;
+        _pendingCardUIObj2 = null;
     }
 
     private void EnterTargetingMode(RuntimeCard card, GameObject uiObj)

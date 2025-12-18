@@ -42,11 +42,11 @@ public class UnitManager : MonoBehaviour
 
         // 创建 UI
         FieldUnitUI ui = Instantiate(FieldUnitPrefab, FieldPanel);
-        // 注意：FieldUnitUI 的 Init 方法需要适配
-        ui.Init(_bm, unit.Id, unit.Name, unit.CurrentAtk, unit.CurrentHp,
-                unit.IsEvolved, unit.Equips.Count, unit.CanAttack, unit.IsFlying, unit.HasTaunt);
+        // 1. 把 UI 赋值给 Unit，建立双向连接 (非常重要！)
+        unit.UI = ui;
 
-        unit.UI = ui; // 绑定引用
+        // 2. 调用新版 Init
+        ui.Init(unit, _bm);
 
         _bm.UIManager.Log($"召唤了 {unit.Name}");
         return true;
@@ -104,8 +104,7 @@ public class UnitManager : MonoBehaviour
         // 重新计算数值后再刷新
         _bm.CombatManager.RecalculateUnitStats(unit);
 
-        unit.UI.UpdateStats(unit.CurrentAtk, unit.CurrentHp, unit.IsEvolved,
-                            unit.Equips.Count, unit.IsFlying, unit.HasTaunt);
+        unit.UI.UpdateState();
     }
 
     // 设置所有单位能否攻击
