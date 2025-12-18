@@ -1,76 +1,78 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using System.Collections.Generic; // 用于 List
+using System.Collections.Generic;
 
 public class FieldUnitUI : MonoBehaviour
 {
     [Header("UI Components")]
     public TMP_Text nameText;
     public TMP_Text statsText;   // ATK / HP
-    public TMP_Text statusText;  // 状态栏
+    public TMP_Text statusText;  // 状态栏 (进化/飞行/嘲讽)
     public Button clickButton;
 
+    // === 核心修改：持有数据引用，而不是存一堆临时变量 ===
     private BattleManager _bm;
-    private int _unitId;
+    private RuntimeUnit _unitData;
 
-    // === 核心修改：参数列表对应 UnitManager.cs 里的 TrySummonUnit ===
-    public void Init(
-        BattleManager manager,
-        int unitId,
-        string unitName,
-        int attack,
-        int hp,
-        bool evolved,
-        int equipCount,
-        bool canAttack,
-        bool isFlying,
-        bool hasTaunt
-    )
+    // 对外公开数据（如果需要）
+    public RuntimeUnit MyUnit => _unitData;
+
+    // =========================================================
+    // 1. 初始化 (参数大大简化)
+    // =========================================================
+    public void Init(RuntimeUnit unit, BattleManager manager)
     {
+        _unitData = unit;
         _bm = manager;
-        _unitId = unitId;
 
-        if (nameText != null) nameText.text = unitName;
+        // 设置名字
+        if (nameText != null) nameText.text = unit.Name;
 
-        // 第一次初始化时刷新状态
-        UpdateStats(attack, hp, evolved, equipCount, isFlying, hasTaunt);
-        SetButtonInteractable(canAttack);
-
-        // 绑定事件
+        // 绑定按钮事件
         if (clickButton != null)
         {
             clickButton.onClick.RemoveAllListeners();
             clickButton.onClick.AddListener(OnUnitClicked);
         }
+
+        // 第一次刷新界面
+        UpdateState();
     }
 
-    public void UpdateStats(
-        int attack,
-        int hp,
-        bool evolved,
-        int equipCount,
-        bool isFlying,
-        bool hasTaunt
-    )
+    // =========================================================
+    // 2. 状态刷新 (CombatManager 调用的就是这个！)
+    // =========================================================
+    public void UpdateState()
     {
-        if (statsText != null)
-            statsText.text = $"ATK {attack} / HP {hp}";
+        if (_unitData == null) return;
 
+        // A. 刷新数值 (ATK / HP)
+        if (statsText != null)
+        {
+            // 注意：这里直接读取对象的实时属性
+            statsText.text = $"ATK {_unitData.CurrentAtk} / HP {_unitData.CurrentHp}";
+        }
+
+        // B. 刷新状态栏
         if (statusText != null)
         {
             List<string> parts = new List<string>();
 
-            if (evolved) parts.Add("<color=yellow>进化</color>");
-            if (isFlying) parts.Add("起飞");
-            if (hasTaunt) parts.Add("嘲讽");
-            if (equipCount > 0) parts.Add($"装备:{equipCount}");
+            if (_unitData.IsEvolved) parts.Add("<color=yellow>进化</color>");
+            if (_unitData.IsFlying) parts.Add("起飞");
+            if (_unitData.HasTaunt) parts.Add("嘲讽");
+            // 如果有装备
+            if (_unitData.Equips != null && _unitData.Equips.Count > 0)
+                parts.Add($"装备:{_unitData.Equips.Count}");
 
             statusText.text = string.Join(" | ", parts);
         }
+
+        // C. 刷新按钮状态 (例如：如果晕眩了可能不能点，或者根据能否攻击设置 interactable)
+        SetButtonInteractable(_unitData.CanAttack); // 假设 RuntimeUnit 有 CanAttack
     }
 
-    // 设置按钮是否可点（攻击/选目标）
     public void SetButtonInteractable(bool interactable)
     {
         if (clickButton != null)
@@ -79,10 +81,10 @@ public class FieldUnitUI : MonoBehaviour
 
     private void OnUnitClicked()
     {
-        if (_bm != null)
+        if (_bm != null && _unitData != null)
         {
-            // 通知管理器：场上 ID 为 _unitId 的单位被点了
-            _bm.OnFieldUnitClicked(_unitId);
+            // 通知管理器：这个 ID 的单位被点了
+            _bm.OnFieldUnitClicked(_unitData.Id);
         }
     }
 }
