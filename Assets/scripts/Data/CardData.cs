@@ -27,7 +27,8 @@ public enum CardEffectType
     ReviveUnit,
     FieldEvolve,
     HealUnit,
-    UnitBuff
+    UnitBuff,
+    Fly
 }
 
 // 1. 定义枚举：目标类型

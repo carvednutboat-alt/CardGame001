@@ -222,9 +222,10 @@ public class BattleManager : MonoBehaviour
         // 3. 需选目标的法术 (Heal / Buff / Evolve)
         // 这些卡需要先点一下进模式，再点怪兽生效
         if (card.Data.effectType == CardEffectType.HealUnit ||
-            card.Data.effectType == CardEffectType.UnitBuff ||
+            card.Data.effectType == CardEffectType.Fly ||
             card.Data.effectType == CardEffectType.FieldEvolve ||
-            card.Data.effectType == CardEffectType.DamageEnemy)
+            card.Data.effectType == CardEffectType.DamageEnemy ||
+            card.Data.effectType == CardEffectType.UnitBuff)
         {
             EnterTargetingMode(card, ui.gameObject);
             return;

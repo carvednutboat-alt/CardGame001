@@ -24,10 +24,10 @@ MonoBehaviour:
   buffFreeAttackNow: 0
   effectType: 9
   value: 2
-  isEquipment: 1
+  isEquipment: 0
   isFieldEquipment: 0
   EnemyMoves: []
-  targetType: 0
+  targetType: 1
   equipAttackBonus: 0
   equipHealthBonus: 0
   shieldEffectDamage: 0

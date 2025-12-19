@@ -27,6 +27,7 @@ public class EnemyManager : MonoBehaviour
         public List<RuntimeCard> Deck;
         public int NextCardIndex;
         public int TempAttackBonus;
+        public bool ResetAttack;
 
         // ★ 用于结算：敌人本体卡 + 敌人原始卡组（CardData）
         public CardData UnitCardData;
@@ -43,6 +44,7 @@ public class EnemyManager : MonoBehaviour
             Deck = new List<RuntimeCard>();
             NextCardIndex = 0;
             TempAttackBonus = 0;
+            ResetAttack = false;
 
             // 初始化这个敌人的牌库（RuntimeCard 实例）
             foreach (var card in SourceDeckCardData)
@@ -71,7 +73,6 @@ public class EnemyManager : MonoBehaviour
         // 2. 调试 EnemyDB
         if (EnemyDB == null)
         {
-            Debug.LogError("【严重错误】EnemyDB 没拖进去！请检查 Inspector。");
             SpawnTestEnemy();
             return;
         }
@@ -79,14 +80,12 @@ public class EnemyManager : MonoBehaviour
         // 3. 检查 GameManager 和 地图节点
         if (GameManager.Instance == null)
         {
-            Debug.LogWarning("没有找到 GameManager，正在生成测试怪...");
             SpawnTestEnemy();
             return;
         }
 
         if (GameManager.Instance.CurrentNode == null)
         {
-            Debug.LogWarning("GameManager.CurrentNode 是空 (可能直接运行了战斗场景)，正在生成测试怪...");
             SpawnTestEnemy();
             return;
         }
@@ -167,6 +166,12 @@ public class EnemyManager : MonoBehaviour
             {
                 _bm.UIManager.Log($"【{enemy.UnitData.Name}】本回合无法普攻。");
             }
+            if (enemy.ResetAttack)
+            {
+                enemy.UnitData.CurrentAtk = enemy.UnitData.BaseAtk;
+                enemy.UI.UpdateAttack();
+                enemy.ResetAttack = false;
+            }
         }
 
         _bm.StartPlayerTurn();
@@ -187,7 +192,9 @@ public class EnemyManager : MonoBehaviour
         switch (data.effectType)
         {
             case CardEffectType.UnitBuff:
-                attacker.TempAttackBonus += data.value;
+                attacker.UnitData.CurrentAtk += data.value;
+                attacker.ResetAttack = true;
+                attacker.UI.UpdateAttack();
                 _bm.UIManager.Log($"【{enemyName}】使用「{data.cardName}」，攻击力 +{data.value}。");
                 break;
 
@@ -212,8 +219,7 @@ public class EnemyManager : MonoBehaviour
     private void PerformAttack(RuntimeEnemy attacker)
     {
         // ★ 这里用 CurrentAtk（与 CombatManager 体系更一致）
-        int baseAtk = attacker.UnitData.CurrentAtk;
-        int totalDamage = baseAtk + attacker.TempAttackBonus;
+        int totalDamage = attacker.UnitData.CurrentAtk + attacker.TempAttackBonus;
         if (totalDamage <= 0) totalDamage = 5;
 
         RuntimeUnit target = _bm.UnitManager.GetTauntUnit();
