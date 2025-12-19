@@ -20,6 +20,12 @@ public class BattleUIManager : MonoBehaviour
     public Button ReturnBtn;
 
     private BattleManager _bm; // 需要引用 BattleManager 来获取墓地数据
+    [Header("Reward UI")]
+    public GameObject RewardPanel;
+    public TMP_Text RewardGoldText;
+    public TMP_Text RewardRecruitText;
+    public Button TakeOnlyButton;
+    public Button TakeAndRecruitButton;
 
     // === 新增：初始化方法 ===
     public void Init(BattleManager bm)
@@ -27,6 +33,8 @@ public class BattleUIManager : MonoBehaviour
         _bm = bm;
         // 确保游戏开始时面板是关的
         if (GraveyardPanel != null) GraveyardPanel.SetActive(false);
+        if (RewardPanel != null) RewardPanel.SetActive(false);
+        if (GameOverPanel != null) GameOverPanel.SetActive(false);
 
         // 2. --- 添加按钮绑定逻辑 ---
         if (ReturnBtn != null)
@@ -176,4 +184,61 @@ public class BattleUIManager : MonoBehaviour
             }
         }
     }
+
+    public void ShowBattleReward(
+        int gold,
+        CardData recruitUnit,
+        List<CardData> recruitDeck,
+        System.Action<bool> onConfirm)
+    {
+        if (RewardPanel == null)
+        {
+            Debug.LogError("RewardPanel 未绑定到 BattleUIManager");
+            onConfirm?.Invoke(false);
+            return;
+        }
+
+        RewardPanel.SetActive(true);
+
+        if (RewardGoldText != null)
+            RewardGoldText.text = $"获得金币：{gold}";
+
+        bool canRecruit = (recruitUnit != null);
+        int deckCount = (recruitDeck != null) ? recruitDeck.Count : 0;
+
+        if (RewardRecruitText != null)
+        {
+            RewardRecruitText.text = canRecruit
+                ? $"是否招募：{recruitUnit.cardName}\n并获得其卡组（{deckCount} 张）？"
+                : "本次无可招募目标（未记录到最后击杀敌人）";
+        }
+
+        if (TakeOnlyButton != null)
+        {
+            TakeOnlyButton.onClick.RemoveAllListeners();
+            TakeOnlyButton.onClick.AddListener(() =>
+            {
+                onConfirm?.Invoke(false);
+            });
+            TakeOnlyButton.interactable = true;
+        }
+
+        if (TakeAndRecruitButton != null)
+        {
+            TakeAndRecruitButton.onClick.RemoveAllListeners();
+            TakeAndRecruitButton.onClick.AddListener(() =>
+            {
+                onConfirm?.Invoke(true);
+            });
+
+            TakeAndRecruitButton.interactable = canRecruit;
+            TakeAndRecruitButton.gameObject.SetActive(true);
+        }
+    }
+
+    public void HideBattleReward()
+    {
+        if (RewardPanel != null) RewardPanel.SetActive(false);
+    }
+
 }

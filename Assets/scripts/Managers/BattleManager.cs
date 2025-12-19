@@ -24,6 +24,12 @@ public class BattleManager : MonoBehaviour
     public int PlayerCurrentHP = 80;
     public int PlayerMaxHP = 80;
 
+    [Header("Rewards")]
+    public Vector2Int MinorGoldRange = new Vector2Int(100, 200);
+    public Vector2Int EliteGoldRange = new Vector2Int(100, 200);
+    public Vector2Int BossGoldRange  = new Vector2Int(100, 200);
+
+
     // === 内部状态 ===
     public bool IsTargetingMode = false;
     private RuntimeCard _pendingCard;
@@ -31,6 +37,7 @@ public class BattleManager : MonoBehaviour
 
     private RuntimeCard _pendingCard2;
     private GameObject _pendingCardUIObj2;
+    private bool _battleEnded = false;
 
     // 控制当前回合是否允许攻击 (先手限制)
     public bool CurrentTurnCanAttack { get; private set; } = true;
@@ -418,24 +425,62 @@ public class BattleManager : MonoBehaviour
         ExitTargetingMode();
     }
 
+    private int RollGoldReward()
+{
+    if (GameManager.Instance == null || GameManager.Instance.CurrentNode == null) return 0;
+
+    var t = GameManager.Instance.CurrentNode.Type;
+    Vector2Int r = MinorGoldRange;
+
+    if (t == NodeType.EliteEnemy) r = EliteGoldRange;
+    else if (t == NodeType.Boss) r = BossGoldRange;
+
+    // Random.Range(int,int) 上界不包含，所以要 +1
+    return Random.Range(r.x, r.y + 1);
+}
+
     public void OnGameWin()
     {
+        if (_battleEnded) return;
+        _battleEnded = true;
+
         UIManager.Log("战斗胜利！");
 
-        // --- 新增：保存血量回全局 ---
+        // 保存血量回全局
         if (GameManager.Instance != null && PlayerUnit != null)
         {
             GameManager.Instance.PlayerCurrentHP = PlayerUnit.CurrentHp;
-            // 如果你有逻辑能在战斗中提升最大生命值，也要保存 MaxHP
-            // GameManager.Instance.PlayerMaxHP = PlayerUnit.maxHp; 
         }
-        // -------------------------
 
-        // 延迟回地图
-        if (GameManager.Instance != null)
+        // 锁定战斗交互，防止胜利后还能乱点
+        CurrentTurnCanAttack = false;
+        UnitManager.SetAllAttackStatus(false);
+        StopAllCoroutines();
+        EnemyManager.StopAllCoroutines();
+
+        int gold = RollGoldReward();
+
+        // 取“最后击杀敌人”的招募信息（EnemyManager 必须提供这两个属性）
+        CardData recruitUnit = EnemyManager.LastKilledUnitCard;
+        List<CardData> recruitDeck = EnemyManager.LastKilledDeckCards;
+
+        UIManager.ShowBattleReward(gold, recruitUnit, recruitDeck, (recruit) =>
         {
-            Invoke(nameof(ReturnToMap), 2.0f);
-        }
+            if (GameManager.Instance != null)
+            {
+                // 先给钱
+                if (gold > 0) GameManager.Instance.AddGold(gold);
+
+                // 再决定是否招募
+                if (recruit && recruitUnit != null)
+                {
+                    GameManager.Instance.AcquireEnemyUnitAndDeck(recruitUnit, recruitDeck);
+                }
+            }
+
+            UIManager.HideBattleReward();
+            ReturnToMap();
+        });
     }
 
     void ReturnToMap()
@@ -466,4 +511,5 @@ public class BattleManager : MonoBehaviour
     {
         GameManager.Instance.OnRunFailed();
     }
+
 }

@@ -17,5 +17,5 @@ MonoBehaviour:
   BossIcon: {fileID: 21300000, guid: e1fbb7f164f308246b9a817acdbb2871, type: 3}
   EventIcon: {fileID: 21300000, guid: d06bd1252f7d79a449075c334aa39b97, type: 3}
   RestIcon: {fileID: 21300000, guid: 8687ec997a2b926469703090c89b88be, type: 3}
-  ShopIcon: {fileID: 21300000, guid: 7a02ed0d17f73b1469e7fe5261d276f1, type: 3}
+  ShopIcon: {fileID: 21300000, guid: c387f5addbf5cc3479598f99077be331, type: 3}
   TreasureIcon: {fileID: 21300000, guid: c387f5addbf5cc3479598f99077be331, type: 3}

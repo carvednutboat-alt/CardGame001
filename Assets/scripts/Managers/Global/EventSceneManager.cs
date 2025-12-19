@@ -81,6 +81,9 @@ public class EventSceneManager : MonoBehaviour
             case EventEffectType.Damage:
                 GameManager.Instance.DamagePlayer(opt.Value);
                 break;
+            case EventEffectType.GainGold:
+                GameManager.Instance.AddGold(opt.Value);
+                break;
             case EventEffectType.GainCard:
                 if (opt.TargetCard != null)
                     GameManager.Instance.AddCardToDeck(opt.TargetCard);

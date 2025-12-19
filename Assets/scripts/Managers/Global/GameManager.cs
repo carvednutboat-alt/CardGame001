@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
@@ -23,7 +24,17 @@ public class GameManager : MonoBehaviour
     // 玩家状态
     public int PlayerCurrentHP = 80;
     public int PlayerMaxHP = 80;
-    public List<CardData> CurrentDeck = new List<CardData>(); // 玩家当前拥有的卡组
+
+    public List<CardData> CurrentDeck = new List<CardData>();
+
+    [Header("Economy")]
+    [SerializeField] private int _gold = 0;
+    public int Gold => _gold;
+
+    /// <summary>
+    /// 玩家全局状态变化事件：HP / Gold
+    /// </summary>
+    public event Action OnPlayerStateChanged;
 
     private void Awake()
     {
@@ -44,9 +55,11 @@ public class GameManager : MonoBehaviour
     {
         // 1. 初始化数据
         PlayerCurrentHP = PlayerMaxHP;
+        _gold = 0;
 
         // 初始化 MasterDeck
         MasterDeck = new List<CardData>(starterDeck);
+
         // 2. === 修复：初始化 PlayerCollection ===
         if (PlayerCollection.Instance != null)
         {
@@ -70,11 +83,12 @@ public class GameManager : MonoBehaviour
         foreach (var node in CurrentMap.Layers[0])
             node.Status = NodeStatus.Attainable;
 
+        NotifyPlayerStateChanged();
+
         // 4. 进入地图场景
         SceneManager.LoadScene("MapScene");
     }
 
-    // --- 修改 SelectNode (支持事件) ---
     public void SelectNode(MapNode node)
     {
         CurrentNode = node;
@@ -85,16 +99,20 @@ public class GameManager : MonoBehaviour
         {
             SceneManager.LoadScene("BattleScene");
         }
-        else if (node.Type == NodeType.Event) // 假设你在 MapData 里加了这个枚举
+        else if (node.Type == NodeType.Event)
         {
             // 随机一个事件 (实际项目中应该从配置表随机)
             // 这里为了演示，你需要自己Load一个资源或者在Inspector配置一个列表
             CurrentEventProfile = Resources.Load<EventProfile>("Events/Event_Spring");
             SceneManager.LoadScene("EventScene");
         }
+        else if (node.Type == NodeType.Store)
+        {
+            SceneManager.LoadScene("ShopScene");
+        }
         else
         {
-            OnNodeCompleted(); // 其他暂时也直接跳过
+            OnNodeCompleted();
         }
     }
 
@@ -114,8 +132,6 @@ public class GameManager : MonoBehaviour
         }
 
         // 3. 【新增修复】 锁定同层的所有其他节点
-        // ==========================================
-        // 获取当前层的所有节点
         if (CurrentNode.Coordinate.y < CurrentMap.Layers.Count)
         {
             var currentLayer = CurrentMap.Layers[CurrentNode.Coordinate.y];
@@ -129,9 +145,8 @@ public class GameManager : MonoBehaviour
                 }
             }
         }
-        // ==========================================
 
-        // 3. 回到地图
+        // 4. 回到地图
         SceneManager.LoadScene("MapScene");
     }
 
@@ -149,36 +164,88 @@ public class GameManager : MonoBehaviour
         return null;
     }
 
-    // --- 接口：获得卡牌 (解决了你的设计需求) ---
+    // --- 接口：获得卡牌 ---
     public void AddCardToDeck(CardData newCard)
     {
         if (newCard == null) return;
-        // 建议复制一份数据，防止修改原始配置
-        // 如果 CardData 是 ScriptableObject 且不修改内部值，直接添加引用也行
+
         MasterDeck.Add(newCard);
-        // 2. === 修复：同时加入玩家的收藏库(Owned) ===
+
+        // 同时加入玩家的收藏库(Owned)
         if (PlayerCollection.Instance != null)
         {
             // true 表示允许重复 (Roguelike通常允许)
             PlayerCollection.Instance.AddCardToCollection(newCard, true);
         }
-        // ==========================================
+
         Debug.Log($"获得了卡牌: {newCard.cardName}");
     }
 
-    // 在 GameManager 中
+    // --- 经济系统：金币 ---
+    public void AddGold(int amount)
+    {
+        if (amount == 0) return;
+        _gold = Mathf.Max(0, _gold + amount);
+        Debug.Log($"[Global] 获得金币 {amount}, 当前金币: {_gold}");
+        NotifyPlayerStateChanged();
+    }
+
+    // 获得卡片和unit    
+    // GameManager.cs
+    public void AcquireEnemyUnitAndDeck(CardData unitCard, List<CardData> deckCards)
+    {
+        if (unitCard != null)
+            AddCardToDeck(unitCard);
+
+        if (deckCards != null)
+        {
+            foreach (var c in deckCards)
+            {
+                if (c == null) continue;
+                AddCardToDeck(c);
+            }
+        }
+    }
+    
+
+
+    public bool TrySpendGold(int amount)
+    {
+        if (amount <= 0) return true;
+        if (_gold < amount) return false;
+
+        _gold -= amount;
+        Debug.Log($"[Global] 花费金币 {amount}, 当前金币: {_gold}");
+        NotifyPlayerStateChanged();
+        return true;
+    }
+
+    // --- 玩家血量 ---
     public void HealPlayer(int amount)
     {
+        if (amount <= 0) return;
+
         PlayerCurrentHP += amount;
         if (PlayerCurrentHP > PlayerMaxHP) PlayerCurrentHP = PlayerMaxHP;
+
         Debug.Log($"[Global] 玩家回血 {amount}, 当前: {PlayerCurrentHP}");
+        NotifyPlayerStateChanged();
     }
 
     public void DamagePlayer(int amount)
     {
+        if (amount <= 0) return;
+
         PlayerCurrentHP -= amount;
         if (PlayerCurrentHP < 0) PlayerCurrentHP = 0;
+
         Debug.Log($"[Global] 玩家扣血 {amount}, 当前: {PlayerCurrentHP}");
+        NotifyPlayerStateChanged();
+    }
+
+    private void NotifyPlayerStateChanged()
+    {
+        OnPlayerStateChanged?.Invoke();
     }
 
     public void ReturnToTitle()
@@ -190,11 +257,10 @@ public class GameManager : MonoBehaviour
         CurrentNode = null;
         MasterDeck.Clear();
         PlayerCurrentHP = PlayerMaxHP;
+        _gold = 0;
+        NotifyPlayerStateChanged();
 
         // 2. 加载主菜单场景 (假设你的入口场景叫 MainEntry)
-        // 注意：如果你有专门的 MainMenu 场景，就加载 MainMenu
-        // 这里我们重新加载 MainEntry 相当于重启游戏
         SceneManager.LoadScene("MainEntry");
     }
 }
-
