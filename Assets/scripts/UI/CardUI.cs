@@ -5,37 +5,39 @@ using TMPro;
 public class CardUI : MonoBehaviour
 {
     [Header("UI Components")]
-    public TMP_Text nameText;
-    public TMP_Text descriptionText;
-    public TMP_Text costText; // Èç¹ûÄãÓĞ·ÑÓÃµÄ»°
-    public Image cardImage;   // Èç¹ûÓĞÍ¼Æ¬
+    public TextMeshProUGUI nameText;
+    public TextMeshProUGUI descriptionText;
+    public TextMeshProUGUI costText; // å¦‚æœä½ æœ‰è´¹ç”¨çš„è¯
+    public Image cardImage;   // å¦‚æœæœ‰å›¾ç‰‡
     public Button button;
 
-    // === ºËĞÄĞŞ¸Ä£ºÏÖÔÚ³ÖÓĞ RuntimeCard ===
+    // === æ ¸å¿ƒä¿®æ”¹ï¼šç°åœ¨æŒæœ‰ RuntimeCard ===
     public RuntimeCard RuntimeCard { get; private set; }
 
     private BattleManager _bm;
 
-    // ³õÊ¼»¯·½·¨
+    // åˆå§‹åŒ–æ–¹æ³•
     public void Init(RuntimeCard card, BattleManager bm)
     {
         RuntimeCard = card;
         _bm = bm;
 
-        // ´Ó Data Ä£°æÀï¶ÁÈ¡ÏÔÊ¾ĞÅÏ¢
+        // ä» Data æ¨¡ç‰ˆé‡Œè¯»å–æ˜¾ç¤ºä¿¡æ¯
         if (card != null && card.Data != null)
         {
             if (nameText) nameText.text = card.Data.cardName;
             if (descriptionText) descriptionText.text = card.Data.description;
 
-            // Èç¹ûÄãÓĞÍ¼Æ¬×Ö¶Î
-            // if (cardImage) cardImage.sprite = card.Data.artwork;
+            // æ·»åŠ æ‚¬åœå¤„ç†é€»è¾‘
+            CardHoverHandler hover = GetComponent<CardHoverHandler>();
+            if (hover == null) hover = gameObject.AddComponent<CardHoverHandler>();
+            hover.Init(card.Data);
 
-            // Èç¹ûÄãÏëÏÔÊ¾¶¯Ì¬ÊıÖµ£¨±ÈÈçÁÙÊ±¼Ó¹¥£©£¬¿ÉÒÔÔÚÕâÀïÅĞ¶Ï
-            // µ«Ä¿Ç°Ö÷Òª»¹ÊÇÏÔÊ¾ Data ÀïµÄ¾²Ì¬ÊıÖµ
+            // å¦‚æœä½ æƒ³æ˜¾ç¤ºåŠ¨æ€æ•°å€¼ï¼ˆæ¯”å¦‚ä¸´æ—¶åŠ æ”»ï¼‰ï¼Œå¯ä»¥åœ¨è¿™é‡Œåˆ¤æ–­
+            // ä½†ç›®å‰ä¸»è¦è¿˜æ˜¯æ˜¾ç¤º Data é‡Œçš„é™æ€æ•°å€¼
         }
 
-        // °ó¶¨µã»÷ÊÂ¼ş
+        // ç»‘å®šç‚¹å‡»äº‹ä»¶
         if (button != null)
         {
             button.onClick.RemoveAllListeners();
@@ -43,11 +45,11 @@ public class CardUI : MonoBehaviour
         }
     }
 
-    private void OnClicked()
+private void OnClicked()
     {
         if (_bm != null && RuntimeCard != null)
         {
-            // Í¨Öª¹ÜÀíÆ÷£ºÎÒ£¨Õâ¸öUI¶ÔÏó£©±»µãÁË£¬´ú±íµÄÊÇÕâÕÅÅÆ£¨RuntimeCard£©
+            // é€šçŸ¥ç®¡ç†å™¨ï¼šæˆ‘ï¼ˆè¿™ä¸ªUIå¯¹è±¡ï¼‰è¢«ç‚¹äº†ï¼Œä»£è¡¨çš„æ˜¯è¿™å¼ ç‰Œï¼ˆRuntimeCardï¼‰
             _bm.OnCardClicked(this, RuntimeCard);
         }
     }

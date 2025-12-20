@@ -5,7 +5,7 @@ using UnityEngine;
 public class RuntimeUnit
 {
     // ==========================================
-    // »ù´¡Êı¾İ
+    // åŸºç¡€æ•°æ®
     // ==========================================
     public int Id;
     public string Name;
@@ -14,19 +14,19 @@ public class RuntimeUnit
     public EnemyUnitUI EnemyUI;
 
     // ==========================================
-    // ÊıÖµÊôĞÔ
+    // æ•°å€¼å±æ€§
     // ==========================================
-    public int BaseMaxHp; // <--- ĞÂÔö£º¼ÇÂ¼Âã×°Ê±µÄ×î´óÉúÃüÖµ
-    public int MaxHp;     // µ±Ç°×î´óÉúÃüÖµ£¨º¬×°±¸£©
-    public int CurrentHp; // µ±Ç°ÉúÃüÖµ
+    public int BaseMaxHp; // <--- æ–°å¢ï¼šè®°å½•è£¸è£…æ—¶çš„æœ€å¤§ç”Ÿå‘½å€¼
+    public int MaxHp;     // å½“å‰æœ€å¤§ç”Ÿå‘½å€¼ï¼ˆå«è£…å¤‡ï¼‰
+    public int CurrentHp; // å½“å‰ç”Ÿå‘½å€¼
 
-    public int BaseAtk;   // Âã×°¹¥»÷Á¦
-    public int CurrentAtk;// µ±Ç°¹¥»÷Á¦£¨º¬×°±¸£©
+    public int BaseAtk;   // è£¸è£…æ”»å‡»åŠ›
+    public int CurrentAtk;// å½“å‰æ”»å‡»åŠ›ï¼ˆå«è£…å¤‡ï¼‰
 
-    public int Attack => CurrentAtk; // ¼æÈİÊôĞÔ
+    public int Attack => CurrentAtk; // å…¼å®¹å±æ€§
 
     // ==========================================
-    // ×´Ì¬±êÇ©
+    // çŠ¶æ€æ ‡ç­¾
     // ==========================================
     public bool IsFlying;
     public bool HasTaunt;
@@ -38,20 +38,20 @@ public class RuntimeUnit
 
     public List<CardData> Equips = new List<CardData>();
 
-    // ¹¹Ôìº¯Êı 1£º¸øÍæ¼ÒÓÃ
+    // æ„é€ å‡½æ•° 1ï¼šç»™ç©å®¶ç”¨
     public RuntimeUnit(int id, RuntimeCard card)
     {
         Id = id;
         SourceCard = card;
         Name = card.Data.cardName;
 
-        // ³õÊ¼»¯ÑªÁ¿
+        // åˆå§‹åŒ–è¡€é‡
         int hp = card.Data.unitHealth > 0 ? card.Data.unitHealth : 1;
-        BaseMaxHp = hp; // ¼ÇÂ¼µØ»ù
+        BaseMaxHp = hp; // è®°å½•åœ°åŸº
         MaxHp = hp;
         CurrentHp = hp;
 
-        // ³õÊ¼»¯¹¥»÷
+        // åˆå§‹åŒ–æ”»å‡»
         BaseAtk = card.Data.unitAttack;
         CurrentAtk = BaseAtk;
 
@@ -61,20 +61,20 @@ public class RuntimeUnit
         IsEvolved = false;
     }
 
-    // ¹¹Ôìº¯Êı 2£º¸øµĞÈËÓÃ
+    // æ„é€ å‡½æ•° 2ï¼šç»™æ•Œäººç”¨
     public RuntimeUnit(CardData data)
     {
         Id = -1;
         SourceCard = null;
         Name = data.cardName;
 
-        // ³õÊ¼»¯ÑªÁ¿
+        // åˆå§‹åŒ–è¡€é‡
         int hp = data.unitHealth > 0 ? data.unitHealth : 1;
-        BaseMaxHp = hp; // ¼ÇÂ¼µØ»ù
+        BaseMaxHp = hp; // è®°å½•åœ°åŸº
         MaxHp = hp;
         CurrentHp = hp;
 
-        // ³õÊ¼»¯¹¥»÷
+        // åˆå§‹åŒ–æ”»å‡»
         BaseAtk = data.unitAttack;
         if (BaseAtk == 0 && data.value > 0) BaseAtk = data.value;
         CurrentAtk = BaseAtk;

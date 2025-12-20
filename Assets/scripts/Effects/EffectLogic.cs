@@ -62,8 +62,8 @@ public class DrawCardsEffect : EffectBase
     }
 }
 
-// 4. 单位Buff (万具武 / 飞行)
-public class UnitBuffEffect : EffectBase
+// 4. 飞行
+public class FlyEffect : EffectBase
 {
     public override void Execute(BattleManager bm, RuntimeCard card, RuntimeUnit targetUnit)
     {
@@ -81,7 +81,7 @@ public class UnitBuffEffect : EffectBase
             }
         }
 
-        // 立刻攻击 (万具武效果)
+        // 立刻攻击
         if (data.buffFreeAttackNow)
         {
             // 逻辑修正：因为这是给己方单位加Buff，但我们并没有指定要攻击哪个敌人。
@@ -229,5 +229,37 @@ public class ReviveUnitEffect : EffectBase
             return false;
         }
         return true;
+    }
+}
+
+// 8. 通用效果
+public class UnitBuffEffect : EffectBase
+{
+    public override void Execute(BattleManager bm, RuntimeCard card, RuntimeUnit targetUnit)
+    { 
+        // 必须要有目标
+        if (targetUnit == null)
+        {
+            bm.UIManager.Log("没有指定伤害目标！");
+            return;
+        }
+        if (targetUnit.Id == -1) {
+            int dmg = card.Data.value;
+
+            // 如果选中敌人，则造成伤害（类似与火球）
+            bm.CombatManager.ApplyDamage(targetUnit, dmg);
+
+            bm.UIManager.Log($"对 {targetUnit.Name} 造成 {dmg} 点法术伤害！");
+        }
+        if (targetUnit.Id > 0)
+        {
+            int tempAttack = card.Data.value;
+
+            // 如果选中己方，则增加攻击
+            targetUnit.CurrentAtk += tempAttack;
+
+            bm.UIManager.Log($"{targetUnit.Name} 提升了 {tempAttack} 点攻击力！");
+        }
+
     }
 }

@@ -12,7 +12,7 @@ public class EnemyManager : MonoBehaviour
     [Header("Runtime")]
     public List<RuntimeEnemy> ActiveEnemies = new List<RuntimeEnemy>();
 
-    // ¡ï ½áËãÓÃ£º¼ÇÂ¼¡°×îºó±»»÷É±µÄµĞÈË¡±
+    // â˜… ç»“ç®—ç”¨ï¼šè®°å½•â€œæœ€åè¢«å‡»æ€çš„æ•Œäººâ€
     public CardData LastKilledUnitCard { get; private set; }
     public List<CardData> LastKilledDeckCards { get; private set; } = new List<CardData>();
 
@@ -27,8 +27,9 @@ public class EnemyManager : MonoBehaviour
         public List<RuntimeCard> Deck;
         public int NextCardIndex;
         public int TempAttackBonus;
+        public bool ResetAttack;
 
-        // ¡ï ÓÃÓÚ½áËã£ºµĞÈË±¾Ìå¿¨ + µĞÈËÔ­Ê¼¿¨×é£¨CardData£©
+        // â˜… ç”¨äºç»“ç®—ï¼šæ•Œäººæœ¬ä½“å¡ + æ•ŒäººåŸå§‹å¡ç»„ï¼ˆCardDataï¼‰
         public CardData UnitCardData;
         public List<CardData> SourceDeckCardData;
 
@@ -43,8 +44,9 @@ public class EnemyManager : MonoBehaviour
             Deck = new List<RuntimeCard>();
             NextCardIndex = 0;
             TempAttackBonus = 0;
+            ResetAttack = false;
 
-            // ³õÊ¼»¯Õâ¸öµĞÈËµÄÅÆ¿â£¨RuntimeCard ÊµÀı£©
+            // åˆå§‹åŒ–è¿™ä¸ªæ•Œäººçš„ç‰Œåº“ï¼ˆRuntimeCard å®ä¾‹ï¼‰
             foreach (var card in SourceDeckCardData)
             {
                 if (card != null)
@@ -58,51 +60,48 @@ public class EnemyManager : MonoBehaviour
         _bm = bm;
         ActiveEnemies.Clear();
 
-        // ¡ï Çå¿Õ¡°×îºó»÷É±¡±¼ÇÂ¼
+        // â˜… æ¸…ç©ºâ€œæœ€åå‡»æ€â€è®°å½•
         LastKilledUnitCard = null;
         LastKilledDeckCards.Clear();
 
-        // 1. ÇåÀíÈİÆ÷
+        // 1. æ¸…ç†å®¹å™¨
         if (EnemyContainer != null)
         {
             foreach (Transform child in EnemyContainer) Destroy(child.gameObject);
         }
 
-        // 2. µ÷ÊÔ EnemyDB
+        // 2. è°ƒè¯• EnemyDB
         if (EnemyDB == null)
         {
-            Debug.LogError("¡¾ÑÏÖØ´íÎó¡¿EnemyDB Ã»ÍÏ½øÈ¥£¡Çë¼ì²é Inspector¡£");
             SpawnTestEnemy();
             return;
         }
 
-        // 3. ¼ì²é GameManager ºÍ µØÍ¼½Úµã
+        // 3. æ£€æŸ¥ GameManager å’Œ åœ°å›¾èŠ‚ç‚¹
         if (GameManager.Instance == null)
         {
-            Debug.LogWarning("Ã»ÓĞÕÒµ½ GameManager£¬ÕıÔÚÉú³É²âÊÔ¹Ö...");
             SpawnTestEnemy();
             return;
         }
 
         if (GameManager.Instance.CurrentNode == null)
         {
-            Debug.LogWarning("GameManager.CurrentNode ÊÇ¿Õ (¿ÉÄÜÖ±½ÓÔËĞĞÁËÕ½¶·³¡¾°)£¬ÕıÔÚÉú³É²âÊÔ¹Ö...");
             SpawnTestEnemy();
             return;
         }
 
-        // 4. Ò»ÇĞÕı³££¬³¢ÊÔ»ñÈ¡Õ½¶·ÅäÖÃ
-        Debug.Log($"ÕıÔÚ»ñÈ¡ÔâÓöÕ½ÅäÖÃ£¬½ÚµãÀàĞÍ: {GameManager.Instance.CurrentNode.Type}");
+        // 4. ä¸€åˆ‡æ­£å¸¸ï¼Œå°è¯•è·å–æˆ˜æ–—é…ç½®
+        Debug.Log($"æ­£åœ¨è·å–é­é‡æˆ˜é…ç½®ï¼ŒèŠ‚ç‚¹ç±»å‹: {GameManager.Instance.CurrentNode.Type}");
         var profile = EnemyDB.GetRandomEncounter(GameManager.Instance.CurrentNode.Type);
 
         if (profile != null)
         {
-            Debug.Log($"¼ÓÔØÔâÓöÕ½: {profile.name}");
+            Debug.Log($"åŠ è½½é­é‡æˆ˜: {profile.name}");
             SpawnEncounter(profile);
         }
         else
         {
-            Debug.LogError($"¡¾ÅäÖÃ´íÎó¡¿Êı¾İ¿âÀïÃ»ÓĞÀàĞÍÎª {GameManager.Instance.CurrentNode.Type} µÄÕ½¶·ÅäÖÃ£¡»òÕßÁĞ±íÊÇ¿ÕµÄ¡£");
+            Debug.LogError($"ã€é…ç½®é”™è¯¯ã€‘æ•°æ®åº“é‡Œæ²¡æœ‰ç±»å‹ä¸º {GameManager.Instance.CurrentNode.Type} çš„æˆ˜æ–—é…ç½®ï¼æˆ–è€…åˆ—è¡¨æ˜¯ç©ºçš„ã€‚");
             SpawnTestEnemy();
         }
     }
@@ -127,7 +126,7 @@ public class EnemyManager : MonoBehaviour
         ui.Init(unit, _bm);
         unit.EnemyUI = ui;
 
-        // ¡ï °Ñ enemyData£¨±¾Ìå¿¨£©ºÍ enemyData.EnemyMoves£¨¿¨×é£©¶¼´æ½øÈ¥
+        // â˜… æŠŠ enemyDataï¼ˆæœ¬ä½“å¡ï¼‰å’Œ enemyData.EnemyMovesï¼ˆå¡ç»„ï¼‰éƒ½å­˜è¿›å»
         RuntimeEnemy enemy = new RuntimeEnemy(unit, ui, enemyData, enemyData.EnemyMoves);
         ActiveEnemies.Add(enemy);
     }
@@ -165,7 +164,13 @@ public class EnemyManager : MonoBehaviour
             }
             else
             {
-                _bm.UIManager.Log($"¡¾{enemy.UnitData.Name}¡¿±¾»ØºÏÎŞ·¨ÆÕ¹¥¡£");
+                _bm.UIManager.Log($"ã€{enemy.UnitData.Name}ã€‘æœ¬å›åˆæ— æ³•æ™®æ”»ã€‚");
+            }
+            if (enemy.ResetAttack)
+            {
+                enemy.UnitData.CurrentAtk = enemy.UnitData.BaseAtk;
+                enemy.UI.UpdateAttack();
+                enemy.ResetAttack = false;
             }
         }
 
@@ -187,46 +192,47 @@ public class EnemyManager : MonoBehaviour
         switch (data.effectType)
         {
             case CardEffectType.UnitBuff:
-                attacker.TempAttackBonus += data.value;
-                _bm.UIManager.Log($"¡¾{enemyName}¡¿Ê¹ÓÃ¡¸{data.cardName}¡¹£¬¹¥»÷Á¦ +{data.value}¡£");
+                attacker.UnitData.CurrentAtk += data.value;
+                attacker.ResetAttack = true;
+                attacker.UI.UpdateAttack();
+                _bm.UIManager.Log($"ã€{enemyName}ã€‘ä½¿ç”¨ã€Œ{data.cardName}ã€ï¼Œæ”»å‡»åŠ› +{data.value}ã€‚");
                 break;
 
             case CardEffectType.DamageEnemy:
-                _bm.UIManager.Log($"¡¾{enemyName}¡¿Ê¹ÓÃ¡¸{data.cardName}¡¹£¬Ôì³É {data.value} µã·¨ÊõÉËº¦¡£");
+                _bm.UIManager.Log($"ã€{enemyName}ã€‘ä½¿ç”¨ã€Œ{data.cardName}ã€ï¼Œé€ æˆ {data.value} ç‚¹æ³•æœ¯ä¼¤å®³ã€‚");
                 _bm.PlayerUnit.TakeDamage(data.value);
-                if (_bm.PlayerUnit.IsDead()) _bm.OnPlayerDefeated();
+                if (_bm.PlayerUnit.CurrentHp <= 0) _bm.OnPlayerDefeated();
                 break;
 
             case CardEffectType.HealUnit:
                 attacker.UnitData.CurrentHp += data.value;
                 attacker.UI.UpdateHP();
-                _bm.UIManager.Log($"¡¾{enemyName}¡¿Ê¹ÓÃ¡¸{data.cardName}¡¹£¬»Ö¸´ {data.value} ÉúÃü¡£");
+                _bm.UIManager.Log($"ã€{enemyName}ã€‘ä½¿ç”¨ã€Œ{data.cardName}ã€ï¼Œæ¢å¤ {data.value} ç”Ÿå‘½ã€‚");
                 break;
 
             default:
-                _bm.UIManager.Log($"¡¾{enemyName}¡¿Ê¹ÓÃÁËÎ´ÊµÏÖĞ§¹ûµÄÅÆ: {data.cardName}");
+                _bm.UIManager.Log($"ã€{enemyName}ã€‘ä½¿ç”¨äº†æœªå®ç°æ•ˆæœçš„ç‰Œ: {data.cardName}");
                 break;
         }
     }
 
     private void PerformAttack(RuntimeEnemy attacker)
     {
-        // ¡ï ÕâÀïÓÃ CurrentAtk£¨Óë CombatManager ÌåÏµ¸üÒ»ÖÂ£©
-        int baseAtk = attacker.UnitData.CurrentAtk;
-        int totalDamage = baseAtk + attacker.TempAttackBonus;
+        // â˜… è¿™é‡Œç”¨ CurrentAtkï¼ˆä¸ CombatManager ä½“ç³»æ›´ä¸€è‡´ï¼‰
+        int totalDamage = attacker.UnitData.CurrentAtk + attacker.TempAttackBonus;
         if (totalDamage <= 0) totalDamage = 5;
 
         RuntimeUnit target = _bm.UnitManager.GetTauntUnit();
         if (target != null)
         {
-            _bm.UIManager.Log($"¡¾{attacker.UnitData.Name}¡¿¹¥»÷³°·íµ¥Î» {target.Name}£¬ÉËº¦ {totalDamage}¡£");
+            _bm.UIManager.Log($"ã€{attacker.UnitData.Name}ã€‘æ”»å‡»å˜²è®½å•ä½ {target.Name}ï¼Œä¼¤å®³ {totalDamage}ã€‚");
             _bm.CombatManager.ApplyDamage(target, totalDamage);
         }
         else
         {
-            _bm.UIManager.Log($"¡¾{attacker.UnitData.Name}¡¿¹¥»÷ÁËÄã£¬ÉËº¦ {totalDamage}¡£");
+            _bm.UIManager.Log($"ã€{attacker.UnitData.Name}ã€‘æ”»å‡»äº†ä½ ï¼Œä¼¤å®³ {totalDamage}ã€‚");
             _bm.PlayerUnit.TakeDamage(totalDamage);
-            if (_bm.PlayerUnit.IsDead()) _bm.OnPlayerDefeated();
+            if (_bm.PlayerUnit.CurrentHp <= 0) _bm.OnPlayerDefeated();
         }
     }
 
@@ -235,7 +241,7 @@ public class EnemyManager : MonoBehaviour
         RuntimeEnemy target = ActiveEnemies.Find(x => x.UnitData == deadUnitData);
         if (target != null)
         {
-            // ¡ï ¼ÇÂ¼×îºó»÷É±
+            // â˜… è®°å½•æœ€åå‡»æ€
             LastKilledUnitCard = target.UnitCardData;
             LastKilledDeckCards = target.SourceDeckCardData != null
                 ? new List<CardData>(target.SourceDeckCardData)

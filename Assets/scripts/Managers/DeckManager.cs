@@ -16,19 +16,39 @@ public class DeckManager : MonoBehaviour
 
     private BattleManager _bm;
 
-    public void Init(BattleManager bm, List<CardData> startingData)
+public void Init(BattleManager bm, List<CardData> startingData = null)
     {
         _bm = bm;
         DrawPile.Clear();
         Hand.Clear();
         DiscardPile.Clear();
 
-        // ×ª»»Êý¾ÝÎªÔËÐÐÊ±ÊµÀý
-        foreach (var data in startingData)
+        // æ¸…ç†æ‰‹ç‰Œ UI
+        if (HandPanel != null)
         {
-            DrawPile.Add(new RuntimeCard(data));
+            foreach (Transform child in HandPanel)
+            {
+                Destroy(child.gameObject);
+            }
         }
-        Shuffle(DrawPile);
+
+        // è½¬æ¢å¡ç»„ä¸ºè¿è¡Œæ—¶å®žä¾‹
+        if (startingData != null)
+        {
+            foreach (var data in startingData)
+            {
+                if (data != null)
+                {
+                    DrawPile.Add(new RuntimeCard(data));
+                }
+            }
+            Shuffle(DrawPile);
+            Debug.Log($"[DeckManager] åˆå§‹åŒ–å®Œæˆï¼Œå¡ç»„ä¸­æœ‰ {DrawPile.Count} å¼ ç‰Œ");
+        }
+        else
+        {
+            Debug.LogWarning("[DeckManager] æ²¡æœ‰æä¾›èµ·å§‹å¡ç»„æ•°æ®");
+        }
     }
 
     public void DrawCards(int count)
@@ -37,7 +57,7 @@ public class DeckManager : MonoBehaviour
         {
             if (DrawPile.Count == 0)
             {
-                if (DiscardPile.Count == 0) return; // Ã»ÅÆÁË
+                if (DiscardPile.Count == 0) return; // Ã»ï¿½ï¿½ï¿½ï¿½
                 ReshuffleDiscardToDraw();
             }
 
@@ -46,15 +66,15 @@ public class DeckManager : MonoBehaviour
 
             if (Hand.Count >= MaxHandSize)
             {
-                // ±¬ÅÆÂß¼­£ºÖ±½Ó½øÆúÅÆ¶Ñ£¬²»Éú³É UI
+                // ï¿½ï¿½ï¿½ï¿½ï¿½ß¼ï¿½ï¿½ï¿½Ö±ï¿½Ó½ï¿½ï¿½ï¿½ï¿½Æ¶Ñ£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ UI
                 DiscardPile.Add(card);
-                _bm.UIManager.Log($"<color=red>ÊÖÅÆÒÑÂú£¡</color> {card.Data.cardName} ±»ÆúÖÃ¡£");
-                continue; // Ìø¹ý±¾´ÎÑ­»·£¬´¦ÀíÏÂÒ»ÕÅ
+                _bm.UIManager.Log($"<color=red>ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½</color> {card.Data.cardName} ï¿½ï¿½ï¿½ï¿½ï¿½Ã¡ï¿½");
+                continue; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ­ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½
             }
 
             Hand.Add(card);
 
-            // Éú³É UI
+            // ï¿½ï¿½ï¿½ï¿½ UI
             CreateCardUI(card);
         }
     }
@@ -75,15 +95,15 @@ public class DeckManager : MonoBehaviour
         {
             Hand.Remove(card);
             Destroy(uiObj);
-            // ×¢Òâ£ºÕâÀïÃ»ÓÐ DiscardPile.Add
+            // ×¢ï¿½â£ºï¿½ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ DiscardPile.Add
         }
     }
 
     private void CreateCardUI(RuntimeCard card)
     {
         CardUI ui = Instantiate(CardPrefab, HandPanel);
-        // CardUI ÐèÒªÊÊÅä RuntimeCard£¬Çë²ÎÕÕÎÒÉÏÒ»Ìõ»Ø´ðÐÞ¸Ä CardUI.Init
-        ui.Init(card, _bm); // ÔÝÊ±´« Data£¬½¨ÒéÖØ¹¹ CardUI ½ÓÊÕ RuntimeCard
+        // CardUI ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½ RuntimeCardï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ø´ï¿½ï¿½Þ¸ï¿½ CardUI.Init
+        ui.Init(card, _bm); // ï¿½ï¿½Ê±ï¿½ï¿½ Dataï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ø¹ï¿½ CardUI ï¿½ï¿½ï¿½ï¿½ RuntimeCard
     }
 
     private void ReshuffleDiscardToDraw()
@@ -91,7 +111,7 @@ public class DeckManager : MonoBehaviour
         DrawPile.AddRange(DiscardPile);
         DiscardPile.Clear();
         Shuffle(DrawPile);
-        _bm.UIManager.Log("ÆúÅÆ¶ÑÒÑÏ´»ØÅÆ¿â¡£");
+        _bm.UIManager.Log("ï¿½ï¿½ï¿½Æ¶ï¿½ï¿½ï¿½Ï´ï¿½ï¿½ï¿½Æ¿â¡£");
     }
 
     private void Shuffle(List<RuntimeCard> list)

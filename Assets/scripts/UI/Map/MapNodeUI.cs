@@ -4,21 +4,21 @@ using UnityEngine.UI;
 public class MapNodeUI : MonoBehaviour
 {
     public Button Btn;
-    public Image BackgroundCircle; // ÍÏÈëÔ²È¦µ×Í¼ (ButtonÉíÉÏÄÇ¸ö)
-    public Image TypeIcon;         // ÍÏÈëÀïÃæµÄĞ¡Í¼±ê (¸Õ²ÅĞÂ½¨µÄ×ÓÎïÌå)
+    public Image BackgroundCircle; // æ‹–å…¥åœ†åœˆåº•å›¾ (Buttonèº«ä¸Šé‚£ä¸ª)
+    public Image TypeIcon;         // æ‹–å…¥é‡Œé¢çš„å°å›¾æ ‡ (åˆšæ‰æ–°å»ºçš„å­ç‰©ä½“)
 
-    [Header("ºôÎü¶¯»­²ÎÊı")]
-    public float PulseSpeed = 5f;  // ºôÎüËÙ¶È
-    public float PulseScale = 0.1f; // Ëõ·Å·ù¶È (1.0 -> 1.1)
+    [Header("å‘¼å¸åŠ¨ç”»å‚æ•°")]
+    public float PulseSpeed = 5f;  // å‘¼å¸é€Ÿåº¦
+    public float PulseScale = 0.1f; // ç¼©æ”¾å¹…åº¦ (1.0 -> 1.1)
 
     private MapNode _data;
-    private bool _isBreathing = false; // ¿ª¹Ø
+    private bool _isBreathing = false; // å¼€å…³
 
     public void Init(MapNode data, Sprite typeIcon)
     {
         _data = data;
 
-        // ÉèÖÃÄÚÈİÍ¼±ê
+        // è®¾ç½®å†…å®¹å›¾æ ‡
         if (typeIcon != null)
         {
             TypeIcon.sprite = typeIcon;
@@ -26,7 +26,7 @@ public class MapNodeUI : MonoBehaviour
         }
         else
         {
-            TypeIcon.gameObject.SetActive(false); // Èç¹ûÃ»ÅäÍ¼¾Í¹Øµô
+            TypeIcon.gameObject.SetActive(false); // å¦‚æœæ²¡é…å›¾å°±å…³æ‰
         }
 
         Btn.onClick.RemoveAllListeners();
@@ -35,25 +35,25 @@ public class MapNodeUI : MonoBehaviour
         UpdateVisuals();
     }
 
-    // --- ºËĞÄĞŞ¸Ä£ºÃ¿Ö¡¼ì²âÊÇ·ñĞèÒªºôÎü ---
+    // --- æ ¸å¿ƒä¿®æ”¹ï¼šæ¯å¸§æ£€æµ‹æ˜¯å¦éœ€è¦å‘¼å¸ ---
     void Update()
     {
         if (_isBreathing)
         {
-            // ÀûÓÃ Time.time ºÍ Sin º¯ÊıÖÆ×÷Æ½»¬µÄ²¨ĞÎ
-            // ½á¹ûÔÚ 1.0 µ½ (1.0 + PulseScale) Ö®¼ä²¨¶¯
+            // åˆ©ç”¨ Time.time å’Œ Sin å‡½æ•°åˆ¶ä½œå¹³æ»‘çš„æ³¢å½¢
+            // ç»“æœåœ¨ 1.0 åˆ° (1.0 + PulseScale) ä¹‹é—´æ³¢åŠ¨
             float scale = 1.0f + Mathf.Abs(Mathf.Sin(Time.time * PulseSpeed)) * PulseScale;
 
-            // Ó¦ÓÃËõ·Å
+            // åº”ç”¨ç¼©æ”¾
             transform.localScale = new Vector3(scale, scale, 1f);
         }
     }
 
     void UpdateVisuals()
     {
-        // Ã¿´Î¸üĞÂ×´Ì¬Ç°£¬ÏÈÖØÖÃÒ»ÏÂËõ·Å£¬·ÀÖ¹¿¨ÔÚ±ä´óµÄ×´Ì¬
+        // æ¯æ¬¡æ›´æ–°çŠ¶æ€å‰ï¼Œå…ˆé‡ç½®ä¸€ä¸‹ç¼©æ”¾ï¼Œé˜²æ­¢å¡åœ¨å˜å¤§çš„çŠ¶æ€
         transform.localScale = Vector3.one;
-        _isBreathing = false; // Ä¬ÈÏ²»ºôÎü
+        _isBreathing = false; // é»˜è®¤ä¸å‘¼å¸
 
         if (_data == null) return;
 
@@ -61,40 +61,40 @@ public class MapNodeUI : MonoBehaviour
         {
             case NodeStatus.Locked:
                 Btn.interactable = false;
-                SetColor(new Color(0.5f, 0.5f, 0.5f, 0.3f)); // »ÒÉ«°ëÍ¸Ã÷
+                SetColor(new Color(0.5f, 0.5f, 0.5f, 0.3f)); // ç°è‰²åŠé€æ˜
                 break;
 
             case NodeStatus.Attainable:
                 Btn.interactable = true;
-                SetColor(Color.white); // ÁÁ°×É«
+                SetColor(Color.white); // äº®ç™½è‰²
 
-                // === ¹Ø¼ü£ºÖ»ÓĞ¿Éµ½´ïµÄ½Úµã¿ªÆôºôÎü ===
+                // === å…³é”®ï¼šåªæœ‰å¯åˆ°è¾¾çš„èŠ‚ç‚¹å¼€å¯å‘¼å¸ ===
                 _isBreathing = true;
-                // ÄãÒ²¿ÉÒÔ¸øÔ²È¦»»¸öÏÔÑÛµÄÑÕÉ«£¬±ÈÈçÇàÉ«
+                // ä½ ä¹Ÿå¯ä»¥ç»™åœ†åœˆæ¢ä¸ªæ˜¾çœ¼çš„é¢œè‰²ï¼Œæ¯”å¦‚é’è‰²
                 BackgroundCircle.color = Color.cyan;
                 break;
 
             case NodeStatus.Visited:
                 Btn.interactable = false;
-                SetColor(new Color(0.6f, 0.6f, 0.6f, 1f)); // °µ»ÒÉ«
+                SetColor(new Color(0.6f, 0.6f, 0.6f, 1f)); // æš—ç°è‰²
                 break;
 
             case NodeStatus.Current:
                 Btn.interactable = false;
                 SetColor(Color.white);
-                BackgroundCircle.color = Color.yellow; // µ±Ç°Î»ÖÃ¸ø¸ö»ÆÉ«
-                // µ±Ç°Î»ÖÃÒ²¿ÉÒÔºôÎü£¬»òÕß¾²Ì¬¸ßÁÁ£¬¿´ÄãÏ²ºÃ
+                BackgroundCircle.color = Color.yellow; // å½“å‰ä½ç½®ç»™ä¸ªé»„è‰²
+                // å½“å‰ä½ç½®ä¹Ÿå¯ä»¥å‘¼å¸ï¼Œæˆ–è€…é™æ€é«˜äº®ï¼Œçœ‹ä½ å–œå¥½
                 // _isBreathing = true; 
                 break;
         }
     }
 
-    // ¸¨Öú¹¤¾ß£ºÍ³Ò»ÉèÖÃÑÕÉ«£¬·½±ã¹ÜÀí
+    // è¾…åŠ©å·¥å…·ï¼šç»Ÿä¸€è®¾ç½®é¢œè‰²ï¼Œæ–¹ä¾¿ç®¡ç†
     void SetColor(Color c)
     {
         BackgroundCircle.color = c;
-        // Èç¹ûÏëÈÃÀïÃæµÄÍ¼±ê±£³ÖÔ­É«£¬ÏÂÃæÕâĞĞ¿ÉÒÔÈ¥µô£»
-        // Èç¹ûÏëÈÃÍ¼±ê¸ú×Å±ä°µ£¬¾Í±£Áô¡£
+        // å¦‚æœæƒ³è®©é‡Œé¢çš„å›¾æ ‡ä¿æŒåŸè‰²ï¼Œä¸‹é¢è¿™è¡Œå¯ä»¥å»æ‰ï¼›
+        // å¦‚æœæƒ³è®©å›¾æ ‡è·Ÿç€å˜æš—ï¼Œå°±ä¿ç•™ã€‚
         TypeIcon.color = new Color(1, 1, 1, c.a);
     }
 

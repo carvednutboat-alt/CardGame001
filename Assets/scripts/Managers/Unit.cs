@@ -3,31 +3,44 @@ using TMPro;
 
 public class Unit : MonoBehaviour
 {
-    public int maxHp = 30;
+    
+    public CardData Data;  // å¡ç‰Œæ•°æ®å¼•ç”¨
+    public int CurrentAttack;  // å½“å‰æ”»å‡»åŠ›
+public int maxHp = 30;
     public TMP_Text hpText;
 
-    // °Ñ _currentHp ¸ÄÎª public get, private set ·½±ãÍâ²¿¶ÁÈ¡£¬µ«²»ÔÊÐíÖ±½ÓÐÞ¸Ä
+    // ï¿½ï¿½ _currentHp ï¿½ï¿½Îª public get, private set ï¿½ï¿½ï¿½ï¿½ï¿½â²¿ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö±ï¿½ï¿½ï¿½Þ¸ï¿½
     public int CurrentHp { get; private set; }
 
     private void Awake()
     {
-        // Ä¬ÈÏ³õÊ¼»¯£¬·ÀÖ¹µ¥¶À²âÊÔÊ±±¨´í
+        // Ä¬ï¿½Ï³ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½
         CurrentHp = maxHp;
         UpdateHpUI();
     }
 
-    // --- ÐÂÔö£º×¨ÃÅÓÃÓÚ´ÓÈ«¾ÖÊý¾Ý³õÊ¼»¯ÑªÁ¿ ---
+    // --- ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×¨ï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½È«ï¿½ï¿½ï¿½ï¿½ï¿½Ý³ï¿½Ê¼ï¿½ï¿½Ñªï¿½ï¿½ ---
     public void InitData(int current, int max)
     {
         maxHp = max;
         CurrentHp = current;
 
-        // ÈÝ´í´¦Àí£º²»ÄÜ³¬¹ýÉÏÏÞ£¬Ò²²»ÄÜÐ¡ÓÚ0
+        // ï¿½Ý´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ü³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Þ£ï¿½Ò²ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½ï¿½0
         if (CurrentHp > maxHp) CurrentHp = maxHp;
         if (CurrentHp < 0) CurrentHp = 0;
 
         UpdateHpUI();
     }
+
+public void Init(CardData data, bool isPlayer)
+    {
+        Data = data;
+        maxHp = data.maxHp;
+        CurrentHp = maxHp;
+        CurrentAttack = data.unitAttack;
+        UpdateHpUI();
+    }
+
     // ---------------------------------------
 
     public void ResetHp()

@@ -1,4 +1,5 @@
 using UnityEngine;
+using static UnityEngine.GraphicsBuffer;
 
 public class CombatManager : MonoBehaviour
 {
@@ -58,6 +59,7 @@ public class CombatManager : MonoBehaviour
         else if (target.EnemyUI != null)
         {
             target.EnemyUI.UpdateHP();
+            target.EnemyUI.UpdateAttack();
         }
 
         // 3. 死亡判定
@@ -132,7 +134,12 @@ public class CombatManager : MonoBehaviour
 
         // 6. 刷新 UI
         if (unit.UI != null) unit.UI.UpdateState();
-        else if (unit.EnemyUI != null) unit.EnemyUI.UpdateHP();
+        else if (unit.EnemyUI != null)
+        { 
+            unit.EnemyUI.UpdateHP();
+            unit.EnemyUI.UpdateAttack();
+        }
+
     }
 
     // 如果还有 ApplyBattleDamage 这种旧方法，建议删除或重定向到 ApplyDamage

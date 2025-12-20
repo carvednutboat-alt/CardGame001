@@ -9,23 +9,23 @@ public static class MapGenerator
         MapData map = new MapData();
 
         // ==========================================
-        // µÚÒ»²½£ºÉú³ÉËùÓĞ½Úµã (Ö»ÊÇÉú³É£¬²»Á¬Ïß)
+        // ç¬¬ä¸€æ­¥ï¼šç”Ÿæˆæ‰€æœ‰èŠ‚ç‚¹ (åªæ˜¯ç”Ÿæˆï¼Œä¸è¿çº¿)
         // ==========================================
         for (int y = 0; y < config.LayersCount; y++)
         {
             List<MapNode> layerNodes = new List<MapNode>();
 
-            // µÚÒ»²ãºÍ×îºóÒ»²ãÇ¿ÖÆÖ»ÓĞ 1 ¸ö½Úµã (»òÕßÄã¿ÉÒÔ¸ù¾İĞèÇó¸Ä³É¶à¸ö)
-            // É±Â¾¼âËşÍ¨³££ºµÚÒ»²ã3-4¸ö£¬Boss²ã1¸ö
+            // ç¬¬ä¸€å±‚å’Œæœ€åä¸€å±‚å¼ºåˆ¶åªæœ‰ 1 ä¸ªèŠ‚ç‚¹ (æˆ–è€…ä½ å¯ä»¥æ ¹æ®éœ€æ±‚æ”¹æˆå¤šä¸ª)
+            // æ€æˆ®å°–å¡”é€šå¸¸ï¼šç¬¬ä¸€å±‚3-4ä¸ªï¼ŒBosså±‚1ä¸ª
             int count;
-            if (y == 0) count = 3; // Æğµã²ãÊıÁ¿
-            else if (y == config.LayersCount - 1) count = 1; // Boss²ãÊıÁ¿
+            if (y == 0) count = 3; // èµ·ç‚¹å±‚æ•°é‡
+            else if (y == config.LayersCount - 1) count = 1; // Bosså±‚æ•°é‡
             else count = Random.Range(config.MinNodes, config.MaxNodes + 1);
 
             for (int x = 0; x < count; x++)
             {
                 NodeType type = GetRandomType(y, config.LayersCount);
-                // Ç¿ÖÆĞŞÕı£ºBoss²ã±ØĞëÊÇBoss
+                // å¼ºåˆ¶ä¿®æ­£ï¼šBosså±‚å¿…é¡»æ˜¯Boss
                 if (y == config.LayersCount - 1) type = NodeType.Boss;
 
                 layerNodes.Add(new MapNode(x, y, type));
@@ -34,35 +34,35 @@ public static class MapGenerator
         }
 
         // ==========================================
-        // µÚ¶ş²½£º¹¹½¨Â·¾¶ (ºËĞÄĞŞ¸´)
+        // ç¬¬äºŒæ­¥ï¼šæ„å»ºè·¯å¾„ (æ ¸å¿ƒä¿®å¤)
         // ==========================================
 
-        // ²ßÂÔ£º
-        // 1. Ç°Ïò±éÀú£º±£Ö¤±¾²ãÃ¿¸ö½ÚµãÖÁÉÙÁ¬ÏòÏÂÒ»²ãµÄÒ»¸ö½Úµã (·ÀÖ¹ËÀÂ·)
-        // 2. ºóÏò¼ì²é£º±£Ö¤ÏÂÒ»²ãµÄÃ¿¸ö½ÚµãÖÁÉÙ±»±¾²ãµÄÒ»¸ö½ÚµãÁ¬½Ó (·ÀÖ¹¹Â¶ù)
+        // ç­–ç•¥ï¼š
+        // 1. å‰å‘éå†ï¼šä¿è¯æœ¬å±‚æ¯ä¸ªèŠ‚ç‚¹è‡³å°‘è¿å‘ä¸‹ä¸€å±‚çš„ä¸€ä¸ªèŠ‚ç‚¹ (é˜²æ­¢æ­»è·¯)
+        // 2. åå‘æ£€æŸ¥ï¼šä¿è¯ä¸‹ä¸€å±‚çš„æ¯ä¸ªèŠ‚ç‚¹è‡³å°‘è¢«æœ¬å±‚çš„ä¸€ä¸ªèŠ‚ç‚¹è¿æ¥ (é˜²æ­¢å­¤å„¿)
 
         for (int y = 0; y < config.LayersCount - 1; y++)
         {
             var currentLayer = map.Layers[y];
             var nextLayer = map.Layers[y + 1];
 
-            // --- A. Ç°ÏòÁ¬½Ó£º±£Ö¤µ±Ç°²ã¶¼ÓĞÂ·×ß ---
+            // --- A. å‰å‘è¿æ¥ï¼šä¿è¯å½“å‰å±‚éƒ½æœ‰è·¯èµ° ---
             foreach (var node in currentLayer)
             {
-                // ÕÒµ½ÏÂÒ»²ã¡°Âß¼­ÉÏÏàÁÚ¡±µÄ½Úµã·¶Î§
-                // ±ÈÈçÎÒÊÇµÚ2¸ö£¬ÏÂÒ»²ãÓĞ5¸ö£¬ÄÇÎÒÖ»ÄÜÁ¬ÏÂÒ»²ãµÄµÚ1, 2, 3¸ö£¬²»ÄÜÁ¬µÚ5¸ö£¬²»È»ÏßÌ«ÂÒ
+                // æ‰¾åˆ°ä¸‹ä¸€å±‚â€œé€»è¾‘ä¸Šç›¸é‚»â€çš„èŠ‚ç‚¹èŒƒå›´
+                // æ¯”å¦‚æˆ‘æ˜¯ç¬¬2ä¸ªï¼Œä¸‹ä¸€å±‚æœ‰5ä¸ªï¼Œé‚£æˆ‘åªèƒ½è¿ä¸‹ä¸€å±‚çš„ç¬¬1, 2, 3ä¸ªï¼Œä¸èƒ½è¿ç¬¬5ä¸ªï¼Œä¸ç„¶çº¿å¤ªä¹±
                 int leftIndex = GetListIndex(node.Coordinate.x, currentLayer.Count, nextLayer.Count) - 1;
                 int rightIndex = GetListIndex(node.Coordinate.x, currentLayer.Count, nextLayer.Count) + 1;
 
-                // Ç¯ÖÆ·¶Î§
+                // é’³åˆ¶èŒƒå›´
                 leftIndex = Mathf.Clamp(leftIndex, 0, nextLayer.Count - 1);
                 rightIndex = Mathf.Clamp(rightIndex, 0, nextLayer.Count - 1);
 
-                // Ç¿ÖÆÁ¬Ò»¸ö
+                // å¼ºåˆ¶è¿ä¸€ä¸ª
                 int targetIndex = Random.Range(leftIndex, rightIndex + 1);
                 Connect(node, nextLayer[targetIndex]);
 
-                // Ëæ»ú¶àÁ¬Ò»¸ö (Ôö¼Ó·Ö²æ)
+                // éšæœºå¤šè¿ä¸€ä¸ª (å¢åŠ åˆ†å‰)
                 if (Random.value < 0.2f && leftIndex != rightIndex)
                 {
                     int extra = (targetIndex == leftIndex) ? rightIndex : leftIndex;
@@ -70,15 +70,15 @@ public static class MapGenerator
                 }
             }
 
-            // --- B. ºóÏò¼ì²é£º±£Ö¤ÏÂÒ»²ãÃ»ÓĞ¹Â¶ù ---
-            // ¼ì²éÏÂÒ»²ãµÄÃ¿Ò»¸ö½Úµã£¬¿´ËüÊÇ²»ÊÇ»¹Ã»ÓĞÈÎºÎÈë±ß (Incoming)
+            // --- B. åå‘æ£€æŸ¥ï¼šä¿è¯ä¸‹ä¸€å±‚æ²¡æœ‰å­¤å„¿ ---
+            // æ£€æŸ¥ä¸‹ä¸€å±‚çš„æ¯ä¸€ä¸ªèŠ‚ç‚¹ï¼Œçœ‹å®ƒæ˜¯ä¸æ˜¯è¿˜æ²¡æœ‰ä»»ä½•å…¥è¾¹ (Incoming)
             for (int i = 0; i < nextLayer.Count; i++)
             {
                 MapNode nextNode = nextLayer[i];
                 if (nextNode.Incoming.Count == 0)
                 {
-                    // ËüÊÇ¹Â¶ù£¡±ØĞë´ÓÉÏÒ»²ã¸øËüÕÒ¸ö°Ö°Ö
-                    // Ñ°ÕÒÉÏÒ»²ãÂß¼­ÏàÁÚµÄ½Úµã
+                    // å®ƒæ˜¯å­¤å„¿ï¼å¿…é¡»ä»ä¸Šä¸€å±‚ç»™å®ƒæ‰¾ä¸ªçˆ¸çˆ¸
+                    // å¯»æ‰¾ä¸Šä¸€å±‚é€»è¾‘ç›¸é‚»çš„èŠ‚ç‚¹
                     int parentLeft = GetListIndex(i, nextLayer.Count, currentLayer.Count) - 1;
                     int parentRight = GetListIndex(i, nextLayer.Count, currentLayer.Count) + 1;
 
@@ -94,36 +94,36 @@ public static class MapGenerator
         return map;
     }
 
-    // ¸¨Öúº¯Êı£ºÁ¬½ÓÁ½¸ö½Úµã
+    // è¾…åŠ©å‡½æ•°ï¼šè¿æ¥ä¸¤ä¸ªèŠ‚ç‚¹
     static void Connect(MapNode from, MapNode to)
     {
-        // ·ÀÖ¹ÖØ¸´Á¬½Ó
+        // é˜²æ­¢é‡å¤è¿æ¥
         if (from.Outgoing.Contains(to.Coordinate)) return;
 
         from.Outgoing.Add(to.Coordinate);
         to.Incoming.Add(from.Coordinate);
     }
 
-    // ¸¨Öúº¯Êı£º¼ÆËãÏà¶ÔÎ»ÖÃË÷Òı
-    // ±ÈÈçÉÏÃæÓĞ3¸ö£¬ÏÂÃæÓĞ5¸ö£¬ÉÏÃæµÄµÚ1¸ö¶ÔÓ¦ÏÂÃæµÄµÚ¼¸¸ö£¿
+    // è¾…åŠ©å‡½æ•°ï¼šè®¡ç®—ç›¸å¯¹ä½ç½®ç´¢å¼•
+    // æ¯”å¦‚ä¸Šé¢æœ‰3ä¸ªï¼Œä¸‹é¢æœ‰5ä¸ªï¼Œä¸Šé¢çš„ç¬¬1ä¸ªå¯¹åº”ä¸‹é¢çš„ç¬¬å‡ ä¸ªï¼Ÿ
     static int GetListIndex(int index, int srcCount, int targetCount)
     {
         float ratio = (float)index / (srcCount - 1 == 0 ? 1 : srcCount - 1);
         return Mathf.RoundToInt(ratio * (targetCount - 1));
     }
 
-    // Ëæ»úÀàĞÍÂß¼­ (¼ÓÈëÁË Event)
+    // éšæœºç±»å‹é€»è¾‘ (åŠ å…¥äº† Event)
     static NodeType GetRandomType(int layerIndex, int totalLayers)
     {
-        // µÚÒ»²ãÍ¨³£È«ÊÇÆÕÍ¨¹Ö£¬·ÀÖ¹¿ª¾Ö±»ÊÂ¼ş¸ãËÀ
+        // ç¬¬ä¸€å±‚é€šå¸¸å…¨æ˜¯æ™®é€šæ€ªï¼Œé˜²æ­¢å¼€å±€è¢«äº‹ä»¶ææ­»
         if (layerIndex == 0) return NodeType.MinorEnemy;
 
         float v = Random.value;
-        // µ÷ÕûÕâÀïµÄ¸ÅÂÊ
-        if (v < 0.45f) return NodeType.MinorEnemy; // 45% ¹Ö
-        if (v < 0.70f) return NodeType.Event;      // 25% ÊÂ¼ş
-        if (v < 0.85f) return NodeType.Rest;       // 15% óô»ğ
-        if (v < 0.95f) return NodeType.Store;      // 10% ÉÌµê
-        return NodeType.EliteEnemy;                // 5% ¾«Ó¢
+        // è°ƒæ•´è¿™é‡Œçš„æ¦‚ç‡
+        if (v < 0.45f) return NodeType.MinorEnemy; // 45% æ€ª
+        if (v < 0.70f) return NodeType.Event;      // 25% äº‹ä»¶
+        if (v < 0.85f) return NodeType.Rest;       // 15% ç¯ç«
+        if (v < 0.95f) return NodeType.Store;      // 10% å•†åº—
+        return NodeType.EliteEnemy;                // 5% ç²¾è‹±
     }
 }

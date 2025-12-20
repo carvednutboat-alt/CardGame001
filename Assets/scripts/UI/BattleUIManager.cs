@@ -1,7 +1,7 @@
 using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
-using System.Collections.Generic; // ÒıÓÃ List
+using System.Collections.Generic; // å¼•ç”¨ List
 
 public class BattleUIManager : MonoBehaviour
 {
@@ -10,38 +10,60 @@ public class BattleUIManager : MonoBehaviour
     public UnityEngine.UI.ScrollRect LogScroll;
 
     [Header("Graveyard UI")]
-    public GameObject GraveyardPanel;      // Ä¹µØ´óÃæ°å
-    public Transform GraveyardContent;     // ·Å¿¨ÅÆµÄ¸¸ÎïÌå (Content)
-    public CardUI CardPrefab;              // ¿¨ÅÆÔ¤ÖÆÌå (ÓÃÓÚÏÔÊ¾)
+    public GameObject GraveyardPanel;      // å¢“åœ°å¤§é¢æ¿
+    public Transform GraveyardContent;     // æ”¾å¡ç‰Œçš„çˆ¶ç‰©ä½“ (Content)
+    public CardUI CardPrefab;              // å¡ç‰Œé¢„åˆ¶ä½“ (ç”¨äºæ˜¾ç¤º)
 
-    // --- ĞÂÔö£ºUI ÒıÓÃ ---
+    // --- æ–°å¢ï¼šUI å¼•ç”¨ ---
     [Header("Panels")]
-    public GameObject GameOverPanel; // Ê§°Ü½áËã½çÃæ
+    public GameObject GameOverPanel; // å¤±è´¥ç»“ç®—ç•Œé¢
     public Button ReturnBtn;
 
-    private BattleManager _bm; // ĞèÒªÒıÓÃ BattleManager À´»ñÈ¡Ä¹µØÊı¾İ
+    private BattleManager _bm; // éœ€è¦å¼•ç”¨ BattleManager æ¥è·å–å¢“åœ°æ•°æ®
     [Header("Reward UI")]
     public GameObject RewardPanel;
+    public GameObject MainWindow; // ç‹¬ç«‹çš„ä¸»çª—å£å¼•ç”¨
+    public TMP_Text TitleText;
     public TMP_Text RewardGoldText;
     public TMP_Text RewardRecruitText;
+    public GameObject RecruitSection;
     public Button TakeOnlyButton;
+    public TMP_Text TakeOnlyText; // æ–°å¢ï¼šæŒ‰é’®æ–‡å­—å¼•ç”¨
     public Button TakeAndRecruitButton;
+    public TMP_Text TakeAndRecruitText; // æ–°å¢ï¼šæŒ‰é’®æ–‡å­—å¼•ç”¨
+    
+    
+    private CanvasGroup _rewardPanelCanvasGroup;
 
-    // === ĞÂÔö£º³õÊ¼»¯·½·¨ ===
+    // === æ–°å¢ï¼šåˆå§‹åŒ–æ–¹æ³• ===
     public void Init(BattleManager bm)
     {
         _bm = bm;
-        // È·±£ÓÎÏ·¿ªÊ¼Ê±Ãæ°åÊÇ¹ØµÄ
+        // ç¡®ä¿æ¸¸æˆå¼€å§‹æ—¶é¢æ¿æ˜¯å…³çš„
         if (GraveyardPanel != null) GraveyardPanel.SetActive(false);
-        if (RewardPanel != null) RewardPanel.SetActive(false);
+        if (RewardPanel != null)
+        {
+            RewardPanel.SetActive(false);
+            // ç¡®ä¿æ ·å¼åœ¨æ˜¾ç¤ºå‰åº”ç”¨ä¸€æ¬¡
+            SetupUIAttributes();
+            // æ·»åŠ  CanvasGroup ç”¨äºæ·¡å…¥åŠ¨ç”»
+            _rewardPanelCanvasGroup = RewardPanel.GetComponent<CanvasGroup>();
+            if (_rewardPanelCanvasGroup == null)
+            {
+                _rewardPanelCanvasGroup = RewardPanel.AddComponent<CanvasGroup>();
+            }
+            
+            // è‡ªåŠ¨é…ç½® UI å±æ€§ï¼Œé˜²æ­¢ Inspector è®¾ç½®é”™è¯¯
+            SetupUIAttributes();
+        }
         if (GameOverPanel != null) GameOverPanel.SetActive(false);
 
-        // 2. --- Ìí¼Ó°´Å¥°ó¶¨Âß¼­ ---
+        // 2. --- æ·»åŠ æŒ‰é’®ç»‘å®šé€»è¾‘ ---
         if (ReturnBtn != null)
         {
-            // ·ÀÖ¹ÖØ¸´°ó¶¨£¬ÏÈÒÆ³ıËùÓĞ¼àÌı
+            // é˜²æ­¢é‡å¤ç»‘å®šï¼Œå…ˆç§»é™¤æ‰€æœ‰ç›‘å¬
             ReturnBtn.onClick.RemoveAllListeners();
-            // °ó¶¨µã»÷ÊÂ¼ş£ºµ÷ÓÃ GameManager µÄ ReturnToTitle
+            // ç»‘å®šç‚¹å‡»äº‹ä»¶ï¼šè°ƒç”¨ GameManager çš„ ReturnToTitle
             ReturnBtn.onClick.AddListener(() =>
             {
                 if (GameManager.Instance != null)
@@ -50,13 +72,13 @@ public class BattleUIManager : MonoBehaviour
                 }
                 else
                 {
-                    Debug.LogError("GameManager ²»´æÔÚ£¬ÎŞ·¨·µ»Ø£¡");
+                    Debug.LogError("GameManager ä¸å­˜åœ¨ï¼Œæ— æ³•è¿”å›ï¼");
                 }
             });
         }
         else
         {
-            Debug.LogError("ÇëÔÚ Inspector ÖĞ°Ñ·µ»Ø°´Å¥ÍÏ¸ø ReturnBtn£¡");
+            Debug.LogError("è¯·åœ¨ Inspector ä¸­æŠŠè¿”å›æŒ‰é’®æ‹–ç»™ ReturnBtnï¼");
         }
         // -------------------------
     }
@@ -75,40 +97,40 @@ public class BattleUIManager : MonoBehaviour
         }
     }
 
-    // === ´ò¿ªÄ¹µØ ===
+    // === æ‰“å¼€å¢“åœ° ===
     public void ShowGraveyard()
     {
         if (GraveyardPanel == null || _bm == null) return;
 
-        // 1. ÏÔÊ¾Ãæ°å
+        // 1. æ˜¾ç¤ºé¢æ¿
         GraveyardPanel.SetActive(true);
 
-        // 2. Çå¿Õ¾ÉµÄÏÔÊ¾ (·ÀÖ¹ÖØ¸´Éú³É)
+        // 2. æ¸…ç©ºæ—§çš„æ˜¾ç¤º (é˜²æ­¢é‡å¤ç”Ÿæˆ)
         foreach (Transform child in GraveyardContent)
         {
             Destroy(child.gameObject);
         }
 
-        // 3. ¶ÁÈ¡Ä¹µØÊı¾İ²¢Éú³É¿¨ÅÆ
-        // ×¢Òâ£ºÎÒÃÇ´Ó UnitManager »ñÈ¡Êı¾İ
+        // 3. è¯»å–å¢“åœ°æ•°æ®å¹¶ç”Ÿæˆå¡ç‰Œ
+        // æ³¨æ„ï¼šæˆ‘ä»¬ä» UnitManager è·å–æ•°æ®
         List<RuntimeCard> graveyard = _bm.UnitManager.Graveyard;
 
         if (graveyard.Count == 0)
         {
-            // ¿ÉÒÔÑ¡×ö£ºÏÔÊ¾Ò»¸ö¡°Ä¹µØÎª¿Õ¡±µÄÎÄ×Ö
+            // å¯ä»¥é€‰åšï¼šæ˜¾ç¤ºä¸€ä¸ªâ€œå¢“åœ°ä¸ºç©ºâ€çš„æ–‡å­—
             return;
         }
 
         foreach (var card in graveyard)
         {
-            // Éú³É¿¨ÅÆ
+            // ç”Ÿæˆå¡ç‰Œ
             CardUI ui = Instantiate(CardPrefab, GraveyardContent);
 
-            // ³õÊ¼»¯ÏÔÊ¾
-            // ´«Èë _bm ÊÇÎªÁËÏÔÊ¾Êı¾İ£¬µ«ÎÒÃÇĞèÒª½ûÓÃµã»÷
+            // åˆå§‹åŒ–æ˜¾ç¤º
+            // ä¼ å…¥ _bm æ˜¯ä¸ºäº†æ˜¾ç¤ºæ•°æ®ï¼Œä½†æˆ‘ä»¬éœ€è¦ç¦ç”¨ç‚¹å‡»
             ui.Init(card, _bm);
 
-            // ¡ï ¹Ø¼ü£º½ûÓÃ½»»¥£¬Ä¹µØÀïµÄ¿¨Ö»ÄÜ¿´²»ÄÜÓÃ
+            // â˜… å…³é”®ï¼šç¦ç”¨äº¤äº’ï¼Œå¢“åœ°é‡Œçš„å¡åªèƒ½çœ‹ä¸èƒ½ç”¨
             if (ui.button != null)
             {
                 ui.button.interactable = false;
@@ -116,7 +138,7 @@ public class BattleUIManager : MonoBehaviour
         }
     }
 
-    // === ¹Ø±ÕÄ¹µØ ===
+    // === å…³é—­å¢“åœ° ===
     public void HideGraveyard()
     {
         if (GraveyardPanel != null)
@@ -129,7 +151,7 @@ public class BattleUIManager : MonoBehaviour
     {
         if (GraveyardPanel != null && GraveyardPanel.activeSelf)
         {
-            ShowGraveyard(); // ÖØĞÂ¶ÁÈ¡Êı¾İ²¢Éú³É¿¨ÅÆ
+            ShowGraveyard(); // é‡æ–°è¯»å–æ•°æ®å¹¶ç”Ÿæˆå¡ç‰Œ
         }
     }
 
@@ -138,47 +160,47 @@ public class BattleUIManager : MonoBehaviour
         if (GameOverPanel != null)
         {
             GameOverPanel.SetActive(true);
-            Log("ÓÎÏ·½áÊø¡£"); // ¿ÉÑ¡£ºÔÚLogÀïÒ²Ğ´Ò»¾ä
+            Log("æ¸¸æˆç»“æŸã€‚"); // å¯é€‰ï¼šåœ¨Logé‡Œä¹Ÿå†™ä¸€å¥
         }
         else
         {
-            Debug.LogError("GameOverPanel »¹Ã»ÓĞ¸³Öµ£¡ÇëÔÚ Inspector ÀïÍÏ×§¡£");
+            Debug.LogError("GameOverPanel è¿˜æ²¡æœ‰èµ‹å€¼ï¼è¯·åœ¨ Inspector é‡Œæ‹–æ‹½ã€‚");
         }
     }
 
-    // === ĞÂÔö£ºÑ¡ÔñÄ£Ê½ ===
-    // ²ÎÊı onSelect ÊÇÒ»¸ö»Øµ÷º¯Êı£¬¸æËß BattleManager Ñ¡ÁËÄÄÕÅ¿¨
+    // === æ–°å¢ï¼šé€‰æ‹©æ¨¡å¼ ===
+    // å‚æ•° onSelect æ˜¯ä¸€ä¸ªå›è°ƒå‡½æ•°ï¼Œå‘Šè¯‰ BattleManager é€‰äº†å“ªå¼ å¡
     public void ShowGraveyardSelection(List<RuntimeCard> graveyard, System.Action<RuntimeCard> onSelect)
     {
         if (GraveyardPanel == null) return;
 
-        // 1. ´ò¿ªÃæ°å
+        // 1. æ‰“å¼€é¢æ¿
         GraveyardPanel.SetActive(true);
 
-        // 2. Çå¿Õ¾ÉÄÚÈİ
+        // 2. æ¸…ç©ºæ—§å†…å®¹
         foreach (Transform child in GraveyardContent) Destroy(child.gameObject);
 
-        // 3. Éú³É¿¨ÅÆ
+        // 3. ç”Ÿæˆå¡ç‰Œ
         foreach (var card in graveyard)
         {
             CardUI ui = Instantiate(CardPrefab, GraveyardContent);
 
-            // ³õÊ¼»¯ÏÔÊ¾£º´« null ¸ø manager£¬·ÀÖ¹´¥·¢Ô­±¾µÄÊÖÅÆµã»÷Âß¼­
+            // åˆå§‹åŒ–æ˜¾ç¤ºï¼šä¼  null ç»™ managerï¼Œé˜²æ­¢è§¦å‘åŸæœ¬çš„æ‰‹ç‰Œç‚¹å‡»é€»è¾‘
             ui.Init(card, null);
 
-            // 4. °ó¶¨Ñ¡ÔñÊÂ¼ş
+            // 4. ç»‘å®šé€‰æ‹©äº‹ä»¶
             if (ui.button != null)
             {
-                // È·±£ËüÊÇ¿ÉµãµÄ
+                // ç¡®ä¿å®ƒæ˜¯å¯ç‚¹çš„
                 ui.button.interactable = true;
 
-                // Çå³ı¾ÉÊÂ¼ş£¬°ó¶¨ĞÂÊÂ¼ş
+                // æ¸…é™¤æ—§äº‹ä»¶ï¼Œç»‘å®šæ–°äº‹ä»¶
                 ui.button.onClick.RemoveAllListeners();
                 ui.button.onClick.AddListener(() =>
                 {
-                    // ´¥·¢»Øµ÷
+                    // è§¦å‘å›è°ƒ
                     onSelect?.Invoke(card);
-                    // Ñ¡Íê×Ô¶¯¹Ø±Õ
+                    // é€‰å®Œè‡ªåŠ¨å…³é—­
                     HideGraveyard();
                 });
             }
@@ -193,26 +215,42 @@ public class BattleUIManager : MonoBehaviour
     {
         if (RewardPanel == null)
         {
-            Debug.LogError("RewardPanel Î´°ó¶¨µ½ BattleUIManager");
+            Debug.LogError("RewardPanel æœªç»‘å®šåˆ° BattleUIManager");
             onConfirm?.Invoke(false);
             return;
         }
 
+        // æ¯æ¬¡æ˜¾ç¤ºå‰é‡æ–°åº”ç”¨ä¸€æ¬¡æ ·å¼é…ç½®ï¼Œç¡®ä¿æ˜¾ç¤ºæ­£ç¡®
+        SetupUIAttributes();
+        
         RewardPanel.SetActive(true);
+        
+        // æ’­æ”¾æ·¡å…¥åŠ¨ç”»
+        StartCoroutine(AnimateRewardPanel());
 
+        // è®¾ç½®æ ‡é¢˜
+        if (TitleText != null)
+        {
+            TitleText.text = "æˆ˜æ–—èƒœåˆ©";
+        }
+
+        // æ˜¾ç¤ºé‡‘å¸ä¿¡æ¯
         if (RewardGoldText != null)
-            RewardGoldText.text = $"»ñµÃ½ğ±Ò£º{gold}";
+        {
+            RewardGoldText.text = $"è·å¾—é‡‘å¸ï¼š{gold}";
+        }
 
         bool canRecruit = (recruitUnit != null);
         int deckCount = (recruitDeck != null) ? recruitDeck.Count : 0;
 
-        if (RewardRecruitText != null)
-        {
-            RewardRecruitText.text = canRecruit
-                ? $"ÊÇ·ñÕĞÄ¼£º{recruitUnit.cardName}\n²¢»ñµÃÆä¿¨×é£¨{deckCount} ÕÅ£©£¿"
-                : "±¾´ÎÎŞ¿ÉÕĞÄ¼Ä¿±ê£¨Î´¼ÇÂ¼µ½×îºó»÷É±µĞÈË£©";
-        }
+        // æ›´æ–°æ‹›å‹Ÿä¿¡æ¯
+        UpdateRecruitInfo(recruitUnit, deckCount);
 
+        // è®¾ç½®æŒ‰é’®å†…å®¹
+        if (TakeOnlyText != null) TakeOnlyText.text = "åªé¢†é‡‘å¸";
+        if (TakeAndRecruitText != null) TakeAndRecruitText.text = "é¢†å–å¹¶æ‹›å‹Ÿ";
+
+        // è®¾ç½®æŒ‰é’®é€»è¾‘
         if (TakeOnlyButton != null)
         {
             TakeOnlyButton.onClick.RemoveAllListeners();
@@ -232,7 +270,6 @@ public class BattleUIManager : MonoBehaviour
             });
 
             TakeAndRecruitButton.interactable = canRecruit;
-            TakeAndRecruitButton.gameObject.SetActive(true);
         }
     }
 
@@ -241,4 +278,123 @@ public class BattleUIManager : MonoBehaviour
         if (RewardPanel != null) RewardPanel.SetActive(false);
     }
 
+    // === æ–°å¢è¾…åŠ©æ–¹æ³• ===
+    
+    private System.Collections.IEnumerator AnimateRewardPanel()
+    {
+        if (_rewardPanelCanvasGroup == null) yield break;
+        
+        _rewardPanelCanvasGroup.alpha = 0f;
+        float duration = 0.3f;
+        float elapsed = 0f;
+        
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            _rewardPanelCanvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / duration);
+            yield return null;
+        }
+        
+        _rewardPanelCanvasGroup.alpha = 1f;
+    }
+    
+    private void UpdateRecruitInfo(CardData recruitUnit, int deckCount)
+    {
+        bool canRecruit = (recruitUnit != null);
+        
+        if (RecruitSection != null)
+        {
+            RecruitSection.SetActive(canRecruit);
+        }
+        
+        if (RewardRecruitText != null)
+        {
+            if (canRecruit)
+            {
+                string unitInfo = $"{recruitUnit.cardName}\n";
+                unitInfo += $"æ”»å‡»: {recruitUnit.unitAttack} | ç”Ÿå‘½: {recruitUnit.unitHealth}\n";
+                unitInfo += $"å¯è·å¾— {deckCount} å¼ å¡ç‰Œ";
+                RewardRecruitText.text = unitInfo;
+            }
+            else
+            {
+                RewardRecruitText.text = "æœ¬æ¬¡æ— å¯æ‹›å‹Ÿç›®æ ‡";
+            }
+        }
+    }
+
+    /// <summary>
+    /// è‡ªåŠ¨é…ç½®å¥–åŠ±é¢æ¿çš„UIå±æ€§ï¼Œç¡®ä¿å³ä¾¿åœ¨ç¼–è¾‘å™¨ä¸­è®¾ç½®é”™è¯¯ä¹Ÿèƒ½æ­£ç¡®æ˜¾ç¤º
+    /// </summary>
+    private void SetupUIAttributes()
+    {
+        if (RewardPanel == null) return;
+
+        // 1. å¼ºåˆ¶é‡ç½®é¢æ¿ç¼©æ”¾å¹¶è®¾ç½®èƒŒæ™¯
+        RectTransform panelRect = RewardPanel.GetComponent<RectTransform>();
+        if (panelRect != null)
+        {
+            panelRect.localScale = Vector3.one;
+            panelRect.anchorMin = Vector2.zero;
+            panelRect.anchorMax = Vector2.one;
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+        }
+
+        Image panelImg = RewardPanel.GetComponent<Image>();
+        if (panelImg != null)
+        {
+            // ç»™èƒŒæ™¯ä¸€ä¸ªæ·±è‰²åŠé€æ˜é®ç½©
+            panelImg.color = new Color(0, 0, 0, 0.6f); 
+        }
+
+        // 2. é…ç½®ä¸»çª—å£ (MainWindow)
+        if (MainWindow != null)
+        {
+            RectTransform mainRect = MainWindow.GetComponent<RectTransform>();
+            if (mainRect != null)
+            {
+                mainRect.localScale = Vector3.one;
+                mainRect.sizeDelta = new Vector2(320, 240);
+                mainRect.anchoredPosition = Vector2.zero;
+            }
+
+            Image mainImg = MainWindow.GetComponent<Image>();
+            if (mainImg != null)
+            {
+                mainImg.color = new Color(0.12f, 0.12f, 0.15f, 1f); // æ·±ç°è‰²çª—å£
+            }
+        }
+
+        // 3. é…ç½®æ–‡æœ¬å±æ€§
+        ConfigureText(TitleText, 24, TextAlignmentOptions.Center);
+        ConfigureText(RewardGoldText, 18, TextAlignmentOptions.Center);
+        ConfigureText(RewardRecruitText, 16, TextAlignmentOptions.Center);
+        ConfigureText(TakeOnlyText, 14, TextAlignmentOptions.Center);
+        ConfigureText(TakeAndRecruitText, 14, TextAlignmentOptions.Center);
+
+        // 4. é‡ç½®æŒ‰é’®è§†è§‰
+        SetupButtonStyle(TakeOnlyButton, new Color(0.3f, 0.35f, 0.4f, 1f));
+        SetupButtonStyle(TakeAndRecruitButton, new Color(0.5f, 0.4f, 0.2f, 1f));
+    }
+
+    private void SetupButtonStyle(Button btn, Color color)
+    {
+        if (btn == null) return;
+        btn.transform.localScale = Vector3.one;
+        Image img = btn.GetComponent<Image>();
+        if (img != null)
+        {
+            img.color = color;
+        }
+    }
+
+    private void ConfigureText(TMP_Text text, float size, TextAlignmentOptions align)
+    {
+        if (text == null) return;
+        text.transform.localScale = Vector3.one;
+        text.fontSize = size;
+        text.alignment = align;
+        text.color = Color.white;
+    }
 }
