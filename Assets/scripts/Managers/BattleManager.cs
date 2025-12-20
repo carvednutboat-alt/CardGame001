@@ -3,6 +3,8 @@ using UnityEngine;
 
 public class BattleManager : MonoBehaviour
 {
+    public static BattleManager Instance;
+
     [Header("Managers")]
     public DeckManager DeckManager;
     public UnitManager UnitManager;
@@ -29,8 +31,7 @@ public class BattleManager : MonoBehaviour
     public Vector2Int EliteGoldRange = new Vector2Int(100, 200);
     public Vector2Int BossGoldRange  = new Vector2Int(100, 200);
 
-
-    // === ÄÚ²¿×´Ì¬ ===
+    // === å†…éƒ¨çŠ¶æ€ ===
     public bool IsTargetingMode = false;
     private RuntimeCard _pendingCard;
     private GameObject _pendingCardUIObj;
@@ -39,35 +40,47 @@ public class BattleManager : MonoBehaviour
     private GameObject _pendingCardUIObj2;
     private bool _battleEnded = false;
 
-    // ¿ØÖÆµ±Ç°»ØºÏÊÇ·ñÔÊĞí¹¥»÷ (ÏÈÊÖÏŞÖÆ)
+    // æ§åˆ¶å½“å‰å›åˆæ˜¯å¦å…è®¸æ”»å‡» (å…ˆåæ‰‹æœºåˆ¶)
     public bool CurrentTurnCanAttack { get; private set; } = true;
 
-    // === ĞÂÔö×´Ì¬ 1£ºÕÙ»½ÏŞÖÆ ===
+    // === ç©å®¶çŠ¶æ€ 1ï¼šå¬å”¤é™åˆ¶ ===
     public bool HasSummonedThisTurn { get; private set; } = false;
 
-    // === ĞÂÔö×´Ì¬ 2£º¹¥»÷Ñ¡Ä¿±êÄ£Ê½ ===
-    // µ±Íæ¼Òµã»÷ÁË×Ô¼ºµÄ¹ÖÊŞ£¬×¼±¸¹¥»÷Ê±£¬¼ÇÂ¼Ë­Òª¹¥»÷
+    // === ç©å®¶çŠ¶æ€ 2ï¼šæ”»å‡»é€‰æ‹©ç›®æ ‡æ¨¡å¼ ===
+    // ç©å®¶ç‚¹å‡»è‡ªå·±çš„éšä»ï¼Œå‡†å¤‡æ”»å‡»æ—¶ï¼Œè®°å½•è°è¦æ”»å‡»
     private RuntimeUnit _selectedAttacker;
+
+    public void Awake()
+    {
+        Instance = this;
+    }
 
     private void Start()
     {
-        UIManager.Log("=== ÓÎÏ·³õÊ¼»¯ ===");
+        // === æ·»åŠ ç©ºå€¼æ£€æŸ¥ ===
+        if (UIManager == null) { Debug.LogError("[BattleManager] UIManager æœªé…ç½®ï¼"); return; }
+        if (EnemyManager == null) { Debug.LogError("[BattleManager] EnemyManager æœªé…ç½®ï¼"); return; }
+        if (DeckManager == null) { Debug.LogError("[BattleManager] DeckManager æœªé…ç½®ï¼"); return; }
+        if (UnitManager == null) { Debug.LogError("[BattleManager] UnitManager æœªé…ç½®ï¼"); return; }
+        if (CombatManager == null) { Debug.LogError("[BattleManager] CombatManager æœªé…ç½®ï¼"); return; }
+
+        UIManager.Log("=== æ¸¸æˆå¼€å§‹ï¼ ===");
         UIManager.Init(this);
         CombatManager.Init(this);
         EnemyManager.Init(this);
         UnitManager.Init(this);
 
-        // --- ĞŞ¸Ä¿ªÊ¼£º¶Ô½Ó GameManager ---
+        // --- ä¿®æ”¹ï¼šä»å…¨å±€ GameManager è·å–å¡ç»„ ---
         List<CardData> spellsForHand = new List<CardData>();
         List<CardData> unitsForBench = new List<CardData>();
 
-        // 2. ´ÓÈ«¾Ö»ñÈ¡ËùÓĞ¿¨ÅÆ
+        // ä»å…¨å±€è·å–æ‰€æœ‰å¡ç‰Œ
         if (GameManager.Instance != null)
         {
-            // ·ÖÀà£º·¨Êõ½øÅÆ¿â£¬Ëæ´Ó½ø±¸Õ½Ï¯
+            // åˆ†ç±»ï¼šå•ä½å…¥æˆ˜åœºï¼Œæ³•æœ¯å…¥æ‰‹ç‰Œ
             foreach (var card in GameManager.Instance.MasterDeck)
             {
-                if (card.kind == CardKind.Unit) // ¼ÙÉèÄãµÄ CardData ÓĞ kind ×Ö¶Î
+                if (card.kind == CardKind.Unit)
                 {
                     unitsForBench.Add(card);
                 }
@@ -77,55 +90,62 @@ public class BattleManager : MonoBehaviour
                 }
             }
 
-            // --- ĞÂÔö£ºÍ¬²½Íæ¼ÒÑªÁ¿ ---
-            if (GameManager.Instance != null && PlayerUnit != null)
+            // --- è¡€é‡åŒæ­¥ï¼ˆé‡è¦ï¼‰---
+            if (PlayerUnit != null)
             {
-                // ´ÓÈ«¾Ö¹ÜÀíÆ÷¶ÁÈ¡ÑªÁ¿£¬¸³Öµ¸ø³¡ÉÏµÄÍæ¼Òµ¥Î»
+                // ä»å…¨å±€ç®¡ç†å™¨è·å–è¡€é‡ï¼Œå¹¶èµ‹å€¼ç»™ç©å®¶å•ä½
                 PlayerUnit.InitData(GameManager.Instance.PlayerCurrentHP, GameManager.Instance.PlayerMaxHP);
-                UIManager.Log($"Íæ¼ÒÑªÁ¿ÒÑÍ¬²½: {PlayerUnit.CurrentHp}/{PlayerUnit.maxHp}");
+                UIManager.Log($"ç©å®¶è¡€é‡åŒæ­¥: {PlayerUnit.CurrentHp}/{PlayerUnit.maxHp}");
             }
-            else if (PlayerUnit != null)
+            else
             {
-                // Èç¹ûÃ»ÓĞGameManager (µ¥¶Àµ÷ÊÔÕ½¶·³¡¾°)£¬Ä¬ÈÏÂúÑª
-                PlayerUnit.InitData(PlayerUnit.maxHp, PlayerUnit.maxHp);
+                Debug.LogError("[BattleManager] PlayerUnit æœªé…ç½®ï¼");
             }
         }
         else
         {
-            // µ÷ÊÔÄ£Ê½£ºÊ¹ÓÃ BattleManager Ãæ°åÉÏµÄÄ¬ÈÏÅäÖÃ
+            // è°ƒè¯•æ¨¡å¼ï¼šä½¿ç”¨ BattleManager æœ¬åœ°é…ç½®çš„é»˜è®¤æ•°æ®
             spellsForHand = StartingSpellDeck;
             unitsForBench = StartingUnitLibrary;
+            
+            if (PlayerUnit != null)
+            {
+                PlayerUnit.InitData(PlayerUnit.maxHp, PlayerUnit.maxHp);
+            }
         }
 
-        // 3. ³õÊ¼»¯Ä£¿é
-        DeckManager.Init(this, spellsForHand); // ³õÊ¼»¯·¨ÊõÅÆ¿â
+        // åˆå§‹åŒ–å¡ç»„
+        DeckManager.Init(this, spellsForHand);
 
-        // 4. ³õÊ¼»¯Ëæ´Ó (ĞŞ¸´ÁËÄãµÄbug£ºÏÖÔÚÊÇ¶¯Ì¬Éú³ÉµÄ)
+        // åˆå§‹åŒ–å•ä½ (ä¿®å¤ï¼šåŠ¨æ€ç”Ÿæˆå•ä½å¡ç‰‡)
         SpawnUnitBench(unitsForBench);
 
-        UIManager.Log("·¢·Å³õÊ¼ÊÖÅÆ (4ÕÅ)...");
+        UIManager.Log("åˆå§‹æŠ½ç‰Œ (4å¼ )...");
         DeckManager.DrawCards(4);
 
         bool playerGoesFirst = Random.value > 0.5f;
         if (playerGoesFirst)
         {
-            UIManager.Log("¡¾Ëæ»ú½á¹û¡¿Íæ¼ÒÏÈÊÖ£¡");
+            UIManager.Log("ç©å®¶å…ˆæ‰‹ï¼ˆä¸èƒ½æ”»å‡»ï¼‰ï¼");
             StartPlayerTurn(canAttack: false, drawCard: false);
         }
         else
         {
-            UIManager.Log("¡¾Ëæ»ú½á¹û¡¿µĞÈËÏÈÊÖ£¡");
+            UIManager.Log("æ•Œäººå…ˆæ‰‹ï¼ˆä¸èƒ½æ”»å‡»ï¼‰ï¼");
             EnemyTurn(canAttack: false);
         }
     }
 
-    // ĞŞ¸Ä SpawnUnitBench ½ÓÊÜ²ÎÊı
+    // ä¿®æ”¹ SpawnUnitBench å…¼å®¹æ€§
     private void SpawnUnitBench(List<CardData> units)
     {
-        // ÇåÀí¾ÉµÄ£¨Èç¹ûÊÇÖØÓÃ³¡¾°£©
-        foreach (Transform child in UnitPanel) Destroy(child.gameObject);
+        // æ¸…ç©ºåŠ¨æ€ç”Ÿæˆçš„æ—§å•ä½å¡ç‰‡
+        if (UnitPanel != null)
+        {
+            foreach (Transform child in UnitPanel) Destroy(child.gameObject);
+        }
 
-        if (DeckManager.CardPrefab == null || UnitPanel == null) return;
+        if (DeckManager == null || DeckManager.CardPrefab == null || UnitPanel == null) return;
 
         foreach (var data in units)
         {
@@ -138,158 +158,223 @@ public class BattleManager : MonoBehaviour
 
     public void StartPlayerTurn(bool canAttack = true, bool drawCard = true)
     {
-        CurrentTurnCanAttack = canAttack; // ¼ÇÂ¼×´Ì¬
-        HasSummonedThisTurn = false; // === ĞÂÔö£ºĞÂ»ØºÏÖØÖÃÕÙ»½´ÎÊı ===
-        _selectedAttacker = null;    // ÖØÖÃ¹¥»÷Ñ¡Ôñ
+        CurrentTurnCanAttack = canAttack; // è®°å½•çŠ¶æ€
+        HasSummonedThisTurn = false; // === æ–°å›åˆé‡ç½®å¬å”¤é™åˆ¶ ===
+        _selectedAttacker = null;    // é‡ç½®æ”»å‡»é€‰æ‹©
 
-        UIManager.Log("--------------------------");
-        UIManager.Log(">>> ÂÖµ½ÄãµÄ»ØºÏ <<<");
+        if (UIManager != null)
+        {
+            UIManager.Log("--------------------------");
+            UIManager.Log(">>> ä½ çš„å›åˆ <<<");
+        }
 
-        if (drawCard) DeckManager.DrawCards(1);
-        else UIManager.Log("£¨ÏÈÊÖµÚÒ»»ØºÏ²»³éÅÆ£©");
+        if (drawCard && DeckManager != null)
+        {
+            DeckManager.DrawCards(1);
+        }
+        else if (UIManager != null)
+        {
+            UIManager.Log("ï¼ˆä½ çš„ç¬¬ä¸€å›åˆä¸æŠ½ç‰Œï¼‰");
+        }
 
-        // ÉèÖÃ¹¥»÷×´Ì¬
-        UnitManager.SetAllAttackStatus(canAttack);
+        // è®¾ç½®æ”»å‡»çŠ¶æ€
+        if (UnitManager != null)
+        {
+            UnitManager.SetAllAttackStatus(canAttack);
+        }
 
-        if (!canAttack) UIManager.Log("¡¾ÌáÊ¾¡¿ÏÈÊÖµÚÒ»»ØºÏÎŞ·¨½øĞĞÕ½¶·¹¥»÷¡£");
+        if (!canAttack && UIManager != null)
+        {
+            UIManager.Log("æç¤ºï¼šä½ çš„ç¬¬ä¸€å›åˆæ— æ³•è¿›è¡Œæˆ˜æ–—ï¼ˆå…ˆåæ‰‹ï¼‰");
+        }
     }
 
     public void OnEndTurnButton()
     {
         if (IsTargetingMode) return;
-        // È¡Ïû¿ÉÄÜµÄ¹¥»÷Ñ¡Ôñ
+        
+        // === æ·»åŠ ç©ºå€¼æ£€æŸ¥ ===
+        if (EnemyManager == null)
+        {
+            Debug.LogError("[BattleManager] EnemyManager ä¸ºç©ºï¼Œæ— æ³•ç»“æŸå›åˆï¼");
+            return;
+        }
+        
+        // å–æ¶ˆå¯èƒ½çš„æ”»å‡»é€‰æ‹©
         _selectedAttacker = null;
-        UnitManager.SetAllAttackStatus(false);
+        if (UnitManager != null)
+        {
+            UnitManager.SetAllAttackStatus(false);
+        }
+        
         EnemyTurn(canAttack: true);
     }
 
     private void EnemyTurn(bool canAttack)
     {
-        UIManager.Log("--------------------------");
-        UIManager.Log(">>> ÂÖµ½µĞÈË»ØºÏ <<<");
-        EnemyManager.ExecuteTurn(canAttack);
+        if (UIManager != null)
+        {
+            UIManager.Log("--------------------------");
+            UIManager.Log(">>> æ•Œäººå›åˆ <<<");
+        }
+        
+        if (EnemyManager != null)
+        {
+            EnemyManager.ExecuteTurn(canAttack);
+        }
+        else
+        {
+            Debug.LogError("[BattleManager] EnemyManager ä¸ºç©ºï¼");
+            StartPlayerTurn();
+        }
     }
 
     // ---------------------------------------------------------
-    // ¿¨ÅÆ½»»¥Âß¼­ 
+    // å¡ç‰Œäº¤äº’é€»è¾‘ - ä¿®å¤ï¼šä½¿ç”¨ä¸¤å‚æ•°ç­¾å
     // ---------------------------------------------------------
 
     public void OnCardClicked(CardUI ui, RuntimeCard card)
     {
+        // === æ·»åŠ ç©ºå€¼æ£€æŸ¥ ===
+        if (ui == null || card == null || card.Data == null)
+        {
+            Debug.LogError("[BattleManager] OnCardClicked å‚æ•°ä¸ºç©ºï¼");
+            return;
+        }
+
         if (IsTargetingMode)
         {
             CancelTargeting();
             return;
         }
 
-        // Èç¹ûÕıÔÚÑ¡¹¥»÷Ä¿±êÊ±µãÁË¿¨ÅÆ£¬È¡Ïû¹¥»÷Ñ¡Ôñ
+        // å¦‚æœæ­£åœ¨é€‰æ‹©æ”»å‡»ç›®æ ‡æ—¶ç‚¹äº†å¡ç‰Œï¼Œå–æ¶ˆæ”»å‡»é€‰æ‹©
         if (_selectedAttacker != null)
         {
-            UIManager.Log("È¡Ïû¹¥»÷Ñ¡Ôñ¡£");
+            if (UIManager != null) UIManager.Log("å–æ¶ˆæ”»å‡»é€‰æ‹©");
             _selectedAttacker = null;
         }
 
-        // 1. µ¥Î»¿¨ (Ôö¼ÓÕÙ»½ÏŞÖÆ)
+        // 1. å•ä½ç‰Œ (å¢åŠ å¬å”¤é™åˆ¶)
         if (card.Data.kind == CardKind.Unit)
         {
-            // === ĞŞ¸Ä£º¼ì²éÕÙ»½ÏŞÖÆ ===
+            // === ä¿®æ”¹ï¼šå¬å”¤é™åˆ¶ ===
             if (HasSummonedThisTurn)
             {
-                UIManager.Log("<color=red>±¾»ØºÏÒÑ¾­ÕÙ»½¹ı¹ÖÊŞÁË£¡</color>");
+                if (UIManager != null) UIManager.Log("<color=red>æœ¬å›åˆå·²ç»å¬å”¤è¿‡å•ä½äº†ï¼</color>");
                 return;
             }
 
-            if (UnitManager.TrySummonUnit(card))
+            if (UnitManager != null && UnitManager.TrySummonUnit(card))
             {
-                HasSummonedThisTurn = true; // ±ê¼ÇÒÑÕÙ»½
+                HasSummonedThisTurn = true; // æ ‡è®°å¬å”¤
                 Destroy(ui.gameObject);
             }
             return;
         }
 
-        // 2. ×°±¸¿¨ (ĞŞ¸ÄÉúÃüÖÜÆÚ)
+        // 2. è£…å¤‡ç‰Œ (ä¿®æ”¹ï¼šè¿›å…¥ç„å‡†)
         if (card.Data.isEquipment)
         {
-            if (UnitManager.PlayerUnits.Count == 0)
+            if (UnitManager == null || UnitManager.PlayerUnits.Count == 0)
             {
-                UIManager.Log("³¡ÉÏÃ»ÓĞ¹ÖÊŞ£¬ÎŞ·¨×°±¸¡£");
+                if (UIManager != null) UIManager.Log("åœºä¸Šæ²¡æœ‰éšä»ï¼Œæ— æ³•è£…å¤‡ï¼");
                 return;
             }
             EnterTargetingMode(card, ui.gameObject);
             return;
         }
 
-        // 3. ĞèÑ¡Ä¿±êµÄ·¨Êõ (Heal / Buff / Evolve)
-        // ÕâĞ©¿¨ĞèÒªÏÈµãÒ»ÏÂ½øÄ£Ê½£¬ÔÙµã¹ÖÊŞÉúĞ§
+        // 3. éœ€é€‰ç›®æ ‡çš„æ³•æœ¯ (Heal / Buff / Evolve)
+        // è¿™äº›éœ€è¦å…ˆè¿›å…¥ç„å‡†æ¨¡å¼ï¼Œå†ç‚¹å‡»è§¦å‘æ•ˆæœ
         if (card.Data.effectType == CardEffectType.HealUnit ||
-            card.Data.effectType == CardEffectType.Fly ||
+            card.Data.effectType == CardEffectType.UnitBuff ||
             card.Data.effectType == CardEffectType.FieldEvolve ||
-            card.Data.effectType == CardEffectType.DamageEnemy ||
-            card.Data.effectType == CardEffectType.UnitBuff)
+            card.Data.effectType == CardEffectType.DamageEnemy)
         {
             EnterTargetingMode(card, ui.gameObject);
             return;
         }
 
-        // === ºËĞÄĞŞ¸Ä£ºÀ¹½Ø¸´»î¿¨ ===
+        // === å¤æ´»ä¿®æ”¹ï¼šå•ç‹¬å¤„ç† ===
         if (card.Data.effectType == CardEffectType.ReviveUnit)
         {
-            // 1. ¼ì²éÄ¹µØÊÇ·ñÎª¿Õ
-            if (UnitManager.Graveyard.Count == 0)
+            // 1. åˆ¤æ–­å¢“åœ°æ˜¯å¦ä¸ºç©º
+            if (UnitManager == null || UnitManager.Graveyard.Count == 0)
             {
-                UIManager.Log("Ä¹µØÊÇ¿ÕµÄ£¬ÎŞ·¨Ê¹ÓÃ¡£");
+                if (UIManager != null) UIManager.Log("å¢“åœ°æ˜¯ç©ºçš„ï¼Œæ— æ³•ä½¿ç”¨ã€‚");
                 return;
             }
 
-            // 2. Ôİ´æÕâÕÅÅÆ (ÒòÎªËü»¹Ã»ÉúĞ§£¬²»ÄÜÁ¢¿ÌÆúÅÆ)
+            // 2. æš‚å­˜å¡ç‰Œ (å› ä¸ºå¼¹çª—æ²¡æœ‰æ•ˆæœå›è°ƒï¼Œéœ€è¦æš‚å­˜)
             _pendingCard2 = card;
             _pendingCardUIObj2 = ui.gameObject;
 
-            // 3. ´ò¿ªÄ¹µØÑ¡ÔñÃæ°å£¬²¢´«Èë»Øµ÷º¯Êı
-            UIManager.ShowGraveyardSelection(UnitManager.Graveyard, OnGraveyardCardSelected);
-
-            UIManager.Log("Çë´ÓÄ¹µØÑ¡ÔñÒª¸´»îµÄ¹ÖÊŞ...");
-            return; // À¹½Ø³É¹¦£¬²»ÔÙÍùÏÂÖ´ĞĞ
+            // 3. è®©å¢“åœ°é€‰æ‹©å¼¹çª—ï¼Œå¹¶ä¼ å…¥å›è°ƒæ–¹æ³•
+            if (UIManager != null)
+            {
+                UIManager.ShowGraveyardSelection(UnitManager.Graveyard, OnGraveyardCardSelected);
+                UIManager.Log("ä»å¢“åœ°é€‰æ‹©è¦å¤æ´»çš„éšä»...");
+            }
+            return; // è¿”å›æˆåŠŸï¼ˆåç»­åœ¨å›è°ƒæ‰§è¡Œï¼‰
         }
 
-        // 4. ²»ĞèÒªÑ¡Ä¿±êµÄ·¨Êõ (Revive / Draw / AOE)
+        // 4. ä¸éœ€è¦é€‰ç›®æ ‡çš„æ³•æœ¯ (Revive / Draw / AOE)
         EffectBase effect = EffectFactory.GetEffect(card.Data.effectType);
         if (effect != null)
         {
-            // Èç¹ûÌõ¼ş²»Âú×ã (±ÈÈçÄ¹µØÎª¿Õ)£¬CheckCondition ÄÚ²¿»á±¨Log²¢·µ»Ø false
+            // æ£€æŸ¥æ¡ä»¶ï¼ˆå¦‚æœå¢“åœ°ä¸ºç©ºï¼‰CheckCondition å†…éƒ¨ä¼šæŠ¥Logå¹¶è¿”å› false
             if (!effect.CheckCondition(this, card, null)) return;
 
             effect.Execute(this, card, null);
-            DeckManager.DiscardCard(card, ui.gameObject);
+            if (DeckManager != null)
+            {
+                DeckManager.DiscardCard(card, ui.gameObject);
+            }
         }
         else
         {
-            UIManager.Log($"Î´ÅäÖÃĞ§¹û: {card.Data.effectType}");
+            if (UIManager != null) UIManager.Log($"æœªå®ç°æ•ˆæœ: {card.Data.effectType}");
         }
     }
 
     public void OnFieldUnitClicked(int unitId)
     {
-        // 1. Ê©·¨Ä£Ê½
+        if (UnitManager == null)
+        {
+            Debug.LogError("[BattleManager] UnitManager ä¸ºç©ºï¼");
+            return;
+        }
+
+        // 1. æ–½æ³•æ¨¡å¼
         if (IsTargetingMode)
         {
-            // ¼ì²é£ºÕâÕÅ¿¨±ØĞëÊÇÕë¶Ô¡°ÓÑ¾ü¡±»ò¡°ËùÓĞÈË¡±µÄ
+            // æ£€æµ‹ï¼šå¡ç‰Œå¦‚æœé™åˆ¶ã€æ•Œäººã€‘æˆ–ã€å·²ç»æ­»äº¡çš„å•ä½ã€‘ç­‰
+            if (_pendingCard == null || _pendingCard.Data == null)
+            {
+                ExitTargetingMode();
+                return;
+            }
+
             if (_pendingCard.Data.targetType != CardTargetType.Ally &&
                 _pendingCard.Data.targetType != CardTargetType.All)
             {
-                UIManager.Log("<color=red>ÕâÕÅ¿¨²»ÄÜ¶Ô¼º·½¹ÖÊŞÊ¹ÓÃ£¡</color>");
-                return; // À¹½Ø£¡²»ÍË³öÄ£Ê½£¬ÈÃÍæ¼ÒÖØÑ¡
+                if (UIManager != null) UIManager.Log("<color=red>è¿™å¼ å¡åªèƒ½å¯¹å·±æ–¹éšä»ä½¿ç”¨ï¼</color>");
+                return; // è¿”å›ï¼Œä¸é€€å‡ºæ¨¡å¼ï¼Œç»§ç»­é€‰æ‹©
             }
             RuntimeUnit target = UnitManager.GetUnitById(unitId);
             if (target == null) return;
 
-            // 2. === ĞÂÔö£ºÈç¹ûÊÇ×°±¸ÅÆ£¬Ö´ĞĞ×°±¸Âß¼­ ===
+            // 2. === å¦‚æœæ˜¯è£…å¤‡å¡ï¼Œæ‰§è¡Œè£…å¤‡é€»è¾‘ ===
             if (_pendingCard.Data.isEquipment)
             {
-                ApplyEquipment(_pendingCard, target); // ´«²Î£º°Ñ¿¨¸øÄ¿±ê´©ÉÏ
+                ApplyEquipment(_pendingCard, target); // ä¼ å‚ï¼šå¡ã€ç›®æ ‡éšä»
 
-                // ×°±¸ÅÆÌØÊâ´¦Àí£º´ÓÊÖÅÆÒÆ³ı£¬µ«²»½øÄ¹µØ (ÒòÎªËüÔÚ³¡ÉÏ)
-                DeckManager.RemoveCardFromHand(_pendingCard, _pendingCardUIObj);
+                // è£…å¤‡ç›´æ¥ä»æ‰‹ç‰Œç§»é™¤ï¼Œä¸è¿›å…¥å¢“åœ° (å› ä¸ºé™„åœ¨éšä»ä¸Š)
+                if (DeckManager != null)
+                {
+                    DeckManager.RemoveCardFromHand(_pendingCard, _pendingCardUIObj);
+                }
 
                 ExitTargetingMode();
                 return;
@@ -301,102 +386,144 @@ public class BattleManager : MonoBehaviour
             {
                 if (!effect.CheckCondition(this, _pendingCard, target)) { ExitTargetingMode(); return; }
                 effect.Execute(this, _pendingCard, target);
-                DeckManager.DiscardCard(_pendingCard, _pendingCardUIObj);
+                if (DeckManager != null)
+                {
+                    DeckManager.DiscardCard(_pendingCard, _pendingCardUIObj);
+                }
             }
             ExitTargetingMode();
             return;
         }
 
-        // 2. ¹¥»÷Ñ¡ÔñÄ£Ê½ (ĞÂÂß¼­)
+        // 2. æ”»å‡»é€‰æ‹©æ¨¡å¼ (æ–°é€»è¾‘)
         RuntimeUnit unit = UnitManager.GetUnitById(unitId);
         if (unit != null)
         {
-            // ¼ì²éÊÇ·ñÄÜ¹¥»÷
-            if (!CurrentTurnCanAttack) { UIManager.Log("±¾»ØºÏÎŞ·¨½øĞĞ¹¥»÷¡£"); return; }
-            if (!unit.CanAttack) { UIManager.Log($"{unit.Name} ±¾»ØºÏÒÑ¾­¹¥»÷¹ı»òÎŞ·¨ĞĞ¶¯¡£"); return; }
+            // æ£€æµ‹æ˜¯å¦èƒ½æ”»å‡»
+            if (!CurrentTurnCanAttack)
+            {
+                if (UIManager != null) UIManager.Log("æœ¬å›åˆæ— æ³•è¿›è¡Œæ”»å‡»ï¼");
+                return;
+            }
+            if (!unit.CanAttack)
+            {
+                if (UIManager != null) UIManager.Log($"{unit.Name} æœ¬å›åˆå·²ç»æ”»å‡»è¿‡æˆ–æ— æ³•è¿›è¡Œæ”»å‡»");
+                return;
+            }
 
-            // Ñ¡ÖĞÕâ¸öµ¥Î»×÷Îª¹¥»÷Õß
+            // é€‰ä¸­è¿™ä¸ªå•ä½ä½œä¸ºæ”»å‡»è€…
             _selectedAttacker = unit;
-            UIManager.Log($"ÒÑÑ¡Ôñ {unit.Name}£¬<color=yellow>Çëµã»÷µĞÈË½øĞĞ¹¥»÷£¡</color>");
+            if (UIManager != null) UIManager.Log($"å·²é€‰ä¸­ {unit.Name}ï¼Œ<color=yellow>è¯·ç‚¹å‡»æ•Œäººè¿›è¡Œæ”»å‡»</color>");
         }
     }
 
-    // ½ÓÊÕÀ´×Ô EnemyUnitUI µÄµã»÷
+    // å¤„ç†ç‚¹å‡» EnemyUnitUI çš„ç‚¹å‡»
     public void OnEnemyClicked(EnemyUnitUI enemyUI)
     {
-        // 1. === ĞÂÔö£ºÈç¹ûÊÇ¡°Ê©·¨Ãé×¼Ä£Ê½¡± ===
+        if (enemyUI == null || enemyUI.MyUnit == null)
+        {
+            Debug.LogError("[BattleManager] EnemyUI æˆ– MyUnit ä¸ºç©ºï¼");
+            return;
+        }
+
+        // 1. === å¦‚æœæ­£åœ¨ã€æ–½æ³•ç„å‡†æ¨¡å¼ã€‘ ===
         if (IsTargetingMode)
         {
-            // ¼ì²é£ºÕâÕÅ¿¨±ØĞëÊÇÕë¶Ô¡°µĞÈË¡±»ò¡°ËùÓĞÈË¡±µÄ
+            if (_pendingCard == null || _pendingCard.Data == null)
+            {
+                ExitTargetingMode();
+                return;
+            }
+
+            // æ£€æµ‹ï¼šå¡ç‰Œå¦‚æœé™åˆ¶ã€å‹å†›ã€‘æˆ–ã€æ‰€æœ‰ã€‘ç­‰
             if (_pendingCard.Data.targetType != CardTargetType.Enemy &&
                 _pendingCard.Data.targetType != CardTargetType.All)
             {
-                UIManager.Log("<color=red>ÕâÕÅ¿¨Ö»ÄÜ¶Ô×Ô¼ºÈËÊ¹ÓÃ£¡</color>");
-                return; // À¹½Ø£¡
+                if (UIManager != null) UIManager.Log("<color=red>è¿™å¼ å¡åªèƒ½å¯¹å·±æ–¹ä½¿ç”¨ï¼</color>");
+                return; // è¿”å›ï¼Œ
             }
             RuntimeUnit target = enemyUI.MyUnit;
             if (target == null) return;
 
-            // »ñÈ¡´ı´ò³öµÄ·¨ÊõĞ§¹û
+            // è·å–å¡ç‰Œå¯¹åº”çš„æ³•æœ¯æ•ˆæœ
             EffectBase effect = EffectFactory.GetEffect(_pendingCard.Data.effectType);
             if (effect != null)
             {
-                // Ö´ĞĞĞ§¹û (´«Èë»ğÇò¿¨, ºÍÑ¡ÖĞµÄµĞÈËÄ¿±ê)
+                // æ‰§è¡Œæ•ˆæœ (ä¾‹å¦‚ä¼¤å®³, é€‰ä¸­çš„æ•Œäººä¸ºç›®æ ‡)
                 effect.Execute(this, _pendingCard, target);
 
-                // ¿Û·Ñ¡¢¶ªÆúÊÖÅÆ
-                DeckManager.DiscardCard(_pendingCard, _pendingCardUIObj);
+                // æ¶ˆè€—å¡ç‰Œï¼ˆå¼ƒç‰Œï¼‰
+                if (DeckManager != null)
+                {
+                    DeckManager.DiscardCard(_pendingCard, _pendingCardUIObj);
+                }
             }
 
-            // ÍË³öÃé×¼Ä£Ê½
+            // é€€å‡ºç„å‡†æ¨¡å¼
             ExitTargetingMode();
             return;
         }
 
-        // 2. ¹ÖÊŞÆÕ¹¥Ä£Ê½
+        // 2. ç©å®¶éšä»æ”»å‡»æ¨¡å¼
         if (_selectedAttacker != null)
         {
             RuntimeUnit target = enemyUI.MyUnit;
-            UIManager.Log($"·¢Æğ¹¥»÷£º{_selectedAttacker.Name} -> {target.Name}");
+            if (UIManager != null) UIManager.Log($"è§¦å‘æ”»å‡»ï¼š{_selectedAttacker.Name} -> {target.Name}");
 
-            // === ĞŞ¸Ä£ºÃ÷È·´«Èë consumeAction: true ===
-            CombatManager.ProcessUnitAttack(_selectedAttacker, target, consumeAction: true);
+            // === ä¿®æ”¹ï¼šæ˜ç¡®ä¼ å…¥ consumeAction: true ===
+            if (CombatManager != null)
+            {
+                CombatManager.ProcessUnitAttack(_selectedAttacker, target, consumeAction: true);
+            }
 
             _selectedAttacker = null;
         }
         else
         {
-            UIManager.Log($"ÇëÏÈÑ¡ÔñÎÒ·½¹ÖÊŞ£¬ÔÙµã»÷ {enemyUI.MyUnit.Name}¡£");
+            if (UIManager != null) UIManager.Log($"è¯·å…ˆé€‰æ‹©å·±æ–¹éšä»ï¼Œå†ç‚¹å‡» {enemyUI.MyUnit.Name}ã€‚");
         }
     }
 
     private void ApplyEquipment(RuntimeCard card, RuntimeUnit target)
     {
+        if (card == null || card.Data == null || target == null) return;
+
         target.Equips.Add(card.Data);
-        CombatManager.RecalculateUnitStats(target);
-        UnitManager.RefreshUnitUI(target);
-        UIManager.Log($"{target.Name} ×°±¸ÁË {card.Data.cardName}");
+        if (CombatManager != null)
+        {
+            CombatManager.RecalculateUnitStats(target);
+        }
+        if (UnitManager != null)
+        {
+            UnitManager.RefreshUnitUI(target);
+        }
+        if (UIManager != null)
+        {
+            UIManager.Log($"{target.Name} è£…å¤‡äº† {card.Data.cardName}");
+        }
     }
 
-    // === »Øµ÷º¯Êı£ºÍæ¼ÒµãÑ¡ÁËÄ³ÕÅÄ¹µØ¿¨ ===
+    // === å›è°ƒå‡½æ•°ï¼šç©å®¶ä»å¢“åœ°é€‰æ‹©äº†æŸå¼ éšä»å¡ ===
     private void OnGraveyardCardSelected(RuntimeCard selectedUnitCard)
     {
-        // 1. ³¢ÊÔÕÙ»½
-        if (UnitManager.TrySummonUnit(selectedUnitCard))
+        if (selectedUnitCard == null) return;
+
+        // 1. å°è¯•å¬å”¤
+        if (UnitManager != null && UnitManager.TrySummonUnit(selectedUnitCard))
         {
-            // 2. ´ÓÄ¹µØÒÆ³ıÕâÕÅ¿¨ (Ëü¸´»îÁË)
+            // 2. ä»å¢“åœ°ç§»é™¤è¿™å¼ å¡ (çœŸæ­£å¤æ´»)
             UnitManager.Graveyard.Remove(selectedUnitCard);
 
-            // 3. ½áËã¡°ËÀÕßËÕÉú¡±ÕâÕÅÅÆ (¶ª½øÆúÅÆ¶Ñ)
-            if (_pendingCard2 != null && _pendingCardUIObj2 != null)
+            // 3. æ¶ˆè€—ã€å¤æ´»å¡ã€‘æœ¬èº« (è¿›å…¥å¼ƒç‰Œå †)
+            if (_pendingCard2 != null && _pendingCardUIObj2 != null && DeckManager != null)
             {
                 DeckManager.DiscardCard(_pendingCard2, _pendingCardUIObj2);
             }
 
-            UIManager.Log($"¸´»îÁË {selectedUnitCard.Data.cardName}£¡");
+            if (UIManager != null) UIManager.Log($"å¤æ´»äº† {selectedUnitCard.Data.cardName}ï¼");
         }
 
-        // ÇåÀíÔİ´æÒıÓÃ
+        // æ¸…é™¤æš‚å­˜æ•°æ®
         _pendingCard2 = null;
         _pendingCardUIObj2 = null;
     }
@@ -406,9 +533,17 @@ public class BattleManager : MonoBehaviour
         IsTargetingMode = true;
         _pendingCard = card;
         _pendingCardUIObj = uiObj;
-        _selectedAttacker = null; // Ê©·¨Ê±È¡Ïû¹¥»÷Ñ¡Ôñ
-        UIManager.Log($"ÇëÑ¡Ôñ {card.Data.cardName} µÄÄ¿±ê...");
-        UnitManager.EnableTargetingSelection();
+        _selectedAttacker = null; // æ–½æ³•æ—¶å–æ¶ˆæ”»å‡»é€‰æ‹©
+        
+        if (UIManager != null && card != null && card.Data != null)
+        {
+            UIManager.Log($"å·²é€‰ä¸­ {card.Data.cardName} é€‰æ‹©ç›®æ ‡...");
+        }
+        
+        if (UnitManager != null)
+        {
+            UnitManager.EnableTargetingSelection();
+        }
     }
 
     private void ExitTargetingMode()
@@ -416,92 +551,116 @@ public class BattleManager : MonoBehaviour
         IsTargetingMode = false;
         _pendingCard = null;
         _pendingCardUIObj = null;
-        UnitManager.RestoreStateAfterTargeting();
+        if (UnitManager != null)
+        {
+            UnitManager.RestoreStateAfterTargeting();
+        }
     }
 
     private void CancelTargeting()
     {
         if (!IsTargetingMode) return;
-        UIManager.Log("ÒÑÈ¡ÏûÊ©·¨¡£");
+        if (UIManager != null) UIManager.Log("å·²å–æ¶ˆæ–½æ³•ï¼");
         ExitTargetingMode();
     }
 
     private int RollGoldReward()
-{
-    if (GameManager.Instance == null || GameManager.Instance.CurrentNode == null) return 0;
+    {
+        if (GameManager.Instance == null || GameManager.Instance.CurrentNode == null) return 0;
 
-    var t = GameManager.Instance.CurrentNode.Type;
-    Vector2Int r = MinorGoldRange;
+        var t = GameManager.Instance.CurrentNode.Type;
+        Vector2Int r = MinorGoldRange;
 
-    if (t == NodeType.EliteEnemy) r = EliteGoldRange;
-    else if (t == NodeType.Boss) r = BossGoldRange;
+        if (t == NodeType.EliteEnemy) r = EliteGoldRange;
+        else if (t == NodeType.Boss) r = BossGoldRange;
 
-    // Random.Range(int,int) ÉÏ½ç²»°üº¬£¬ËùÒÔÒª +1
-    return Random.Range(r.x, r.y + 1);
-}
+        // Random.Range(int,int) ä¸Šç•Œä¸åŒ…å«ï¼Œæ‰€ä»¥éœ€è¦ +1
+        return Random.Range(r.x, r.y + 1);
+    }
 
     public void OnGameWin()
     {
         if (_battleEnded) return;
         _battleEnded = true;
 
-        UIManager.Log("Õ½¶·Ê¤Àû£¡");
+        if (UIManager != null) UIManager.Log("æˆ˜æ–—èƒœåˆ©ï¼");
 
-        // ±£´æÑªÁ¿»ØÈ«¾Ö
+        // è¡€é‡å›ä¼ åˆ°å…¨å±€
         if (GameManager.Instance != null && PlayerUnit != null)
         {
             GameManager.Instance.PlayerCurrentHP = PlayerUnit.CurrentHp;
         }
 
-        // Ëø¶¨Õ½¶·½»»¥£¬·ÀÖ¹Ê¤Àûºó»¹ÄÜÂÒµã
+        // å†»ç»“æˆ˜æ–—ï¼ˆé˜²æ­¢èƒœåˆ©åä»éšä»æ”»å‡»ï¼‰
         CurrentTurnCanAttack = false;
-        UnitManager.SetAllAttackStatus(false);
+        if (UnitManager != null)
+        {
+            UnitManager.SetAllAttackStatus(false);
+        }
         StopAllCoroutines();
-        EnemyManager.StopAllCoroutines();
+        if (EnemyManager != null)
+        {
+            EnemyManager.StopAllCoroutines();
+        }
 
         int gold = RollGoldReward();
 
-        // È¡¡°×îºó»÷É±µĞÈË¡±µÄÕĞÄ¼ĞÅÏ¢£¨EnemyManager ±ØĞëÌá¹©ÕâÁ½¸öÊôĞÔ£©
-        CardData recruitUnit = EnemyManager.LastKilledUnitCard;
-        List<CardData> recruitDeck = EnemyManager.LastKilledDeckCards;
+        // å–å¾—ã€æœ€åå‡»æ€çš„æ•Œäººã€‘å•ä½åŠå…¶ç‰Œåº“ä¿¡æ¯ï¼ˆEnemyManager å†…éƒ¨æä¾›è¿™ä¸¤ä¸ªå±æ€§ï¼‰
+        CardData recruitUnit = (EnemyManager != null) ? EnemyManager.LastKilledUnitCard : null;
+        List<CardData> recruitDeck = (EnemyManager != null) ? EnemyManager.LastKilledDeckCards : new List<CardData>();
 
-        UIManager.ShowBattleReward(gold, recruitUnit, recruitDeck, (recruit) =>
+        if (UIManager != null)
         {
-            if (GameManager.Instance != null)
+            UIManager.ShowBattleReward(gold, recruitUnit, recruitDeck, (recruit) =>
             {
-                // ÏÈ¸øÇ®
-                if (gold > 0) GameManager.Instance.AddGold(gold);
-
-                // ÔÙ¾ö¶¨ÊÇ·ñÕĞÄ¼
-                if (recruit && recruitUnit != null)
+                if (GameManager.Instance != null)
                 {
-                    GameManager.Instance.AcquireEnemyUnitAndDeck(recruitUnit, recruitDeck);
-                }
-            }
+                    // ç»™é’±
+                    if (gold > 0) GameManager.Instance.AddGold(gold);
 
-            UIManager.HideBattleReward();
-            ReturnToMap();
-        });
+                    // å†³å®šæ˜¯å¦æ‹›å‹Ÿ
+                    if (recruit && recruitUnit != null)
+                    {
+                        GameManager.Instance.AcquireEnemyUnitAndDeck(recruitUnit, recruitDeck);
+                    }
+                }
+
+                if (UIManager != null) UIManager.HideBattleReward();
+                ReturnToMap();
+            });
+        }
     }
 
     void ReturnToMap()
     {
-        GameManager.Instance.OnNodeCompleted();
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.OnNodeCompleted();
+        }
     }
+
     public void OnPlayerDefeated()
     {
-        UIManager.Log("<color=red>¡¾Ê§°Ü¡¿ÄãµÄÉúÃüÖµ¹éÁãÁË...</color>");
+        if (_battleEnded) return;
+        _battleEnded = true;
 
-        // 1. Ëø¶¨×´Ì¬£¬½ûÖ¹ÈÎºÎ²Ù×÷
+        if (UIManager != null) UIManager.Log("<color=red>ã€å¤±è´¥ã€‘ç©å®¶çš„å•ä½è¢«å‡»è´¥...</color>");
+
+        // 1. å†»ç»“çŠ¶æ€ï¼Œé˜²æ­¢ä»»ä½•æ“ä½œ
         CurrentTurnCanAttack = false;
-        UnitManager.SetAllAttackStatus(false);
-        // Èç¹ûÓĞ¡°½áÊø»ØºÏ¡±°´Å¥£¬×îºÃÒ²½ûÓÃµô£¨¿ÉÒÔÍ¨¹ı UIManager ±©Â¶½Ó¿ÚÀ´×ö£©
+        if (UnitManager != null)
+        {
+            UnitManager.SetAllAttackStatus(false);
+        }
 
-        // 2. Í£Ö¹ËùÓĞĞ­³Ì£¨·ÀÖ¹µĞÈË¼ÌĞø¹¥»÷»òÕß¶¯»­¼ÌĞø²¥·Å£©
+        // 2. åœæ­¢æ‰€æœ‰åç¨‹ï¼Œé˜²æ­¢æ•Œäººç»§ç»­æ”»å‡»æˆ–å…¶ä»–å¼‚å¸¸è¡Œä¸ºï¼‰
         StopAllCoroutines();
-        EnemyManager.StopAllCoroutines(); // Èç¹û EnemyManager Ò²ÓĞĞ­³Ì
+        if (EnemyManager != null)
+        {
+            EnemyManager.StopAllCoroutines();
+        }
 
-        // 3. ÏÔÊ¾Ê§°Ü UI
+        // 3. æ˜¾ç¤ºå¤±è´¥ UI
         if (UIManager != null)
         {
             UIManager.ShowGameOver();
@@ -510,7 +669,9 @@ public class BattleManager : MonoBehaviour
 
     void FailGame()
     {
-        GameManager.Instance.OnRunFailed();
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.OnRunFailed();
+        }
     }
-
 }

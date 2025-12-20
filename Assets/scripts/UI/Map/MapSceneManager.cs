@@ -1,21 +1,21 @@
 using UnityEngine;
 using System.Collections.Generic;
-using UnityEngine.UI; // ±ØĞëÒıÓÃ
+using UnityEngine.UI; // å¿…é¡»å¼•ç”¨
 
 public class MapSceneManager : MonoBehaviour
 {
     public GameObject NodePrefab;
-    public GameObject LinePrefab; // <--- ĞÂÔö£ºÍÏÈë¸Õ²Å×öµÄ MapLine Ô¤ÖÆÌå
+    public GameObject LinePrefab; // <--- æ–°å¢ï¼šæ‹–å…¥åˆšæ‰åšçš„ MapLine é¢„åˆ¶ä½“
     public Transform Container;
-    // --- ĞÂÔö£ºÍÏÈë¸Õ²ÅĞ´µÄÅäÖÃ ---
+    // --- æ–°å¢ï¼šæ‹–å…¥åˆšæ‰å†™çš„é…ç½® ---
     public MapIconsConfig IconsConfig;
 
-    // --- ²ÎÊıµ÷Õû ---
-    private float xSpacing = 150f; // ½ÚµãºáÏò¼ä¾à
-    private float ySpacing = 200f; // ²ã¼¶×İÏò¼ä¾à
-    private float bottomPadding = 100f; // µ×²¿Áô°×£¬·ÀÖ¹µÚÒ»²ãÌù±ß
+    // --- å‚æ•°è°ƒæ•´ ---
+    private float xSpacing = 150f; // èŠ‚ç‚¹æ¨ªå‘é—´è·
+    private float ySpacing = 200f; // å±‚çº§çºµå‘é—´è·
+    private float bottomPadding = 100f; // åº•éƒ¨ç•™ç™½ï¼Œé˜²æ­¢ç¬¬ä¸€å±‚è´´è¾¹
 
-    // ÓÃ×Öµä´æÒ»ÏÂÉú³ÉµÄ½ÚµãÎïÌå£¬·½±ã»­ÏßÊ±²éÕÒ×ø±ê
+    // ç”¨å­—å…¸å­˜ä¸€ä¸‹ç”Ÿæˆçš„èŠ‚ç‚¹ç‰©ä½“ï¼Œæ–¹ä¾¿ç”»çº¿æ—¶æŸ¥æ‰¾åæ ‡
     private Dictionary<Vector2Int, RectTransform> _spawnedNodes = new Dictionary<Vector2Int, RectTransform>();
 
     void Start()
@@ -28,24 +28,24 @@ public class MapSceneManager : MonoBehaviour
 
     void DrawMap(MapData map)
     {
-        // 1. ¶¯Ì¬¼ÆËã Content µÄ¸ß¶È
-        // ¸ß¶È = ²ãÊı * ¼ä¾à + ÉÏÏÂÁô°×
+        // 1. åŠ¨æ€è®¡ç®— Content çš„é«˜åº¦
+        // é«˜åº¦ = å±‚æ•° * é—´è· + ä¸Šä¸‹ç•™ç™½
         float totalHeight = map.Layers.Count * ySpacing + bottomPadding * 2;
 
-        // »ñÈ¡ Container µÄ RectTransform ²¢ÉèÖÃ³ß´ç
+        // è·å– Container çš„ RectTransform å¹¶è®¾ç½®å°ºå¯¸
         RectTransform rectTrans = Container.GetComponent<RectTransform>();
         if (rectTrans != null)
         {
-            // ±£³Ö¿í¶È²»±ä£¬ĞŞ¸Ä¸ß¶È
+            // ä¿æŒå®½åº¦ä¸å˜ï¼Œä¿®æ”¹é«˜åº¦
             rectTrans.sizeDelta = new Vector2(rectTrans.sizeDelta.x, totalHeight);
         }
 
-        // 2. Éú³É½Úµã
+        // 2. ç”ŸæˆèŠ‚ç‚¹
         for (int y = 0; y < map.Layers.Count; y++)
         {
             var layer = map.Layers[y];
 
-            // ¼ÆËãÕâÒ»²ãµÄ×Ü¿í¶È£¬ÎªÁËÈÃ½Úµã¾ÓÖĞ
+            // è®¡ç®—è¿™ä¸€å±‚çš„æ€»å®½åº¦ï¼Œä¸ºäº†è®©èŠ‚ç‚¹å±…ä¸­
             float layerWidth = (layer.Count - 1) * xSpacing;
             float xOffset = -layerWidth / 2f;
 
@@ -55,29 +55,29 @@ public class MapSceneManager : MonoBehaviour
 
                 GameObject obj = Instantiate(NodePrefab, Container);
 
-                // --- ×ø±ê¼ÆËã ---
-                // X: ¾ÓÖĞÆ«ÒÆ + Ë÷Òı * ¼ä¾à
-                // Y: µ×²¿Áô°× + ²ãË÷Òı * ¼ä¾à
+                // --- åæ ‡è®¡ç®— ---
+                // X: å±…ä¸­åç§» + ç´¢å¼• * é—´è·
+                // Y: åº•éƒ¨ç•™ç™½ + å±‚ç´¢å¼• * é—´è·
                 float xPos = xOffset + x * xSpacing;
                 float yPos = bottomPadding + y * ySpacing;
 
                 obj.transform.localPosition = new Vector3(xPos, yPos, 0);
 
-                // »ñÈ¡Í¼±ê
+                // è·å–å›¾æ ‡
                 Sprite icon = IconsConfig != null ? IconsConfig.GetIcon(nodeData.Type) : null;
                 obj.GetComponent<MapNodeUI>().Init(nodeData, icon);
 
-                // ¼ÇÂ¼×ø±ê£¬ÓÃÓÚ»­Ïß (KeyÊÇÍø¸ñ×ø±ê, ValueÊÇUIÎïÌå)
+                // è®°å½•åæ ‡ï¼Œç”¨äºç”»çº¿ (Keyæ˜¯ç½‘æ ¼åæ ‡, Valueæ˜¯UIç‰©ä½“)
                 _spawnedNodes.Add(nodeData.Coordinate, obj.GetComponent<RectTransform>());
             }
         }
 
-        // 3. »­Ïß (±éÀúËùÓĞ½Úµã£¬»­³öÁ¬Ïò¸¸½ÚµãµÄÏß)
+        // 3. ç”»çº¿ (éå†æ‰€æœ‰èŠ‚ç‚¹ï¼Œç”»å‡ºè¿å‘çˆ¶èŠ‚ç‚¹çš„çº¿)
         foreach (var layer in map.Layers)
         {
             foreach (var node in layer)
             {
-                // ±éÀúÕâ¸ö½ÚµãµÄ¡°³ö±ß¡± (Outgoing)£¬Ò²¾ÍÊÇÁ¬ÏòÏÂÒ»²ãµÄÏß
+                // éå†è¿™ä¸ªèŠ‚ç‚¹çš„â€œå‡ºè¾¹â€ (Outgoing)ï¼Œä¹Ÿå°±æ˜¯è¿å‘ä¸‹ä¸€å±‚çš„çº¿
                 foreach (var targetCoord in node.Outgoing)
                 {
                     if (_spawnedNodes.ContainsKey(node.Coordinate) && _spawnedNodes.ContainsKey(targetCoord))
@@ -88,28 +88,28 @@ public class MapSceneManager : MonoBehaviour
             }
         }
     }
-    // »­ÏßºËĞÄÊıÑ§Âß¼­
+    // ç”»çº¿æ ¸å¿ƒæ•°å­¦é€»è¾‘
     void CreateLine(RectTransform startNode, RectTransform endNode)
     {
-        // ÊµÀı»¯Ïß
+        // å®ä¾‹åŒ–çº¿
         GameObject lineObj = Instantiate(LinePrefab, Container);
 
-        // Ïß±ØĞë·ÅÔÚ½ÚµãÍ¼²ãÏÂÃæ (SetAsFirstSibling)
+        // çº¿å¿…é¡»æ”¾åœ¨èŠ‚ç‚¹å›¾å±‚ä¸‹é¢ (SetAsFirstSibling)
         lineObj.transform.SetAsFirstSibling();
 
         RectTransform lineRect = lineObj.GetComponent<RectTransform>();
 
-        // 1. Î»ÖÃ£ºÉèÎªÆğµãµÄÎ»ÖÃ
+        // 1. ä½ç½®ï¼šè®¾ä¸ºèµ·ç‚¹çš„ä½ç½®
         lineRect.localPosition = startNode.localPosition;
 
-        // 2. ¼ÆËã·½ÏòÏòÁ¿
+        // 2. è®¡ç®—æ–¹å‘å‘é‡
         Vector3 dir = endNode.localPosition - startNode.localPosition;
 
-        // 3. ³¤¶È£ºÁ½µã¼ä¾àÀë
+        // 3. é•¿åº¦ï¼šä¸¤ç‚¹é—´è·ç¦»
         float distance = dir.magnitude;
-        lineRect.sizeDelta = new Vector2(distance, 5f); // 5f ÊÇÏßµÄ´ÖÏ¸
+        lineRect.sizeDelta = new Vector2(distance, 5f); // 5f æ˜¯çº¿çš„ç²—ç»†
 
-        // 4. Ğı×ª£º¼ÆËã½Ç¶È
+        // 4. æ—‹è½¬ï¼šè®¡ç®—è§’åº¦
         float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
         lineRect.localRotation = Quaternion.Euler(0, 0, angle);
     }

@@ -8,69 +8,69 @@ public class FieldUnitUI : MonoBehaviour
     [Header("UI Components")]
     public TMP_Text nameText;
     public TMP_Text statsText;   // ATK / HP
-    public TMP_Text statusText;  // ×´Ì¬À¸ (½ø»¯/·ÉĞĞ/³°·í)
+    public TMP_Text statusText;  // çŠ¶æ€æ  (è¿›åŒ–/é£è¡Œ/å˜²è®½)
     public Button clickButton;
 
-    // === ºËĞÄĞŞ¸Ä£º³ÖÓĞÊı¾İÒıÓÃ£¬¶ø²»ÊÇ´æÒ»¶ÑÁÙÊ±±äÁ¿ ===
+    // === æ ¸å¿ƒä¿®æ”¹ï¼šæŒæœ‰æ•°æ®å¼•ç”¨ï¼Œè€Œä¸æ˜¯å­˜ä¸€å †ä¸´æ—¶å˜é‡ ===
     private BattleManager _bm;
     private RuntimeUnit _unitData;
 
-    // ¶ÔÍâ¹«¿ªÊı¾İ£¨Èç¹ûĞèÒª£©
+    // å¯¹å¤–å…¬å¼€æ•°æ®ï¼ˆå¦‚æœéœ€è¦ï¼‰
     public RuntimeUnit MyUnit => _unitData;
 
     // =========================================================
-    // 1. ³õÊ¼»¯ (²ÎÊı´ó´ó¼ò»¯)
+    // 1. åˆå§‹åŒ– (å‚æ•°å¤§å¤§ç®€åŒ–)
     // =========================================================
     public void Init(RuntimeUnit unit, BattleManager manager)
     {
         _unitData = unit;
         _bm = manager;
 
-        // ÉèÖÃÃû×Ö
+        // è®¾ç½®åå­—
         if (nameText != null) nameText.text = unit.Name;
 
-        // °ó¶¨°´Å¥ÊÂ¼ş
+        // ç»‘å®šæŒ‰é’®äº‹ä»¶
         if (clickButton != null)
         {
             clickButton.onClick.RemoveAllListeners();
             clickButton.onClick.AddListener(OnUnitClicked);
         }
 
-        // µÚÒ»´ÎË¢ĞÂ½çÃæ
+        // ç¬¬ä¸€æ¬¡åˆ·æ–°ç•Œé¢
         UpdateState();
     }
 
     // =========================================================
-    // 2. ×´Ì¬Ë¢ĞÂ (CombatManager µ÷ÓÃµÄ¾ÍÊÇÕâ¸ö£¡)
+    // 2. çŠ¶æ€åˆ·æ–° (CombatManager è°ƒç”¨çš„å°±æ˜¯è¿™ä¸ªï¼)
     // =========================================================
     public void UpdateState()
     {
         if (_unitData == null) return;
 
-        // A. Ë¢ĞÂÊıÖµ (ATK / HP)
+        // A. åˆ·æ–°æ•°å€¼ (ATK / HP)
         if (statsText != null)
         {
-            // ×¢Òâ£ºÕâÀïÖ±½Ó¶ÁÈ¡¶ÔÏóµÄÊµÊ±ÊôĞÔ
+            // æ³¨æ„ï¼šè¿™é‡Œç›´æ¥è¯»å–å¯¹è±¡çš„å®æ—¶å±æ€§
             statsText.text = $"ATK {_unitData.CurrentAtk} / HP {_unitData.CurrentHp}";
         }
 
-        // B. Ë¢ĞÂ×´Ì¬À¸
+        // B. åˆ·æ–°çŠ¶æ€æ 
         if (statusText != null)
         {
             List<string> parts = new List<string>();
 
-            if (_unitData.IsEvolved) parts.Add("<color=yellow>½ø»¯</color>");
-            if (_unitData.IsFlying) parts.Add("Æğ·É");
-            if (_unitData.HasTaunt) parts.Add("³°·í");
-            // Èç¹ûÓĞ×°±¸
+            if (_unitData.IsEvolved) parts.Add("<color=yellow>è¿›åŒ–</color>");
+            if (_unitData.IsFlying) parts.Add("èµ·é£");
+            if (_unitData.HasTaunt) parts.Add("å˜²è®½");
+            // å¦‚æœæœ‰è£…å¤‡
             if (_unitData.Equips != null && _unitData.Equips.Count > 0)
-                parts.Add($"×°±¸:{_unitData.Equips.Count}");
+                parts.Add($"è£…å¤‡:{_unitData.Equips.Count}");
 
             statusText.text = string.Join(" | ", parts);
         }
 
-        // C. Ë¢ĞÂ°´Å¥×´Ì¬ (ÀıÈç£ºÈç¹ûÔÎÑ£ÁË¿ÉÄÜ²»ÄÜµã£¬»òÕß¸ù¾İÄÜ·ñ¹¥»÷ÉèÖÃ interactable)
-        SetButtonInteractable(_unitData.CanAttack); // ¼ÙÉè RuntimeUnit ÓĞ CanAttack
+        // C. åˆ·æ–°æŒ‰é’®çŠ¶æ€ (ä¾‹å¦‚ï¼šå¦‚æœæ™•çœ©äº†å¯èƒ½ä¸èƒ½ç‚¹ï¼Œæˆ–è€…æ ¹æ®èƒ½å¦æ”»å‡»è®¾ç½® interactable)
+        SetButtonInteractable(_unitData.CanAttack); // å‡è®¾ RuntimeUnit æœ‰ CanAttack
     }
 
     public void SetButtonInteractable(bool interactable)
@@ -83,7 +83,7 @@ public class FieldUnitUI : MonoBehaviour
     {
         if (_bm != null && _unitData != null)
         {
-            // Í¨Öª¹ÜÀíÆ÷£ºÕâ¸ö ID µÄµ¥Î»±»µãÁË
+            // é€šçŸ¥ç®¡ç†å™¨ï¼šè¿™ä¸ª ID çš„å•ä½è¢«ç‚¹äº†
             _bm.OnFieldUnitClicked(_unitData.Id);
         }
     }

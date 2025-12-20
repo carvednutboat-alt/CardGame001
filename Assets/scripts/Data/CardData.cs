@@ -31,21 +31,20 @@ public enum CardEffectType
     Fly
 }
 
-// 1. ¶¨ÒåÃ¶¾Ù£ºÄ¿±êÀàĞÍ
+// 1. å®šä¹‰æšä¸¾ï¼šç›®æ ‡ç±»å‹
 public enum CardTargetType
 {
-    None,       // ²»ĞèÒªÄ¿±ê (Èç AOE, ³éÅÆ)
-    Ally,       // ½öÏŞÎÒ·½µ¥Î» (Buff, ÖÎÁÆ, ½ø»¯, ÓÂÄñÃÍ¹¥)
-    Enemy,      // ½öÏŞµĞ·½µ¥Î» (»ğÇòÊõ, µ¥ÌåÏ÷Èõ)
-    All         // ÈÎºÎÈË (ÌØÊâÇé¿ö)
+    None,       // ä¸éœ€è¦ç›®æ ‡ (å¦‚ AOE, æŠ½ç‰Œ)
+    Ally,       // ä»…é™æˆ‘æ–¹å•ä½ (Buff, æ²»ç–—, è¿›åŒ–, å‹‡é¸ŸçŒ›æ”»)
+    Enemy,      // ä»…é™æ•Œæ–¹å•ä½ (ç«çƒæœ¯, å•ä½“å‰Šå¼±)
+    All         // ä»»ä½•äºº (ç‰¹æ®Šæƒ…å†µ)
 }
-
-
 
 [CreateAssetMenu(fileName = "NewCard", menuName = "Card Game/Card")]
 public class CardData : ScriptableObject
 {
     [Header("Basic")]
+    public int cost = 0;  // å¡ç‰Œè´¹ç”¨
     public string cardName;
     public CardKind kind;
     public CardColor color;
@@ -56,14 +55,15 @@ public class CardData : ScriptableObject
     [Header("Unit stats")]
     public int unitAttack;
     public int unitHealth;
+    public int maxHp => unitHealth;  // maxHpåˆ«å,æŒ‡å‘unitHealth
 
     [Header("Unit traits")]
-    public bool unitStartsFlying;  // ÕâÖ»¹ÖÎïÒ»ÉÏ³¡¾ÍÊÇÆğ·É×´Ì¬
-    public bool unitHasTaunt;      // ÕâÖ»¹ÖÎï×Ô´ø³°·í
+    public bool unitStartsFlying;  // è¿™åªæ€ªç‰©ä¸€ä¸Šåœºå°±æ˜¯èµ·é£çŠ¶æ€
+    public bool unitHasTaunt;      // è¿™åªæ€ªç‰©è‡ªå¸¦å˜²è®½
 
     [Header("Unit buff options (for UnitBuff cards)")]
-    public bool buffGrantFlying;      // ÊÇ·ñÈÃÄ¿±êµ¥Î»½øÈë¡¾Æğ·É¡¿×´Ì¬
-    public bool buffFreeAttackNow;    // ÊÇ·ñÁ¢¿ÌÖ´ĞĞÒ»´Î¶îÍâ¹¥»÷£¨²»ÏûºÄ¹¥»÷´ÎÊı£©
+    public bool buffGrantFlying;      // æ˜¯å¦è®©ç›®æ ‡å•ä½è¿›å…¥ã€èµ·é£ã€‘çŠ¶æ€
+    public bool buffFreeAttackNow;    // æ˜¯å¦ç«‹åˆ»æ‰§è¡Œä¸€æ¬¡é¢å¤–æ”»å‡»ï¼ˆä¸æ¶ˆè€—æ”»å‡»æ¬¡æ•°ï¼‰
 
     [Header("Effect settings (for Spell / Evolve)")]
     public CardEffectType effectType = CardEffectType.None;
@@ -73,10 +73,10 @@ public class CardData : ScriptableObject
     public bool isEquipment;
     public bool isFieldEquipment;
 
-    [Header("=== ½öµ± Kind Îª Unit (µĞÈË) Ê±ÅäÖÃ ===")]
-    public List<CardData> EnemyMoves; // µĞÈËµÄ¼¼ÄÜ³Ø£¨ÅÆ¿â£©
+    [Header("=== ä»…å½“ Kind ä¸º Unit (æ•Œäºº) æ—¶é…ç½® ===")]
+    public List<CardData> EnemyMoves; // æ•Œäººçš„æŠ€èƒ½æ± ï¼ˆç‰Œåº“ï¼‰
 
-    // 2. ĞÂÔö×Ö¶Î£ºÄ¿±êÀàĞÍ
+    // 2. æ–°å¢å­—æ®µï¼šç›®æ ‡ç±»å‹
     [Header("Targeting")]
     public CardTargetType targetType = CardTargetType.None;
 

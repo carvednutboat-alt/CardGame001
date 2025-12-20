@@ -26,8 +26,11 @@ public class DeckBuilderManager : MonoBehaviour
         _pc = PlayerCollection.Instance;
         if (_pc == null) return;
 
-        // 注意：不要在这里 Clear OwnedUnits/OwnedCards，也不要 Clear Current
-        // 我们显示的逻辑基于 PlayerCollection 的现有状态
+        // 核心修复：进入编辑器前，从战斗主卡组(GameManager)同步数据
+        if (GameManager.Instance != null)
+        {
+            _pc.SyncFromMasterDeck(GameManager.Instance.MasterDeck);
+        }
 
         RefreshAll();
 
@@ -71,6 +74,10 @@ public class DeckBuilderManager : MonoBehaviour
             Button btn = Instantiate(CardButtonPrefab, UnitPoolPanel);
             btn.GetComponentInChildren<TMP_Text>().text = data.cardName;
 
+            // 添加详情悬停
+            CardHoverHandler hover = btn.gameObject.AddComponent<CardHoverHandler>();
+            hover.Init(data);
+
             // 点击左边 = 添加到右边
             btn.onClick.AddListener(() =>
             {
@@ -98,6 +105,10 @@ public class DeckBuilderManager : MonoBehaviour
             Button btn = Instantiate(CardButtonPrefab, CardPoolPanel);
             btn.GetComponentInChildren<TMP_Text>().text = data.cardName;
 
+            // 添加详情悬停
+            CardHoverHandler hover = btn.gameObject.AddComponent<CardHoverHandler>();
+            hover.Init(data);
+
             // 点击左边 = 添加到右边
             btn.onClick.AddListener(() =>
             {
@@ -118,6 +129,10 @@ public class DeckBuilderManager : MonoBehaviour
             Button btn = Instantiate(CardButtonPrefab, CurrentUnitsPanel);
             btn.GetComponentInChildren<TMP_Text>().text = data.cardName;
 
+            // 添加详情悬停
+            CardHoverHandler hover = btn.gameObject.AddComponent<CardHoverHandler>();
+            hover.Init(data);
+
             // 点击右边 = 移除 (退回池子)
             btn.onClick.AddListener(() =>
             {
@@ -137,6 +152,10 @@ public class DeckBuilderManager : MonoBehaviour
         {
             Button btn = Instantiate(CardButtonPrefab, CurrentDeckPanel);
             btn.GetComponentInChildren<TMP_Text>().text = data.cardName;
+
+            // 添加详情悬停
+            CardHoverHandler hover = btn.gameObject.AddComponent<CardHoverHandler>();
+            hover.Init(data);
 
             // 点击右边 = 移除 (退回池子)
             btn.onClick.AddListener(() =>

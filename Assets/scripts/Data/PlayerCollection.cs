@@ -65,6 +65,34 @@ public class PlayerCollection : MonoBehaviour
         targetList.Add(card);
     }
 
+    /// <summary>
+    /// 从外部（如 GameManager）同步当前的构筑状态
+    /// </summary>
+    public void SyncFromMasterDeck(List<CardData> masterDeck)
+    {
+        CurrentUnits.Clear();
+        CurrentDeck.Clear();
+
+        if (masterDeck == null) return;
+
+        foreach (var card in masterDeck)
+        {
+            if (card == null) continue;
+
+            // 1. 同步到构筑列表
+            if (card.kind == CardKind.Unit)
+                CurrentUnits.Add(card);
+            else
+                CurrentDeck.Add(card);
+
+            // 2. 核心修复：确保同步时，这些卡也必须存在于“拥有”池中
+            // 否则左侧列表（拥有-当前）计算会出问题
+            AddCardToCollection(card, false); // false = 如果已存在则不重复添加
+        }
+        
+        Debug.Log($"[PlayerCollection] 已按 MasterDeck 同步构筑：{masterDeck.Count} 张卡牌");
+    }
+
     public void SetCurrentDeck(List<CardData> units, List<CardData> deck)
     {
         CurrentUnits = new List<CardData>(units);

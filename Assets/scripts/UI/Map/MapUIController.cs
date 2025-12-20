@@ -1,41 +1,95 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
+using UnityEngine.UI;
+using TMPro;
 
 public class MapUIController : MonoBehaviour
 {
-    public void OpenDeckBuilder()
+    public GameObject OptionsPanel;
+    public Button OptionsButton;
+    public Button SaveButton;
+    public Button ReturnTitleButton;
+    public Button CloseButton;
+
+    private void Start()
     {
-        // 1. 在进入构筑界面前，从 GameManager 拉取最新状态
-        if (GameManager.Instance != null && PlayerCollection.Instance != null)
+        SetupUI();
+    }
+
+    private void SetupUI()
+    {
+        if (OptionsButton != null)
         {
-            // 清空 PlayerCollection 的“当前携带”状态
-            // (我们只重置“当前带了什么”，绝不重置“拥有什么”)
-            PlayerCollection.Instance.CurrentUnits.Clear();
-            PlayerCollection.Instance.CurrentDeck.Clear();
-
-            // 2. 遍历 GameManager 的总卡组，把它们标记为“当前携带”
-            foreach (var card in GameManager.Instance.MasterDeck)
-            {
-                if (card.kind == CardKind.Unit)
-                {
-                    PlayerCollection.Instance.CurrentUnits.Add(card);
-
-                    // 【关键修改】删除下面这行！
-                    // 不要在打开界面时往库存里加卡，否则每次打开都会重复添加！
-                    // PlayerCollection.Instance.AddCardToCollection(card, true); <--- 删掉
-                }
-                else
-                {
-                    PlayerCollection.Instance.CurrentDeck.Add(card);
-
-                    // 【关键修改】删除下面这行！
-                    // PlayerCollection.Instance.AddCardToCollection(card, true); <--- 删掉
-                }
-            }
+            OptionsButton.onClick.AddListener(() => ToggleOptions(true));
+            SetButtonText(OptionsButton, "选项");
         }
 
-        // 3. 加载场景
+        if (SaveButton != null)
+        {
+            SaveButton.onClick.AddListener(OnSaveButtonClicked);
+            SetButtonText(SaveButton, "保存游戏");
+        }
+
+        if (ReturnTitleButton != null)
+        {
+            ReturnTitleButton.onClick.AddListener(OnReturnTitleClicked);
+            SetButtonText(ReturnTitleButton, "返回主页");
+        }
+
+        if (CloseButton != null)
+        {
+            CloseButton.onClick.AddListener(() => ToggleOptions(false));
+            SetButtonText(CloseButton, "关闭");
+        }
+
+        if (OptionsPanel != null) OptionsPanel.SetActive(false);
+    }
+
+    private void SetButtonText(Button btn, string text)
+    {
+        var tmp = btn.GetComponentInChildren<TMP_Text>();
+        if (tmp != null) tmp.text = text;
+    }
+
+    public void OpenDeckBuilder()
+    {
+        // ... (保持之前的卡组同步逻辑)
+        if (GameManager.Instance != null && PlayerCollection.Instance != null)
+        {
+            PlayerCollection.Instance.CurrentUnits.Clear();
+            PlayerCollection.Instance.CurrentDeck.Clear();
+            foreach (var card in GameManager.Instance.MasterDeck)
+            {
+                if (card.kind == CardKind.Unit) PlayerCollection.Instance.CurrentUnits.Add(card);
+                else PlayerCollection.Instance.CurrentDeck.Add(card);
+            }
+        }
         SceneManager.LoadScene("DeckBuilderScene");
+    }
+
+    // === 地图菜单功能 ===
+
+    public void ToggleOptions(bool show)
+    {
+        if (OptionsPanel != null) OptionsPanel.SetActive(show);
+    }
+
+    public void OnSaveButtonClicked()
+    {
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.SaveGame();
+            // 以后可以在这里弹个“已保存”的小提示
+            Debug.Log("地图存档已完成");
+        }
+    }
+
+    public void OnReturnTitleClicked()
+    {
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.ReturnToTitle();
+        }
     }
 }

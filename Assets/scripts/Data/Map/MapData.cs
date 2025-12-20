@@ -1,46 +1,12 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum NodeType
-{
-    MinorEnemy, // ÆÕÍ¨¹Ö
-    EliteEnemy, // ¾«Ó¢¹Ö
-    Rest,       // ĞİÏ¢µã
-    Treasure,   // ±¦Ïä
-    Store,      // ÉÌµê
-    Boss,        // Boss
-    Event       //²»ÆÚ¶øÓö
-}
-
-public enum NodeStatus
-{
-    Locked,     // Ëø×¡£¨²»¿Éµã£©
-    Attainable, // ¿Éµ½´ï£¨µ±Ç°Íæ¼ÒËùÔÚÎ»ÖÃµÄÁÚ¾Ó£©
-    Visited,    // ÒÑ·ÃÎÊ
-    Current     // Íæ¼Òµ±Ç°Î»ÖÃ
-}
-
-[System.Serializable]
-public class MapNode
-{
-    public Vector2Int Coordinate; // x:²ãÄÚË÷Òı, y:²ãÊı(µÚ¼¸²ã)
-    public NodeType Type;
-    public NodeStatus Status = NodeStatus.Locked;
-
-    // ´æ´¢¸¸½ÚµãºÍ×Ó½ÚµãµÄ×ø±ê£¬ÓÃÓÚ»­ÏßºÍÅĞ¶ÏÂ·¾¶
-    public List<Vector2Int> Incoming = new List<Vector2Int>();
-    public List<Vector2Int> Outgoing = new List<Vector2Int>();
-
-    public MapNode(int x, int y, NodeType type)
-    {
-        Coordinate = new Vector2Int(x, y);
-        Type = type;
-    }
-}
-
-[System.Serializable]
+/// <summary>
+/// åœ°å›¾æ•°æ®ç±» - å­˜å‚¨æ•´ä¸ªåœ°å›¾çš„å±‚çº§ç»“æ„
+/// </summary>
+[Serializable]
 public class MapData
 {
-    // Ã¿Ò»²ã°üº¬Èô¸É¸ö½Úµã
     public List<List<MapNode>> Layers = new List<List<MapNode>>();
 }

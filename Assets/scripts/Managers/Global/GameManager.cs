@@ -1,7 +1,24 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using System.Collections.Generic;
+
+[Serializable]
+public class SaveData
+{
+    public int Gold;
+    public int PlayerCurrentHP;
+    public int PlayerMaxHP;
+    public List<string> MasterDeckPaths = new List<string>();    // ç©å®¶æ‹¥æœ‰çš„æ‰€æœ‰å¡ç‰Œ (ä»“åº“)
+    public List<string> SelectedDeckPaths = new List<string>();  // ç©å®¶å½“å‰é€‰ä¸­çš„å¡ç»„ (å‡ºæˆ˜)
+    
+    // åœ°å›¾åºåˆ—åŒ–
+    public string MapJson; 
+    public Vector2Int CurrentNodeCoord;
+    public bool HasActiveRun;
+}
 
 public class GameManager : MonoBehaviour
 {
@@ -12,16 +29,21 @@ public class GameManager : MonoBehaviour
 
     [Header("Global State")]
     public MapData CurrentMap;
-    public MapNode CurrentNode; // Íæ¼ÒÕı´¦ÓÚµÄ½Úµã
+    public MapNode CurrentNode; // ç©å®¶æ­£å¤„äºçš„èŠ‚ç‚¹
 
     [Header("Run State")]
-    // ºËĞÄĞŞ¸Ä£ºÕâ¾ÍÊÇÄãµÄ¡°×Ü¿¨×é¡±£¬°üº¬·¨ÊõºÍËæ´Ó
+    // æ ¸å¿ƒä¿®æ”¹ï¼šè¿™å°±æ˜¯ä½ çš„â€œæ€»å¡ç»„â€ï¼ŒåŒ…å«æ³•æœ¯å’Œéšä»
     public List<CardData> MasterDeck = new List<CardData>();
 
-    // ÓÃÓÚ´«µİÊı¾İ¸ø EventScene
-    public EventProfile CurrentEventProfile;
+    // ç”¨äºä¼ é€’æ•°æ®ç»™ EventScene
+    
 
-    // Íæ¼Ò×´Ì¬
+    // å½“å‰æˆ˜æ–—çš„æ•Œäººæ•°æ®
+    public List<CardData> CurrentEnemyUnits = new List<CardData>();
+    public List<CardData> CurrentEnemyDeck = new List<CardData>();
+public EventProfile CurrentEventProfile;
+
+    // ç©å®¶çŠ¶æ€
     public int PlayerCurrentHP = 80;
     public int PlayerMaxHP = 80;
 
@@ -32,60 +54,54 @@ public class GameManager : MonoBehaviour
     public int Gold => _gold;
 
     /// <summary>
-    /// Íæ¼ÒÈ«¾Ö×´Ì¬±ä»¯ÊÂ¼ş£ºHP / Gold
+    /// ç©å®¶å…¨å±€çŠ¶æ€å˜åŒ–äº‹ä»¶ï¼šHP / Gold
     /// </summary>
     public event Action OnPlayerStateChanged;
 
-    private void Awake()
-    {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
-    }
 
-    // --- ÓÎÏ·Á÷³Ì¿ØÖÆ ---
+    // --- æ¸¸æˆæµç¨‹æ§åˆ¶ ---
 
     public void StartNewGame(List<CardData> starterDeck)
     {
-        // 1. ³õÊ¼»¯Êı¾İ
+        // 1. åˆå§‹åŒ–æ•°æ®
         PlayerCurrentHP = PlayerMaxHP;
         _gold = 0;
 
-        // ³õÊ¼»¯ MasterDeck
+        // åˆå§‹åŒ– MasterDeck
         MasterDeck = new List<CardData>(starterDeck);
 
-        // 2. === ĞŞ¸´£º³õÊ¼»¯ PlayerCollection ===
+        // 2. === ä¿®å¤ï¼šåˆå§‹åŒ– PlayerCollection ===
         if (PlayerCollection.Instance != null)
         {
-            // Çå¿Õ¾ÉÊı¾İ (·ÀÖ¹ÉÏÒ»¾ÖÓÎÏ·µÄ²ĞÁô)
+            // æ¸…ç©ºæ—§æ•°æ® (é˜²æ­¢ä¸Šä¸€å±€æ¸¸æˆçš„æ®‹ç•™)
             PlayerCollection.Instance.OwnedUnits.Clear();
             PlayerCollection.Instance.OwnedCards.Clear();
             PlayerCollection.Instance.CurrentUnits.Clear();
             PlayerCollection.Instance.CurrentDeck.Clear();
 
-            // °Ñ³õÊ¼¿¨×éÈ«²¿Â¼Èë¡°²Ö¿â¡±
+            // æŠŠåˆå§‹å¡ç»„å…¨éƒ¨å½•å…¥â€œä»“åº“â€å¹¶è®¾ç½®ä¸ºâ€œå½“å‰å‡ºæˆ˜â€
             foreach (var card in starterDeck)
             {
+                if (card == null) continue;
                 PlayerCollection.Instance.AddCardToCollection(card, true);
+                
+                if (card.kind == CardKind.Unit)
+                    PlayerCollection.Instance.CurrentUnits.Add(card);
+                else
+                    PlayerCollection.Instance.CurrentDeck.Add(card);
             }
         }
 
-        // 2. Éú³ÉµØÍ¼
+        // 2. ç”Ÿæˆåœ°å›¾
         CurrentMap = MapGenerator.GenerateMap(MapConfig);
 
-        // 3. ½âËøµÚÒ»²ã
+        // 3. è§£é”ç¬¬ä¸€å±‚
         foreach (var node in CurrentMap.Layers[0])
             node.Status = NodeStatus.Attainable;
 
         NotifyPlayerStateChanged();
 
-        // 4. ½øÈëµØÍ¼³¡¾°
+        // 4. è¿›å…¥åœ°å›¾åœºæ™¯
         SceneManager.LoadScene("MapScene");
     }
 
@@ -94,15 +110,15 @@ public class GameManager : MonoBehaviour
         CurrentNode = node;
         node.Status = NodeStatus.Current;
 
-        // ¸ù¾İÀàĞÍÌø×ª³¡¾°
+        // æ ¹æ®ç±»å‹è·³è½¬åœºæ™¯
         if (node.Type == NodeType.MinorEnemy || node.Type == NodeType.EliteEnemy || node.Type == NodeType.Boss)
         {
             SceneManager.LoadScene("BattleScene");
         }
         else if (node.Type == NodeType.Event)
         {
-            // Ëæ»úÒ»¸öÊÂ¼ş (Êµ¼ÊÏîÄ¿ÖĞÓ¦¸Ã´ÓÅäÖÃ±íËæ»ú)
-            // ÕâÀïÎªÁËÑİÊ¾£¬ÄãĞèÒª×Ô¼ºLoadÒ»¸ö×ÊÔ´»òÕßÔÚInspectorÅäÖÃÒ»¸öÁĞ±í
+            // éšæœºä¸€ä¸ªäº‹ä»¶ (å®é™…é¡¹ç›®ä¸­åº”è¯¥ä»é…ç½®è¡¨éšæœº)
+            // è¿™é‡Œä¸ºäº†æ¼”ç¤ºï¼Œä½ éœ€è¦è‡ªå·±Loadä¸€ä¸ªèµ„æºæˆ–è€…åœ¨Inspectoré…ç½®ä¸€ä¸ªåˆ—è¡¨
             CurrentEventProfile = Resources.Load<EventProfile>("Events/Event_Spring");
             SceneManager.LoadScene("EventScene");
         }
@@ -116,29 +132,29 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    // Õ½¶·Ê¤Àû»òÊÂ¼şÍê³Éºóµ÷ÓÃ
+    // æˆ˜æ–—èƒœåˆ©æˆ–äº‹ä»¶å®Œæˆåè°ƒç”¨
     public void OnNodeCompleted()
     {
         if (CurrentNode == null) return;
 
-        // 1. ±ê¼Çµ±Ç°ÎªÒÑ·ÃÎÊ
+        // 1. æ ‡è®°å½“å‰ä¸ºå·²è®¿é—®
         CurrentNode.Status = NodeStatus.Visited;
 
-        // 2. ½âËøÏÂÒ»²ãÁ¬½ÓµÄ½Úµã
+        // 2. è§£é”ä¸‹ä¸€å±‚è¿æ¥çš„èŠ‚ç‚¹
         foreach (var nextCoord in CurrentNode.Outgoing)
         {
             var nextNode = GetNode(nextCoord);
             if (nextNode != null) nextNode.Status = NodeStatus.Attainable;
         }
 
-        // 3. ¡¾ĞÂÔöĞŞ¸´¡¿ Ëø¶¨Í¬²ãµÄËùÓĞÆäËû½Úµã
+        // 3. ã€æ–°å¢ä¿®å¤ã€‘ é”å®šåŒå±‚çš„æ‰€æœ‰å…¶ä»–èŠ‚ç‚¹
         if (CurrentNode.Coordinate.y < CurrentMap.Layers.Count)
         {
             var currentLayer = CurrentMap.Layers[CurrentNode.Coordinate.y];
 
             foreach (var node in currentLayer)
             {
-                // Èç¹ûÕâ¸ö½Úµã²»ÊÇÎÒ¸Õ²Å´ò¹ıµÄÄÇ¸ö£¬²¢ÇÒËüÊÇ¿É´ïµÄ£¬¾Í°ÑËüËø×¡
+                // å¦‚æœè¿™ä¸ªèŠ‚ç‚¹ä¸æ˜¯æˆ‘åˆšæ‰æ‰“è¿‡çš„é‚£ä¸ªï¼Œå¹¶ä¸”å®ƒæ˜¯å¯è¾¾çš„ï¼Œå°±æŠŠå®ƒé”ä½
                 if (node != CurrentNode && node.Status == NodeStatus.Attainable)
                 {
                     node.Status = NodeStatus.Locked;
@@ -146,14 +162,14 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        // 4. »Øµ½µØÍ¼
+        // 4. å›åˆ°åœ°å›¾
         SceneManager.LoadScene("MapScene");
     }
 
-    // Õ½¶·Ê§°Ü
+    // æˆ˜æ–—å¤±è´¥
     public void OnRunFailed()
     {
-        Debug.Log("ÓÎÏ·½áÊø");
+        Debug.Log("æ¸¸æˆç»“æŸ");
         // SceneManager.LoadScene("MainMenu"); 
     }
 
@@ -164,33 +180,33 @@ public class GameManager : MonoBehaviour
         return null;
     }
 
-    // --- ½Ó¿Ú£º»ñµÃ¿¨ÅÆ ---
+    // --- æ¥å£ï¼šè·å¾—å¡ç‰Œ ---
     public void AddCardToDeck(CardData newCard)
     {
         if (newCard == null) return;
 
         MasterDeck.Add(newCard);
 
-        // Í¬Ê±¼ÓÈëÍæ¼ÒµÄÊÕ²Ø¿â(Owned)
+        // åŒæ—¶åŠ å…¥ç©å®¶çš„æ”¶è—åº“(Owned)
         if (PlayerCollection.Instance != null)
         {
-            // true ±íÊ¾ÔÊĞíÖØ¸´ (RoguelikeÍ¨³£ÔÊĞí)
+            // true è¡¨ç¤ºå…è®¸é‡å¤ (Roguelikeé€šå¸¸å…è®¸)
             PlayerCollection.Instance.AddCardToCollection(newCard, true);
         }
 
-        Debug.Log($"»ñµÃÁË¿¨ÅÆ: {newCard.cardName}");
+        Debug.Log($"è·å¾—äº†å¡ç‰Œ: {newCard.cardName}");
     }
 
-    // --- ¾­¼ÃÏµÍ³£º½ğ±Ò ---
+    // --- ç»æµç³»ç»Ÿï¼šé‡‘å¸ ---
     public void AddGold(int amount)
     {
         if (amount == 0) return;
         _gold = Mathf.Max(0, _gold + amount);
-        Debug.Log($"[Global] »ñµÃ½ğ±Ò {amount}, µ±Ç°½ğ±Ò: {_gold}");
+        Debug.Log($"[Global] è·å¾—é‡‘å¸ {amount}, å½“å‰é‡‘å¸: {_gold}");
         NotifyPlayerStateChanged();
     }
 
-    // »ñµÃ¿¨Æ¬ºÍunit    
+    // è·å¾—å¡ç‰‡å’Œunit    
     // GameManager.cs
     public void AcquireEnemyUnitAndDeck(CardData unitCard, List<CardData> deckCards)
     {
@@ -215,12 +231,12 @@ public class GameManager : MonoBehaviour
         if (_gold < amount) return false;
 
         _gold -= amount;
-        Debug.Log($"[Global] »¨·Ñ½ğ±Ò {amount}, µ±Ç°½ğ±Ò: {_gold}");
+        Debug.Log($"[Global] èŠ±è´¹é‡‘å¸ {amount}, å½“å‰é‡‘å¸: {_gold}");
         NotifyPlayerStateChanged();
         return true;
     }
 
-    // --- Íæ¼ÒÑªÁ¿ ---
+    // --- ç©å®¶è¡€é‡ ---
     public void HealPlayer(int amount)
     {
         if (amount <= 0) return;
@@ -228,7 +244,7 @@ public class GameManager : MonoBehaviour
         PlayerCurrentHP += amount;
         if (PlayerCurrentHP > PlayerMaxHP) PlayerCurrentHP = PlayerMaxHP;
 
-        Debug.Log($"[Global] Íæ¼Ò»ØÑª {amount}, µ±Ç°: {PlayerCurrentHP}");
+        Debug.Log($"[Global] ç©å®¶å›è¡€ {amount}, å½“å‰: {PlayerCurrentHP}");
         NotifyPlayerStateChanged();
     }
 
@@ -239,7 +255,7 @@ public class GameManager : MonoBehaviour
         PlayerCurrentHP -= amount;
         if (PlayerCurrentHP < 0) PlayerCurrentHP = 0;
 
-        Debug.Log($"[Global] Íæ¼Ò¿ÛÑª {amount}, µ±Ç°: {PlayerCurrentHP}");
+        Debug.Log($"[Global] ç©å®¶æ‰£è¡€ {amount}, å½“å‰: {PlayerCurrentHP}");
         NotifyPlayerStateChanged();
     }
 
@@ -250,9 +266,9 @@ public class GameManager : MonoBehaviour
 
     public void ReturnToTitle()
     {
-        Debug.Log("·µ»Ø±êÌâ»­Ãæ£¬ÖØÖÃÊı¾İ...");
+        Debug.Log("è¿”å›æ ‡é¢˜ç”»é¢ï¼Œé‡ç½®æ•°æ®...");
 
-        // 1. ÇåÀíÊı¾İ
+        // 1. æ¸…ç†æ•°æ®
         CurrentMap = null;
         CurrentNode = null;
         MasterDeck.Clear();
@@ -260,7 +276,220 @@ public class GameManager : MonoBehaviour
         _gold = 0;
         NotifyPlayerStateChanged();
 
-        // 2. ¼ÓÔØÖ÷²Ëµ¥³¡¾° (¼ÙÉèÄãµÄÈë¿Ú³¡¾°½Ğ MainEntry)
+        // 2. åŠ è½½ä¸»èœå•åœºæ™¯ (å‡è®¾ä½ çš„å…¥å£åœºæ™¯å« MainEntry)
         SceneManager.LoadScene("MainEntry");
+    }
+
+    // === å­˜æ¡£ç³»ç»Ÿå®ç° ===
+
+    private Dictionary<string, CardData> _cardRegistry = new Dictionary<string, CardData>();
+
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+            BuildCardRegistry();
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    private void BuildCardRegistry()
+    {
+        // è‡ªåŠ¨ç´¢å¼•æ‰€æœ‰ Resources ä¸‹çš„ CardData
+        CardData[] cards = Resources.LoadAll<CardData>("");
+        _cardRegistry.Clear();
+        foreach (var c in cards)
+        {
+            if (c != null && !_cardRegistry.ContainsKey(c.name))
+                _cardRegistry.Add(c.name, c);
+        }
+        Debug.Log($"[GameManager] å·²ç´¢å¼• {_cardRegistry.Count} å¼ å¡ç‰‡");
+    }
+
+    [ContextMenu("Refresh Card Registry")]
+    public void RefreshRegistry() => BuildCardRegistry();
+
+    public CardData GetCardFromRegistry(string cardName)
+    {
+        if (_cardRegistry.TryGetValue(cardName, out var card)) return card;
+        // å¤‡é€‰æ–¹æ¡ˆï¼šå°è¯•ç›´æ¥åŠ è½½
+        return Resources.Load<CardData>($"Cards/{cardName}");
+    }
+
+    private string SavePath => Path.Combine(Application.persistentDataPath, "cardsave.json");
+
+    public bool HasSaveGame()
+    {
+        return File.Exists(SavePath);
+    }
+
+    public void SaveGame()
+    {
+        string path = Application.persistentDataPath + "/cardsave.json";
+        SaveData data = new SaveData();
+
+        data.Gold = _gold; // Assuming _gold is the backing field for Gold property
+        data.PlayerCurrentHP = PlayerCurrentHP;
+        data.PlayerMaxHP = PlayerMaxHP;
+        data.HasActiveRun = true;
+
+        // ä¿å­˜æ‰€æœ‰æ‹¥æœ‰çš„å¡ç‰‡ (ä»“åº“)
+        if (PlayerCollection.Instance != null)
+        {
+            foreach (var card in PlayerCollection.Instance.OwnedUnits) 
+                if (card != null) data.MasterDeckPaths.Add(card.name);
+            foreach (var card in PlayerCollection.Instance.OwnedCards) 
+                if (card != null) data.MasterDeckPaths.Add(card.name);
+
+            // ä¿å­˜å½“å‰é€‰ä¸­çš„å¡ç»„ (å‡ºæˆ˜)
+            foreach (var card in PlayerCollection.Instance.CurrentUnits) 
+                if (card != null) data.SelectedDeckPaths.Add(card.name);
+            foreach (var card in PlayerCollection.Instance.CurrentDeck) 
+                if (card != null) data.SelectedDeckPaths.Add(card.name);
+        }
+        else
+        {
+            // fallback: å¦‚æœ PC ä¸¢å¤±ï¼Œè‡³å°‘ä¿å­˜ MasterDeck
+            foreach (var card in MasterDeck)
+            {
+                if (card != null) data.MasterDeckPaths.Add(card.name);
+                if (card != null) data.SelectedDeckPaths.Add(card.name);
+            }
+        }
+
+        // åºåˆ—åŒ–åœ°å›¾
+        if (CurrentMap != null)
+        {
+            data.MapJson = MapDataSerializer.Serialize(CurrentMap);
+        }
+        data.CurrentNodeCoord = CurrentNode != null ? CurrentNode.Coordinate : new Vector2Int(-1, -1);
+
+        string json = JsonUtility.ToJson(data, true);
+        File.WriteAllText(path, json);
+        Debug.Log("Save successful to: " + path);
+    }
+
+    public bool LoadGame()
+    {
+        string path = Application.persistentDataPath + "/cardsave.json";
+        if (!File.Exists(path))
+        {
+            Debug.LogWarning("No save file found at " + path);
+            return false; // Changed to return false as per original method signature
+        }
+
+        try
+        {
+            string json = File.ReadAllText(path);
+            SaveData data = JsonUtility.FromJson<SaveData>(json);
+
+            // è¿˜åŸåŸºæœ¬æ•°æ®
+            _gold = data.Gold; // Assuming _gold is the backing field for Gold property
+            PlayerCurrentHP = data.PlayerCurrentHP;
+            PlayerMaxHP = data.PlayerMaxHP;
+
+            // è¿˜åŸå¡ç»„æ•°æ® (MasterDeck ä»£è¡¨æ‰€æœ‰æ‹¥æœ‰çš„ä»“åº“)
+            MasterDeck.Clear();
+            foreach (var cardName in data.MasterDeckPaths)
+            {
+                var card = GetCardFromRegistry(cardName);
+                if (card != null) MasterDeck.Add(card);
+            }
+
+            // è¿˜åŸåœ°å›¾
+            if (!string.IsNullOrEmpty(data.MapJson))
+            {
+                CurrentMap = MapDataSerializer.Deserialize(data.MapJson);
+                CurrentNode = GetNode(data.CurrentNodeCoord);
+            }
+
+            // åŒæ­¥åˆ° PlayerCollection (æ ¸å¿ƒä¿®å¤ç‚¹)
+            SyncToPlayerCollection(data.SelectedDeckPaths);
+
+            NotifyPlayerStateChanged();
+            SceneManager.LoadScene("MapScene");
+            return true;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"åŠ è½½å­˜æ¡£å¤±è´¥: {e.Message}");
+            return false;
+        }
+    }
+
+    private void SyncToPlayerCollection(List<string> selectedDeckNames = null)
+    {
+        if (PlayerCollection.Instance != null)
+        {
+            PlayerCollection.Instance.OwnedUnits.Clear();
+            PlayerCollection.Instance.OwnedCards.Clear();
+            PlayerCollection.Instance.CurrentUnits.Clear();
+            PlayerCollection.Instance.CurrentDeck.Clear();
+
+            foreach (var card in MasterDeck)
+            {
+                if (card == null) continue;
+
+                // 1. å…¨éƒ¨åŠ å…¥â€œæ‹¥æœ‰æ± â€ (ä»“åº“)
+                PlayerCollection.Instance.AddCardToCollection(card, true); 
+                
+                // 2. å¦‚æœå®ƒåœ¨â€œé€‰ä¸­å‡ºæˆ˜â€åå•é‡Œï¼Œåˆ™åŠ å…¥ Current æ± 
+                // æ³¨æ„ï¼šå¦‚æœç©å®¶æ‹¥æœ‰å¤šå¼ åŒåå¡ï¼Œè¿™é‡Œçš„é€»è¾‘å¯èƒ½éœ€è¦æ›´ç²¾ç¡®ï¼ˆæŒ‰å¼•ç”¨æˆ–æŒ‰ç´¢å¼•ï¼‰ï¼Œ
+                // ä½†å¯¹äºå¤§å¤šæ•° Roguelike æŒ‰åå­—åŒ¹é…å·²é€‰åˆ—è¡¨æ˜¯å¯è¡Œçš„åˆå§‹æ–¹æ¡ˆã€‚
+                if (selectedDeckNames != null && selectedDeckNames.Contains(card.name))
+                {
+                    if (card.kind == CardKind.Unit)
+                        PlayerCollection.Instance.CurrentUnits.Add(card);
+                    else
+                        PlayerCollection.Instance.CurrentDeck.Add(card);
+                    
+                    // ä¸ºäº†é˜²æ­¢å¤šå¼ åŒåå¡å…¨éƒ¨è¢«åŠ å…¥ï¼Œæ¯åŒ¹é…åˆ°ä¸€ä¸ªå°±ç§»é™¤ä¸€ä¸ªï¼ˆå¦‚æœéœ€è¦ä¸¥æ ¼åŒ¹é…ï¼‰
+                    // ä½†ç”±äº load æ—¶ MasterDeck æ˜¯æŒ‰å­˜æ¡£é¡ºåºç”Ÿæˆçš„ï¼Œæš‚ä¸å¤„ç†ç²¾ç»†åŒ–åŒ¹é…ã€‚
+                }
+            }
+            Debug.Log("[GameManager] ä»“åº“ä¸å‡ºæˆ˜å¡ç»„å·²åŒæ­¥è‡³ PlayerCollection");
+        }
+    }
+}
+
+// è¾…åŠ©ç±»ï¼šå¤„ç† MapData çš„åµŒå¥—åˆ—è¡¨åºåˆ—åŒ–
+public static class MapDataSerializer
+{
+    [Serializable]
+    private class LayerWrapper
+    {
+        public List<MapNode> Nodes;
+    }
+
+    [Serializable]
+    private class MapWrapper
+    {
+        public List<LayerWrapper> Layers = new List<LayerWrapper>();
+    }
+
+    public static string Serialize(MapData data)
+    {
+        MapWrapper wrapper = new MapWrapper();
+        foreach (var layer in data.Layers)
+        {
+            wrapper.Layers.Add(new LayerWrapper { Nodes = layer });
+        }
+        return JsonUtility.ToJson(wrapper);
+    }
+
+    public static MapData Deserialize(string json)
+    {
+        MapWrapper wrapper = JsonUtility.FromJson<MapWrapper>(json);
+        MapData data = new MapData();
+        foreach (var lw in wrapper.Layers)
+        {
+            data.Layers.Add(lw.Nodes);
+        }
+        return data;
     }
 }

@@ -10,25 +10,24 @@ public class EventSceneManager : MonoBehaviour
     public TMP_Text TitleText;
     public TMP_Text DescText;
     public Image EventImage;
-    public Transform OptionsContainer; // °´Å¥µÄ¸¸½Úµã
-    public GameObject OptionButtonPrefab; // °´Å¥Ô¤ÖÆÌå
+    public Transform OptionsContainer; // æŒ‰é’®çš„çˆ¶èŠ‚ç‚¹
+    public GameObject OptionButtonPrefab; // æŒ‰é’®é¢„åˆ¶ä½“
 
     [Header("Test")]
-    public EventProfile TestProfile; // µ÷ÊÔÓÃ
+    public EventProfile TestProfile; // è°ƒè¯•ç”¨
 
     private EventProfile _currentProfile;
 
     void Start()
     {
-        // Èç¹ûÊÇ´Ó´óµØÍ¼½øÈë£¬GameManagerÓ¦¸Ã³ÖÓĞµ±Ç°µÄ EventProfile
-        // ÕâÀï¼ÙÉè GameManager ÓĞÒ»¸ö CurrentEventProfile ×Ö¶Î (ÉÔºóÌí¼Ó)
+        // å¦‚æœæ˜¯ä»å¤§åœ°å›¾è¿›å…¥ï¼ŒGameManageråº”è¯¥æŒæœ‰å½“å‰çš„ EventProfile
         if (GameManager.Instance != null && GameManager.Instance.CurrentEventProfile != null)
         {
             LoadEvent(GameManager.Instance.CurrentEventProfile);
         }
         else if (TestProfile != null)
         {
-            LoadEvent(TestProfile); // ²âÊÔÓÃ
+            LoadEvent(TestProfile); // æµ‹è¯•ç”¨
         }
     }
 
@@ -40,7 +39,7 @@ public class EventSceneManager : MonoBehaviour
         if (profile.EventImage != null) EventImage.sprite = profile.EventImage;
         else EventImage.gameObject.SetActive(false);
 
-        // Éú³É°´Å¥
+        // ç”ŸæˆæŒ‰é’®
         foreach (Transform child in OptionsContainer) Destroy(child.gameObject);
 
         foreach (var opt in profile.Options)
@@ -56,23 +55,27 @@ public class EventSceneManager : MonoBehaviour
 
     void OnOptionSelected(EventOptionData option)
     {
-        // 1. Ö´ĞĞĞ§¹û
+        // 1. æ‰§è¡Œæ•ˆæœ
         ApplyEffect(option);
 
-        // 2. ÏÔÊ¾½á¹û²¢Àë¿ª (ÕâÀï¼òµ¥´¦Àí£ºÖ±½ÓÏÔÊ¾½á¹ûÈ»ºó¼¸Ãëºó·µ»ØµØÍ¼)
+        // 2. æ˜¾ç¤ºç»“æœå¹¶ç¦»å¼€
         DescText.text = option.ResultText;
 
-        // ½ûÓÃËùÓĞ°´Å¥
+        // ç¦ç”¨æ‰€æœ‰æŒ‰é’®
         foreach (Button btn in OptionsContainer.GetComponentsInChildren<Button>())
             btn.interactable = false;
 
         Invoke(nameof(ReturnToMap), 2.0f);
     }
 
-    void ApplyEffect(EventOptionData opt)
+void ApplyEffect(EventOptionData opt)
     {
         if (GameManager.Instance == null) return;
 
+        // æ³¨æ„ï¼šEffectBase éœ€è¦ BattleManager å‚æ•°ï¼Œè€Œäº‹ä»¶åœºæ™¯ä¸­æ²¡æœ‰æˆ˜æ–—ä¸Šä¸‹æ–‡
+        // æ‰€ä»¥æˆ‘ä»¬ç›®å‰ä½¿ç”¨æ—§ç‰ˆæšä¸¾ç³»ç»Ÿæ¥å¤„ç†äº‹ä»¶æ•ˆæœ
+        // TODO: å¦‚æœéœ€è¦æ”¯æŒå¤æ‚çš„äº‹ä»¶æ•ˆæœï¼Œå¯ä»¥åˆ›å»ºä¸€ä¸ªä¸éœ€è¦ BattleManager çš„ EventEffectBase åŸºç±»
+        
         switch (opt.Effect)
         {
             case EventEffectType.Heal:
@@ -88,7 +91,6 @@ public class EventSceneManager : MonoBehaviour
                 if (opt.TargetCard != null)
                     GameManager.Instance.AddCardToDeck(opt.TargetCard);
                 break;
-                // ... ÆäËûĞ§¹û
         }
     }
 
