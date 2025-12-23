@@ -264,7 +264,16 @@ public EventProfile CurrentEventProfile;
         OnPlayerStateChanged?.Invoke();
     }
 
-    public void ReturnToTitle()
+    
+
+    /// <summary>
+    /// 打开藏品收集场景
+    /// </summary>
+    public void OpenCollectionScene()
+    {
+        SceneManager.LoadScene("CollectionScene");
+    }
+public void ReturnToTitle()
     {
         Debug.Log("返回标题画面，重置数据...");
 
@@ -283,6 +292,7 @@ public EventProfile CurrentEventProfile;
     // === 存档系统实现 ===
 
     private Dictionary<string, CardData> _cardRegistry = new Dictionary<string, CardData>();
+    private Dictionary<string, RelicData> _relicRegistry = new Dictionary<string, RelicData>(); // [New] Relic索引
 
     private void Awake()
     {
@@ -290,12 +300,26 @@ public EventProfile CurrentEventProfile;
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
-            BuildCardRegistry();
+            BuildRegistry();
+            
+            // === 核心修复：自动创建 RelicManager ===
+            if (RelicManager.Instance == null)
+            {
+                var obj = new GameObject("RelicManager");
+                obj.AddComponent<RelicManager>();
+                Debug.Log("[GameManager] Auto-created RelicManager");
+            }
         }
         else
         {
             Destroy(gameObject);
         }
+    }
+
+    private void BuildRegistry()
+    {
+        BuildCardRegistry();
+        BuildRelicRegistry();
     }
 
     private void BuildCardRegistry()
@@ -309,6 +333,24 @@ public EventProfile CurrentEventProfile;
                 _cardRegistry.Add(c.name, c);
         }
         Debug.Log($"[GameManager] 已索引 {_cardRegistry.Count} 张卡片");
+    }
+
+    public void BuildRelicRegistry()
+    {
+        RelicData[] relics = Resources.LoadAll<RelicData>("");
+        _relicRegistry.Clear();
+        foreach (var r in relics)
+        {
+            if (r != null && !_relicRegistry.ContainsKey(r.relicId))
+                _relicRegistry.Add(r.relicId, r);
+        }
+        Debug.Log($"[GameManager] 已索引 {_relicRegistry.Count} 个遗物");
+    }
+
+    // 提供给外部获取所有Relic的列表（例如商店如果没配可以兜底全随机）
+    public List<RelicData> GetAllRelics()
+    {
+        return new List<RelicData>(_relicRegistry.Values);
     }
 
     [ContextMenu("Refresh Card Registry")]

@@ -22,6 +22,7 @@ public class RuntimeUnit
 
     public int BaseAtk;   // 裸装攻击力
     public int CurrentAtk;// 当前攻击力（含装备）
+    public int TempAttackModifier; // 临时攻击力修正 (回合结束清零)
 
     public int Attack => CurrentAtk; // 兼容属性
 

@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 07b54b35d8588e44d9baa982855cf548, type: 3}
   m_Name: "\u52C7\u9E1F\u731B\u653B"
   m_EditorClassIdentifier: Assembly-CSharp::CardData
+  cost: 0
   cardName: "\u52C7\u9E1F\u731B\u653B"
   kind: 1
   color: 1
@@ -22,7 +23,7 @@ MonoBehaviour:
   unitHasTaunt: 0
   buffGrantFlying: 1
   buffFreeAttackNow: 1
-  effectType: 10
+  effectType: 9
   value: 0
   isEquipment: 0
   isFieldEquipment: 0

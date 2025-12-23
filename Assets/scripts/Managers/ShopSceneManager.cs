@@ -20,6 +20,10 @@ public class ShopSceneManager : MonoBehaviour
     public Vector2Int SpellPrice = new Vector2Int(1, 3);
     public Vector2Int EquipPrice = new Vector2Int(1, 3);
 
+    [Header("Relic商品")]
+    public List<RelicData> RelicPool = new List<RelicData>();
+    public bool SellRelics = true;
+
     void Start()
     {
         if (LeaveButton != null)
@@ -52,7 +56,23 @@ public class ShopSceneManager : MonoBehaviour
             return;
         }
 
-        int n = Mathf.Min(OfferCount, SellPool.Count);
+        // 计算卡牌和Relic的数量
+        int cardOffers = OfferCount;
+
+        // [自动填充] 如果Inspector没配RelicPool，尝试从GameManager全量获取
+        if (SellRelics && (RelicPool == null || RelicPool.Count == 0))
+        {
+            if (GameManager.Instance != null)
+                RelicPool = GameManager.Instance.GetAllRelics();
+        }
+
+        if (SellRelics && RelicPool != null && RelicPool.Count > 0)
+        {
+            cardOffers = Mathf.Max(1, OfferCount - 1); // 留一个位置给Relic
+        }
+
+        // 生成卡牌选项
+        int n = Mathf.Min(cardOffers, SellPool.Count);
         for (int i = 0; i < n; i++)
         {
             CardData card = SellPool[Random.Range(0, SellPool.Count)];
@@ -70,6 +90,35 @@ public class ShopSceneManager : MonoBehaviour
             {
                 btn.onClick.RemoveAllListeners();
                 btn.onClick.AddListener(() => TryBuy(card, price, obj));
+            }
+        }
+
+        // 生成Relic选项
+        if (SellRelics && RelicPool != null && RelicPool.Count > 0)
+        {
+            // 过滤掉玩家已拥有的relic
+            var availableRelics = RelicPool.FindAll(relic => relic != null && 
+                (PlayerCollection.Instance == null || !PlayerCollection.Instance.HasRelic(relic)));
+            
+            if (availableRelics.Count > 0)
+            {
+                RelicData relic = availableRelics[Random.Range(0, availableRelics.Count)];
+                if (relic != null)
+                {
+                    int price = Random.Range(relic.minPrice, relic.maxPrice + 1);
+
+                    GameObject obj = Instantiate(OfferButtonPrefab, OffersContainer);
+                    var btn = obj.GetComponent<Button>();
+                    var txt = obj.GetComponentInChildren<TMP_Text>();
+
+                    if (txt != null) txt.text = $"[遗物] {relic.relicName}  -  {price}G";
+
+                    if (btn != null)
+                    {
+                        btn.onClick.RemoveAllListeners();
+                        btn.onClick.AddListener(() => TryBuyRelic(relic, price, obj));
+                    }
+                }
             }
         }
     }
@@ -93,6 +142,37 @@ public class ShopSceneManager : MonoBehaviour
         }
 
         gm.AddCardToDeck(card);
+        RefreshGold();
+
+        // 下架已购买商品
+        if (offerObj != null) Destroy(offerObj);
+    }
+
+    void TryBuyRelic(RelicData relic, int price, GameObject offerObj)
+    {
+        var gm = GameManager.Instance;
+        if (gm == null || relic == null) return;
+
+        // 检查是否已拥有该relic
+        if (PlayerCollection.Instance != null && PlayerCollection.Instance.HasRelic(relic))
+        {
+            Debug.Log("[Shop] 已拥有该遗物");
+            return;
+        }
+
+        if (!gm.TrySpendGold(price))
+        {
+            Debug.Log("[Shop] 金币不足");
+            return;
+        }
+
+        // 添加Relic到玩家收藏
+        if (PlayerCollection.Instance != null)
+        {
+            PlayerCollection.Instance.AddRelic(relic);
+            Debug.Log($"[Shop] 成功购买遗物: {relic.relicName}");
+        }
+
         RefreshGold();
 
         // 下架已购买商品
