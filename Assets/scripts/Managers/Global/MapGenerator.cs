@@ -119,11 +119,11 @@ public static class MapGenerator
         if (layerIndex == 0) return NodeType.MinorEnemy;
 
         float v = Random.value;
-        // 调整这里的概率
-        if (v < 0.45f) return NodeType.MinorEnemy; // 45% 怪
-        if (v < 0.70f) return NodeType.Event;      // 25% 事件
-        if (v < 0.85f) return NodeType.Rest;       // 15% 篝火
-        if (v < 0.95f) return NodeType.Store;      // 10% 商店
-        return NodeType.EliteEnemy;                // 5% 精英
+        if (v < 0.40f) return NodeType.MinorEnemy; // 40% 怪
+        if (v < 0.62f) return NodeType.Event;      // 22% 事件
+        if (v < 0.77f) return NodeType.Rest;       // 15% 篝火
+        if (v < 0.87f) return NodeType.Store;      // 10% 商店
+        if (v < 0.92f) return NodeType.Treasure;   // 5% 宝箱
+        return NodeType.EliteEnemy;                // 8% 精英
     }
 }

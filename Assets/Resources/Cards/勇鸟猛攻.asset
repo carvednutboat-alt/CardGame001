@@ -23,12 +23,18 @@ MonoBehaviour:
   unitHasTaunt: 0
   buffGrantFlying: 1
   buffFreeAttackNow: 1
-  effectType: 9
+  effectType: 10
+  deathEffect: 0
+  onReceiveEquipEffect: 0
   value: 0
   isEquipment: 0
   isFieldEquipment: 0
   EnemyMoves: []
+  cardTag: 0
   targetType: 1
+  startsInDeck: 0
+  isCommander: 0
+  dieWithoutCommander: 0
   equipAttackBonus: 0
   equipHealthBonus: 0
   shieldEffectDamage: 0

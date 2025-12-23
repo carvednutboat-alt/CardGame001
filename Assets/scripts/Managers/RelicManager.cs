@@ -114,4 +114,20 @@ public class RelicManager : MonoBehaviour
         }
         return false;
     }
+    /// <summary>
+    /// 添加 Relic (Proxy for PlayerCollection)
+    /// </summary>
+    public void AddRelic(RelicData relic)
+    {
+        var collection = PlayerCollection.Instance;
+        if (collection != null)
+        {
+            collection.OwnedRelics.Add(relic);
+            Debug.Log($"[RelicManager] Added relic: {relic.relicName}");
+        }
+        else
+        {
+            Debug.LogWarning("[RelicManager] PlayerCollection is null, cannot add relic.");
+        }
+    }
 }

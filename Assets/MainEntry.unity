@@ -1061,15 +1061,19 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 350d0f7c8d824ff419b56e6aac1cd2e5, type: 2}
   - {fileID: 11400000, guid: c5a954ab137bf8a49bb025320694abf8, type: 2}
   - {fileID: 11400000, guid: fcff5225af38f3c40a317bf4296912d4, type: 2}
-  - {fileID: 11400000, guid: eb144eac5c43db94ebffd83a275d40f0, type: 2}
-  - {fileID: 11400000, guid: 6da4bfef098b8e54dae4ae6eba43cbe9, type: 2}
-  - {fileID: 11400000, guid: 03b24e9ead0726247adc6fd8913117ba, type: 2}
-  - {fileID: 11400000, guid: 106e1932585721b4987578afbcddd1cf, type: 2}
-  - {fileID: 11400000, guid: 60eb54c2ec77a4c4cb400bc91629cc9d, type: 2}
-  - {fileID: 11400000, guid: ef4f8d353cba3b841b6ee747fd2325a0, type: 2}
+  - {fileID: 11400000, guid: dfca7d1682d405f4ebe8974fae4fe3a7, type: 2}
+  - {fileID: 11400000, guid: 7a1055c940210f24a84c7f3757180169, type: 2}
+  - {fileID: 11400000, guid: 7a1055c940210f24a84c7f3757180169, type: 2}
+  - {fileID: 11400000, guid: 7a1055c940210f24a84c7f3757180169, type: 2}
+  - {fileID: 11400000, guid: 7a1055c940210f24a84c7f3757180169, type: 2}
+  - {fileID: 11400000, guid: 7a1055c940210f24a84c7f3757180169, type: 2}
   - {fileID: 11400000, guid: 7a1055c940210f24a84c7f3757180169, type: 2}
   CurrentEnemyUnits: []
   CurrentEnemyDeck: []
+  AllEvents:
+  - {fileID: 11400000, guid: e5ca16fb8730d484495b8112f3c9377b, type: 2}
+  TreasureProfile: {fileID: 11400000, guid: 9981b5012114a6b4194ef95fec27bfc7, type: 2}
+  RestProfile: {fileID: 11400000, guid: cd949a41af8e4074785bb60774a471ca, type: 2}
   CurrentEventProfile: {fileID: 0}
   PlayerCurrentHP: 80
   PlayerMaxHP: 80
