@@ -39,6 +39,9 @@ public class BattleUIManager : MonoBehaviour
     public void Init(BattleManager bm)
     {
         _bm = bm;
+        // 清空 Log
+        if (LogText != null) LogText.text = "";
+
         // 确保游戏开始时面板是关的
         if (GraveyardPanel != null) GraveyardPanel.SetActive(false);
         if (RewardPanel != null)
@@ -57,6 +60,9 @@ public class BattleUIManager : MonoBehaviour
             SetupUIAttributes();
         }
         if (GameOverPanel != null) GameOverPanel.SetActive(false);
+
+        // 自动生成战场槽位
+        SetupFieldSlots();
 
         // 2. --- 添加按钮绑定逻辑 ---
         if (ReturnBtn != null)
@@ -104,6 +110,7 @@ public class BattleUIManager : MonoBehaviour
 
         // 1. 显示面板
         GraveyardPanel.SetActive(true);
+        GraveyardPanel.transform.SetAsLastSibling();
 
         // 2. 清空旧的显示 (防止重复生成)
         foreach (Transform child in GraveyardContent)
@@ -160,6 +167,7 @@ public class BattleUIManager : MonoBehaviour
         if (GameOverPanel != null)
         {
             GameOverPanel.SetActive(true);
+            GameOverPanel.transform.SetAsLastSibling();
             Log("游戏结束。"); // 可选：在Log里也写一句
         }
         else
@@ -224,6 +232,7 @@ public class BattleUIManager : MonoBehaviour
         SetupUIAttributes();
         
         RewardPanel.SetActive(true);
+        RewardPanel.transform.SetAsLastSibling(); // ★ 确保显示在最上层，不被 Slot 遮挡
         
         // 播放淡入动画
         StartCoroutine(AnimateRewardPanel());
@@ -298,6 +307,8 @@ public class BattleUIManager : MonoBehaviour
         _rewardPanelCanvasGroup.alpha = 1f;
     }
     
+    // === 恢复丢失的 Helper 方法 ===
+    
     private void UpdateRecruitInfo(CardData recruitUnit, int deckCount)
     {
         bool canRecruit = (recruitUnit != null);
@@ -323,14 +334,10 @@ public class BattleUIManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// 自动配置奖励面板的UI属性，确保即便在编辑器中设置错误也能正确显示
-    /// </summary>
     private void SetupUIAttributes()
     {
         if (RewardPanel == null) return;
 
-        // 1. 强制重置面板缩放并设置背景
         RectTransform panelRect = RewardPanel.GetComponent<RectTransform>();
         if (panelRect != null)
         {
@@ -344,11 +351,9 @@ public class BattleUIManager : MonoBehaviour
         Image panelImg = RewardPanel.GetComponent<Image>();
         if (panelImg != null)
         {
-            // 给背景一个深色半透明遮罩
             panelImg.color = new Color(0, 0, 0, 0.6f); 
         }
 
-        // 2. 配置主窗口 (MainWindow)
         if (MainWindow != null)
         {
             RectTransform mainRect = MainWindow.GetComponent<RectTransform>();
@@ -362,18 +367,16 @@ public class BattleUIManager : MonoBehaviour
             Image mainImg = MainWindow.GetComponent<Image>();
             if (mainImg != null)
             {
-                mainImg.color = new Color(0.12f, 0.12f, 0.15f, 1f); // 深灰色窗口
+                mainImg.color = new Color(0.12f, 0.12f, 0.15f, 1f); 
             }
         }
 
-        // 3. 配置文本属性
         ConfigureText(TitleText, 24, TextAlignmentOptions.Center);
         ConfigureText(RewardGoldText, 18, TextAlignmentOptions.Center);
         ConfigureText(RewardRecruitText, 16, TextAlignmentOptions.Center);
         ConfigureText(TakeOnlyText, 14, TextAlignmentOptions.Center);
         ConfigureText(TakeAndRecruitText, 14, TextAlignmentOptions.Center);
 
-        // 4. 重置按钮视觉
         SetupButtonStyle(TakeOnlyButton, new Color(0.3f, 0.35f, 0.4f, 1f));
         SetupButtonStyle(TakeAndRecruitButton, new Color(0.5f, 0.4f, 0.2f, 1f));
     }
@@ -396,5 +399,185 @@ public class BattleUIManager : MonoBehaviour
         text.fontSize = size;
         text.alignment = align;
         text.color = Color.white;
+    }
+
+    // === 新增：战斗槽位相关 ===
+    [Header("Field Slots")]
+    public Transform PlayerFieldContainer;
+    public Transform EnemyFieldContainer;
+    public List<BattleSlotUI> PlayerSlots = new List<BattleSlotUI>();
+    public List<BattleSlotUI> EnemySlots = new List<BattleSlotUI>();
+
+    private void SetupFieldSlots()
+    {
+        // 1. 确保容器存在
+        if (PlayerFieldContainer == null) PlayerFieldContainer = CreateSlotContainer("PlayerFieldSlots", new Vector2(0, -30));  // 玩家: Runtime Capture (-30)
+        if (EnemyFieldContainer == null) EnemyFieldContainer = CreateSlotContainer("EnemyFieldSlots", new Vector2(0, 184));    // 敌人: Runtime Capture (184)
+
+        // 尝试调整手牌位置 (Hardcode adjusting)
+        if (_bm != null && _bm.DeckManager != null && _bm.DeckManager.HandPanel != null)
+        {
+            RectTransform handRT = _bm.DeckManager.HandPanel.GetComponent<RectTransform>();
+            if (handRT != null)
+            {
+                // 假设锚点是中心，强制拉到底部
+                handRT.anchoredPosition = new Vector2(0, -350);
+            }
+        }
+
+        // 2. 生成玩家槽位 (5个)
+        GenerateSlots(PlayerFieldContainer, PlayerSlots, true);
+
+        // 3. 生成敌人槽位 (5个)
+        GenerateSlots(EnemyFieldContainer, EnemySlots, false);
+
+        // 4. 应用保存的布局 (UnitPanel, LogText, HandPanel, DetailPanel)
+        ApplySavedLayout();
+    }
+
+    private void ApplySavedLayout()
+    {
+        // 1. UnitPanel
+        if (_bm != null && _bm.UnitPanel != null)
+        {
+            RectTransform rt = _bm.UnitPanel.GetComponent<RectTransform>();
+            if (rt != null) rt.anchoredPosition = new Vector2(450.39f, -195.11f);
+        }
+
+        // 2. HandPanel
+        if (_bm != null && _bm.DeckManager != null && _bm.DeckManager.HandPanel != null)
+        {
+            RectTransform rt = _bm.DeckManager.HandPanel.GetComponent<RectTransform>();
+            if (rt != null) rt.anchoredPosition = new Vector2(-104f, -195.11f);
+        }
+
+        // 3. LogText
+        if (LogText != null)
+        {
+            RectTransform rt = LogText.GetComponent<RectTransform>();
+            if (rt != null)
+            {
+                rt.anchorMin = new Vector2(0, 1);
+                rt.anchorMax = new Vector2(0, 1);
+                rt.pivot = new Vector2(0.5f, 0.5f);
+                rt.anchoredPosition = new Vector2(92.9f, -131.05f);
+                rt.sizeDelta = new Vector2(185.81f, 262.1f);
+            }
+        }
+
+        // 4. CardDetailPanel
+        CardDetailPanel detailPanel = FindObjectOfType<CardDetailPanel>();
+        if (detailPanel != null)
+        {
+            RectTransform rt = detailPanel.GetComponent<RectTransform>();
+            if (rt != null) rt.anchoredPosition = new Vector2(513f, 89.42f);
+        }
+    }
+
+    private Transform CreateSlotContainer(string name, Vector2 anchoredPos)
+    {
+        // 1. 寻找 Canvas (优先找自己的父级，找不到就找场景里的)
+        Transform canvasTransform = null;
+        Canvas canvas = GetComponentInParent<Canvas>();
+        if (canvas == null) canvas = FindObjectOfType<Canvas>();
+        
+        if (canvas != null) canvasTransform = canvas.transform;
+        else canvasTransform = this.transform; // Fallback
+
+        var obj = new GameObject(name);
+        // 重要：先设置父物体，再挂 RectTransform，确保缩放正确
+        obj.transform.SetParent(canvasTransform, false);
+        
+        var rect = obj.AddComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = anchoredPos;
+        rect.sizeDelta = new Vector2(800, 150);
+
+        // 如果没有 Layer 可能会导致看不见，设置一下 (通常是 "UI")
+        obj.layer = LayerMask.NameToLayer("UI");
+
+        var lg = obj.AddComponent<HorizontalLayoutGroup>();
+        lg.childAlignment = TextAnchor.MiddleCenter;
+        lg.spacing = 20;
+        lg.childControlWidth = false;
+        lg.childControlHeight = false;
+
+        return obj.transform;
+    }
+
+    private void GenerateSlots(Transform container, List<BattleSlotUI> list, bool isPlayer)
+    {
+        list.Clear();
+        for (int i = container.childCount - 1; i >= 0; i--)
+        {
+            Destroy(container.GetChild(i).gameObject);
+        }
+
+        for (int i = 0; i < 5; i++)
+        {
+            GameObject slotObj = new GameObject($"Slot_{i+1}");
+            slotObj.transform.SetParent(container, false);
+            slotObj.layer = LayerMask.NameToLayer("UI"); // Ensure Layer
+            
+            // UI
+            Image img = slotObj.AddComponent<Image>();
+            // === 调试：加深颜色，确保看得到 ===
+            img.color = new Color(0, 0, 0, 0.5f); 
+
+            RectTransform rect = slotObj.GetComponent<RectTransform>();
+            rect.sizeDelta = new Vector2(120, 140);
+
+            // Component
+            BattleSlotUI slotUI = slotObj.AddComponent<BattleSlotUI>();
+            slotUI.Init(i, isPlayer, OnSlotClicked);
+            
+            // 编号显示
+            GameObject textObj = new GameObject("Num");
+            textObj.transform.SetParent(slotObj.transform, false);
+            textObj.layer = LayerMask.NameToLayer("UI");
+
+            var txt = textObj.AddComponent<TextMeshProUGUI>();
+            txt.text = (i + 1).ToString();
+            txt.fontSize = 24;
+            txt.color = Color.white;
+            txt.alignment = TextAlignmentOptions.Center; // Changed to Center for safety
+            
+            var tr = textObj.GetComponent<RectTransform>();
+            tr.anchorMin = Vector2.zero;
+            tr.anchorMax = Vector2.one;
+            tr.offsetMin = Vector2.zero;
+            tr.offsetMax = Vector2.zero;
+
+            list.Add(slotUI);
+        }
+    }
+
+    private void OnSlotClicked(int index, bool isPlayerSide)
+    {
+        if (_bm != null)
+        {
+            _bm.OnBattleSlotClicked(index, isPlayerSide);
+        }
+    }
+
+    public void HighlightPlayerSlots(bool active)
+    {
+        foreach (var slot in PlayerSlots)
+        {
+            slot.SetHighlight(active);
+        }
+    }
+
+    public Transform GetPlayerSlotTransform(int index)
+    {
+        if (index >= 0 && index < PlayerSlots.Count) return PlayerSlots[index].transform;
+        return null; // Fallback
+    }
+
+    public Transform GetEnemySlotTransform(int index)
+    {
+        if (index >= 0 && index < EnemySlots.Count) return EnemySlots[index].transform;
+        return null;
     }
 }

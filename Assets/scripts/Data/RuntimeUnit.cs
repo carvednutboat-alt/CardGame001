@@ -22,6 +22,7 @@ public class RuntimeUnit
 
     public int BaseAtk;   // 裸装攻击力
     public int CurrentAtk;// 当前攻击力（含装备）
+    public int TempAttackModifier; // 临时攻击力修正 (回合结束清零)
 
     public int Attack => CurrentAtk; // 兼容属性
 
@@ -32,7 +33,14 @@ public class RuntimeUnit
     public bool HasTaunt;
     public bool CanAttack;
     public bool IsEvolved;
+
     public int EvolveTurnsLeft;
+
+    // === 新增：过载系统 (Overload) ===
+    public int Overload;       // 当前过载层数 (倒计时)
+    public bool IsFatigued;    // 是否处于疲劳状态 (无法攻击，无法使用同色牌)
+    public bool RobotEvolved;  // 机器人指挥官特殊进化状态 (攻击力=Overload*2)
+    public int PendingOverloadSelfDamage; // 回合结束时结算的自伤 (Double Overload副作用)
 
     public bool IsDead => CurrentHp <= 0;
 

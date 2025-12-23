@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07b54b35d8588e44d9baa982855cf548, type: 3}
+  m_Name: "\u8FC7\u8F7D\u6A21\u5F0F"
+  m_EditorClassIdentifier: 
+  cost: 1
+  cardName: "\u8FC7\u8F7D\u6A21\u5F0F"
+  kind: 1
+  color: 1
+  description: "\u4F7F\u4E00\u4E2A\u5355\u4F4D\u83B7\u5F97 \u8FC7\u8F7D 2\u3002"
+  unitAttack: 0
+  unitHealth: 0
+  unitStartsFlying: 0
+  unitHasTaunt: 0
+  buffGrantFlying: 0
+  buffFreeAttackNow: 0
+  effectType: 13
+  deathEffect: 0
+  onReceiveEquipEffect: 0
+  value: 2
+  isEquipment: 0
+  isFieldEquipment: 0
+  equipAttackBonus: 0
+  equipHealthBonus: 0
+  shieldEffectDamage: 0
+  shieldEffectDestroy: 0
+  shieldBattleDestroy: 0
+  extraAttackOnFailedKill: 0
+  cardTag: 2
+  targetType: 1
+  startsInDeck: 0
+  isCommander: 0
+  dieWithoutCommander: 0

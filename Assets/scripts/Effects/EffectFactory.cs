@@ -12,7 +12,12 @@ public static class EffectFactory
             case CardEffectType.DamageAllEnemyUnits: return new DamageAllEnemiesEffect();
             case CardEffectType.ReviveUnit: return new ReviveUnitEffect();
             case CardEffectType.UnitBuff: return new UnitBuffEffect();
-            // ... 其他类型请在这里补充
+            case CardEffectType.SearchEquipmentOnDeath: return new SearchCardEffect();
+            case CardEffectType.SearchFamilyOnEquip: return new SearchCardEffect();
+            case CardEffectType.GrantOverload:
+            case CardEffectType.DoubleOverload:
+            case CardEffectType.LimitOperationEvolve:
+                return new RobotEffect();
             default: return null;
         }
     }

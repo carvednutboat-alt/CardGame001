@@ -94,16 +94,38 @@ public void Init(BattleManager bm, List<CardData> startingData = null)
         if (Hand.Contains(card))
         {
             Hand.Remove(card);
-            Destroy(uiObj);
-            // ע�⣺����û�� DiscardPile.Add
         }
+        else
+        {
+            Debug.LogWarning($"[DeckManager] RemoveCardFromHand: Card {card?.Data?.cardName} not found in Hand list.");
+        }
+
+        // 无论是否在列表中，只要传递了 UI 对象且确认消耗，都销毁
+        if (uiObj != null)
+        {
+            Destroy(uiObj);
+        }
+    }
+
+    // === 新增：直接添加卡牌到手牌 (用于检索效果) ===
+    public bool AddCardToHand(RuntimeCard card)
+    {
+        if (Hand.Count >= MaxHandSize)
+        {
+            _bm.UIManager.Log($"手牌已满，{card.Data.cardName} 被挤掉了。");
+            DiscardPile.Add(card);
+            return false;
+        }
+
+        Hand.Add(card);
+        CreateCardUI(card);
+        return true;
     }
 
     private void CreateCardUI(RuntimeCard card)
     {
         CardUI ui = Instantiate(CardPrefab, HandPanel);
-        // CardUI ��Ҫ���� RuntimeCard�����������һ���ش��޸� CardUI.Init
-        ui.Init(card, _bm); // ��ʱ�� Data�������ع� CardUI ���� RuntimeCard
+        ui.Init(card, _bm); 
     }
 
     private void ReshuffleDiscardToDraw()

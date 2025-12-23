@@ -34,6 +34,9 @@ public class GameManager : MonoBehaviour
     [Header("Run State")]
     // 核心修改：这就是你的“总卡组”，包含法术和随从
     public List<CardData> MasterDeck = new List<CardData>();
+    
+    // [NEW] Inspector 配置的默认卡组
+    public List<CardData> defaultStarterDeck = new List<CardData>();
 
     // 用于传递数据给 EventScene
     
@@ -41,7 +44,13 @@ public class GameManager : MonoBehaviour
     // 当前战斗的敌人数据
     public List<CardData> CurrentEnemyUnits = new List<CardData>();
     public List<CardData> CurrentEnemyDeck = new List<CardData>();
-public EventProfile CurrentEventProfile;
+    
+    [Header("Event System")]
+    public List<EventProfile> AllEvents = new List<EventProfile>();
+    public EventProfile TreasureProfile;
+    public EventProfile RestProfile;
+    
+    public EventProfile CurrentEventProfile;
 
     // 玩家状态
     public int PlayerCurrentHP = 80;
@@ -99,10 +108,26 @@ public EventProfile CurrentEventProfile;
         foreach (var node in CurrentMap.Layers[0])
             node.Status = NodeStatus.Attainable;
 
+        // === DEV INJECTION REMOVED (Handled via overload) ===
+        // DevCardLoader.InjectDevCards();
+
         NotifyPlayerStateChanged();
 
         // 4. 进入地图场景
         SceneManager.LoadScene("MapScene");
+    }
+
+    public void StartNewGame(DevCardLoader.DevDeckType deckType)
+    {
+        // 1. Clear MasterDeck explicitly
+        MasterDeck.Clear();
+        
+        // 2. Inject specific deck
+        DevCardLoader.InjectDeck(deckType);
+        
+        // 3. Start Game with this deck
+        // Note: StartNewGame(List) creates a copy. 
+        StartNewGame(MasterDeck);
     }
 
     public void SelectNode(MapNode node)
@@ -117,9 +142,33 @@ public EventProfile CurrentEventProfile;
         }
         else if (node.Type == NodeType.Event)
         {
-            // 随机一个事件 (实际项目中应该从配置表随机)
-            // 这里为了演示，你需要自己Load一个资源或者在Inspector配置一个列表
-            CurrentEventProfile = Resources.Load<EventProfile>("Events/Event_Spring");
+            // 随机选择一个事件
+            if (AllEvents != null && AllEvents.Count > 0)
+            {
+                int idx = UnityEngine.Random.Range(0, AllEvents.Count);
+                CurrentEventProfile = AllEvents[idx];
+            }
+            else
+            {
+                // Fallback: Use a default one loaded from resources or keep existing logic if assigned elsewhere
+                CurrentEventProfile = Resources.Load<EventProfile>("Events/Event_Spring"); 
+            }
+            SceneManager.LoadScene("EventScene");
+        }
+        else if (node.Type == NodeType.Treasure)
+        {
+            // 使用特定的 Treasure 事件
+            if (TreasureProfile != null) CurrentEventProfile = TreasureProfile;
+            else Debug.LogError("TreasureProfile not assigned in GameManager!");
+            
+            SceneManager.LoadScene("EventScene"); 
+        }
+        else if (node.Type == NodeType.Rest)
+        {
+            // 使用特定的 Rest 事件
+            if (RestProfile != null) CurrentEventProfile = RestProfile;
+            else Debug.LogError("RestProfile not assigned in GameManager!");
+            
             SceneManager.LoadScene("EventScene");
         }
         else if (node.Type == NodeType.Store)
@@ -236,6 +285,48 @@ public EventProfile CurrentEventProfile;
         return true;
     }
 
+    // --- 事件奖励辅助接口 ---
+
+    public void GainRandomRelic()
+    {
+        // 1. 获取所有 Relic
+        var allRelics = GetAllRelics();
+        if (allRelics == null || allRelics.Count == 0)
+        {
+             Debug.LogWarning("No relics defined!");
+             return;
+        }
+
+        // 2. 过滤已有的 (Unique)
+        // 假设 RelicManager 已经有 CheckRelic
+        // 简单处理：随机拿一个，不管有没有重复，或者先不处理重复
+        int idx = UnityEngine.Random.Range(0, allRelics.Count);
+        RelicData relic = allRelics[idx];
+
+        // 3. 添加到 RelicManager
+        if (RelicManager.Instance != null)
+        {
+            RelicManager.Instance.AddRelic(relic);
+            Debug.Log($"[Event] Obtained Relic: {relic.relicName}");
+        }
+    }
+
+    public void OpenCardReward()
+    {
+        // 触发卡牌奖励 UI
+        // 目前我们可能还没有专门的三选UB，可以使用 DeckSelectionUI 的变体，或者直接 Random 一张进卡组
+        // 为了目前的需求 (Rest节点获得一张卡)，我们暂时简单实现：随机获得一张卡
+        // TODO: 完善为 "RewardUI" 场景或弹窗
+
+        if (_cardRegistry.Count == 0) return;
+        
+        List<CardData> allCards = new List<CardData>(_cardRegistry.Values);
+        CardData randomCard = allCards[UnityEngine.Random.Range(0, allCards.Count)];
+        
+        AddCardToDeck(randomCard);
+        Debug.Log($"[Event] Random Card Reward: {randomCard.cardName}");
+    }
+
     // --- 玩家血量 ---
     public void HealPlayer(int amount)
     {
@@ -264,7 +355,16 @@ public EventProfile CurrentEventProfile;
         OnPlayerStateChanged?.Invoke();
     }
 
-    public void ReturnToTitle()
+    
+
+    /// <summary>
+    /// 打开藏品收集场景
+    /// </summary>
+    public void OpenCollectionScene()
+    {
+        SceneManager.LoadScene("CollectionScene");
+    }
+public void ReturnToTitle()
     {
         Debug.Log("返回标题画面，重置数据...");
 
@@ -283,6 +383,7 @@ public EventProfile CurrentEventProfile;
     // === 存档系统实现 ===
 
     private Dictionary<string, CardData> _cardRegistry = new Dictionary<string, CardData>();
+    private Dictionary<string, RelicData> _relicRegistry = new Dictionary<string, RelicData>(); // [New] Relic索引
 
     private void Awake()
     {
@@ -290,12 +391,26 @@ public EventProfile CurrentEventProfile;
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
-            BuildCardRegistry();
+            BuildRegistry();
+            
+            // === 核心修复：自动创建 RelicManager ===
+            if (RelicManager.Instance == null)
+            {
+                var obj = new GameObject("RelicManager");
+                obj.AddComponent<RelicManager>();
+                Debug.Log("[GameManager] Auto-created RelicManager");
+            }
         }
         else
         {
             Destroy(gameObject);
         }
+    }
+
+    private void BuildRegistry()
+    {
+        BuildCardRegistry();
+        BuildRelicRegistry();
     }
 
     private void BuildCardRegistry()
@@ -309,6 +424,24 @@ public EventProfile CurrentEventProfile;
                 _cardRegistry.Add(c.name, c);
         }
         Debug.Log($"[GameManager] 已索引 {_cardRegistry.Count} 张卡片");
+    }
+
+    public void BuildRelicRegistry()
+    {
+        RelicData[] relics = Resources.LoadAll<RelicData>("");
+        _relicRegistry.Clear();
+        foreach (var r in relics)
+        {
+            if (r != null && !_relicRegistry.ContainsKey(r.relicId))
+                _relicRegistry.Add(r.relicId, r);
+        }
+        Debug.Log($"[GameManager] 已索引 {_relicRegistry.Count} 个遗物");
+    }
+
+    // 提供给外部获取所有Relic的列表（例如商店如果没配可以兜底全随机）
+    public List<RelicData> GetAllRelics()
+    {
+        return new List<RelicData>(_relicRegistry.Values);
     }
 
     [ContextMenu("Refresh Card Registry")]

@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 07b54b35d8588e44d9baa982855cf548, type: 3}
   m_Name: "\u52C7\u9E1F\u731B\u653B"
   m_EditorClassIdentifier: Assembly-CSharp::CardData
+  cost: 0
   cardName: "\u52C7\u9E1F\u731B\u653B"
   kind: 1
   color: 1
@@ -23,11 +24,17 @@ MonoBehaviour:
   buffGrantFlying: 1
   buffFreeAttackNow: 1
   effectType: 10
+  deathEffect: 0
+  onReceiveEquipEffect: 0
   value: 0
   isEquipment: 0
   isFieldEquipment: 0
   EnemyMoves: []
+  cardTag: 0
   targetType: 1
+  startsInDeck: 0
+  isCommander: 0
+  dieWithoutCommander: 0
   equipAttackBonus: 0
   equipHealthBonus: 0
   shieldEffectDamage: 0

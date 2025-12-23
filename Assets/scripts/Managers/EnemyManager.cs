@@ -7,22 +7,28 @@ public class EnemyManager : MonoBehaviour
     [Header("Config")]
     public EnemyDatabase EnemyDB;
     public GameObject EnemyPrefab;
-    public Transform EnemyContainer;
+    public Transform EnemyContainer; // 可能会保留作为父级或者废弃，看 UIManager 实现
 
     [Header("Runtime")]
     public List<RuntimeEnemy> ActiveEnemies = new List<RuntimeEnemy>();
+    // === 新增：Fixed Slots ===
+    public RuntimeEnemy[] EnemySlots = new RuntimeEnemy[5]; 
 
     // ★ 结算用：记录“最后被击杀的敌人”
     public CardData LastKilledUnitCard { get; private set; }
     public List<CardData> LastKilledDeckCards { get; private set; } = new List<CardData>();
 
     private BattleManager _bm;
+    
+    // 优先级：3 -> 2 -> 4 -> 1 -> 5 (对应索引 2 -> 1 -> 3 -> 0 -> 4)
+    private readonly int[] _spawnPriority = new int[] { 2, 1, 3, 0, 4 };
 
     [System.Serializable]
     public class RuntimeEnemy
     {
         public RuntimeUnit UnitData;
         public EnemyUnitUI UI;
+        public int SlotIndex; // 记录自己在哪个槽
 
         public List<RuntimeCard> Deck;
         public int NextCardIndex;
@@ -59,12 +65,14 @@ public class EnemyManager : MonoBehaviour
     {
         _bm = bm;
         ActiveEnemies.Clear();
+        // 清理槽位
+        for (int i = 0; i < 5; i++) EnemySlots[i] = null;
 
         // ★ 清空“最后击杀”记录
         LastKilledUnitCard = null;
         LastKilledDeckCards.Clear();
 
-        // 1. 清理容器
+        // 1. 容器清理 (UIManager接管后，这一步主要是清理残余)
         if (EnemyContainer != null)
         {
             foreach (Transform child in EnemyContainer) Destroy(child.gameObject);
@@ -77,14 +85,8 @@ public class EnemyManager : MonoBehaviour
             return;
         }
 
-        // 3. 检查 GameManager 和 地图节点
-        if (GameManager.Instance == null)
-        {
-            SpawnTestEnemy();
-            return;
-        }
-
-        if (GameManager.Instance.CurrentNode == null)
+        // 3. 检查 GameManager
+        if (GameManager.Instance == null || GameManager.Instance.CurrentNode == null)
         {
             SpawnTestEnemy();
             return;
@@ -116,11 +118,50 @@ public class EnemyManager : MonoBehaviour
 
     void CreateEnemyAt(CardData enemyData)
     {
-        RuntimeUnit unit = new RuntimeUnit(enemyData);
+        // 寻找空位
+        int targetSlot = -1;
+        foreach (int idx in _spawnPriority)
+        {
+            if (EnemySlots[idx] == null)
+            {
+                targetSlot = idx;
+                break;
+            }
+        }
 
-        GameObject obj = Instantiate(EnemyPrefab, EnemyContainer);
-        obj.transform.localScale = Vector3.one;
-        obj.transform.localPosition = Vector3.zero;
+        if (targetSlot == -1)
+        {
+            Debug.LogWarning("[EnemyManager] 敌方槽位已满，无法生成更多敌人！");
+            return;
+        }
+
+        RuntimeUnit unit = new RuntimeUnit(enemyData);
+        
+        // 获取 Slot Transform
+        Transform slotTr = _bm.UIManager.GetEnemySlotTransform(targetSlot);
+        if (slotTr == null)
+        {
+            Debug.LogError($"无法获取敌人槽位 {targetSlot} 的Transform");
+            return;
+        }
+
+        GameObject obj = Instantiate(EnemyPrefab, slotTr);
+        // ★ 核心修复：强制 UI 填满 Slot
+        RectTransform rt = obj.GetComponent<RectTransform>();
+        if (rt != null)
+        {
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            rt.localScale = Vector3.one;
+        }
+        else
+        {
+            // Fallback if no RectTransform (unlikely for UI)
+            obj.transform.localPosition = Vector3.zero;
+            obj.transform.localScale = Vector3.one;
+        }
 
         EnemyUnitUI ui = obj.GetComponent<EnemyUnitUI>();
         ui.Init(unit, _bm);
@@ -128,7 +169,10 @@ public class EnemyManager : MonoBehaviour
 
         // ★ 把 enemyData（本体卡）和 enemyData.EnemyMoves（卡组）都存进去
         RuntimeEnemy enemy = new RuntimeEnemy(unit, ui, enemyData, enemyData.EnemyMoves);
+        enemy.SlotIndex = targetSlot;
+        
         ActiveEnemies.Add(enemy);
+        EnemySlots[targetSlot] = enemy;
     }
 
     void SpawnTestEnemy()
@@ -249,6 +293,12 @@ public class EnemyManager : MonoBehaviour
 
             ActiveEnemies.Remove(target);
             Destroy(target.UI.gameObject);
+            
+            // 清理槽位
+            if (target.SlotIndex >= 0 && target.SlotIndex < 5)
+            {
+                EnemySlots[target.SlotIndex] = null;
+            }
         }
 
         if (ActiveEnemies.Count == 0)

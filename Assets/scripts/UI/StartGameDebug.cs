@@ -6,8 +6,13 @@ public class StartGameDebug : MonoBehaviour
     public Button NewGameBtn;
     public Button LoadGameBtn;
 
-void Start()
+    private DeckSelectionUI _deckSelectionUI;
+
+private void Start()
     {
+        _deckSelectionUI = gameObject.AddComponent<DeckSelectionUI>();
+        _deckSelectionUI.Hide();
+
         SetupUI();
         
         // 延迟一帧初始化，确保所有 Awake 都执行完毕
@@ -50,14 +55,15 @@ private void OnNewGameClicked()
             return;
         }
         
-        if (GameManager.Instance.CurrentDeck == null || GameManager.Instance.CurrentDeck.Count == 0)
+        if (_deckSelectionUI != null)
         {
-            Debug.LogError("[StartGameDebug] CurrentDeck 为空或没有卡牌！请在 Inspector 中配置 GameManager.CurrentDeck。");
-            return;
+            _deckSelectionUI.Show();
         }
-        
-        Debug.Log($"[StartGameDebug] 开始新游戏，初始卡组有 {GameManager.Instance.CurrentDeck.Count} 张卡。");
-        GameManager.Instance.StartNewGame(GameManager.Instance.CurrentDeck);
+        else
+        {
+             // Fallback
+             GameManager.Instance.StartNewGame(DevCardLoader.DevDeckType.ThousandWeapons);
+        }
     }
 
 

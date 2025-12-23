@@ -1066,6 +1066,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 120bd75d195061941927162656727563, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Unit
+  Data: {fileID: 0}
+  CurrentAttack: 0
   maxHp: 30
   hpText: {fileID: 1169536270}
 --- !u!4 &312151529
@@ -1885,6 +1887,10 @@ MonoBehaviour:
   TakeOnlyText: {fileID: 1879410674}
   TakeAndRecruitButton: {fileID: 2114819429}
   TakeAndRecruitText: {fileID: 96346347}
+  PlayerFieldContainer: {fileID: 0}
+  EnemyFieldContainer: {fileID: 0}
+  PlayerSlots: []
+  EnemySlots: []
 --- !u!1 &819215939
 GameObject:
   m_ObjectHideFlags: 0
@@ -1903,7 +1909,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &819215940
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2970,6 +2976,7 @@ MonoBehaviour:
   EliteGoldRange: {x: 20, y: 35}
   BossGoldRange: {x: 60, y: 90}
   IsTargetingMode: 0
+  IsSlotSelectionMode: 0
 --- !u!4 &1215070559
 Transform:
   m_ObjectHideFlags: 0
@@ -4719,6 +4726,127 @@ MonoBehaviour:
   EnemyPrefab: {fileID: 6420327046719936632, guid: 5d15a602c5b75ed46959f1d2755c0cad, type: 3}
   EnemyContainer: {fileID: 819215940}
   ActiveEnemies: []
+  EnemySlots:
+  - UnitData:
+      Id: 0
+      Name: 
+      UI: {fileID: 0}
+      EnemyUI: {fileID: 0}
+      BaseMaxHp: 0
+      MaxHp: 0
+      CurrentHp: 0
+      BaseAtk: 0
+      CurrentAtk: 0
+      IsFlying: 0
+      HasTaunt: 0
+      CanAttack: 0
+      IsEvolved: 0
+      EvolveTurnsLeft: 0
+      Equips: []
+    UI: {fileID: 0}
+    SlotIndex: 0
+    Deck: []
+    NextCardIndex: 0
+    TempAttackBonus: 0
+    ResetAttack: 0
+    UnitCardData: {fileID: 0}
+    SourceDeckCardData: []
+  - UnitData:
+      Id: 0
+      Name: 
+      UI: {fileID: 0}
+      EnemyUI: {fileID: 0}
+      BaseMaxHp: 0
+      MaxHp: 0
+      CurrentHp: 0
+      BaseAtk: 0
+      CurrentAtk: 0
+      IsFlying: 0
+      HasTaunt: 0
+      CanAttack: 0
+      IsEvolved: 0
+      EvolveTurnsLeft: 0
+      Equips: []
+    UI: {fileID: 0}
+    SlotIndex: 0
+    Deck: []
+    NextCardIndex: 0
+    TempAttackBonus: 0
+    ResetAttack: 0
+    UnitCardData: {fileID: 0}
+    SourceDeckCardData: []
+  - UnitData:
+      Id: 0
+      Name: 
+      UI: {fileID: 0}
+      EnemyUI: {fileID: 0}
+      BaseMaxHp: 0
+      MaxHp: 0
+      CurrentHp: 0
+      BaseAtk: 0
+      CurrentAtk: 0
+      IsFlying: 0
+      HasTaunt: 0
+      CanAttack: 0
+      IsEvolved: 0
+      EvolveTurnsLeft: 0
+      Equips: []
+    UI: {fileID: 0}
+    SlotIndex: 0
+    Deck: []
+    NextCardIndex: 0
+    TempAttackBonus: 0
+    ResetAttack: 0
+    UnitCardData: {fileID: 0}
+    SourceDeckCardData: []
+  - UnitData:
+      Id: 0
+      Name: 
+      UI: {fileID: 0}
+      EnemyUI: {fileID: 0}
+      BaseMaxHp: 0
+      MaxHp: 0
+      CurrentHp: 0
+      BaseAtk: 0
+      CurrentAtk: 0
+      IsFlying: 0
+      HasTaunt: 0
+      CanAttack: 0
+      IsEvolved: 0
+      EvolveTurnsLeft: 0
+      Equips: []
+    UI: {fileID: 0}
+    SlotIndex: 0
+    Deck: []
+    NextCardIndex: 0
+    TempAttackBonus: 0
+    ResetAttack: 0
+    UnitCardData: {fileID: 0}
+    SourceDeckCardData: []
+  - UnitData:
+      Id: 0
+      Name: 
+      UI: {fileID: 0}
+      EnemyUI: {fileID: 0}
+      BaseMaxHp: 0
+      MaxHp: 0
+      CurrentHp: 0
+      BaseAtk: 0
+      CurrentAtk: 0
+      IsFlying: 0
+      HasTaunt: 0
+      CanAttack: 0
+      IsEvolved: 0
+      EvolveTurnsLeft: 0
+      Equips: []
+    UI: {fileID: 0}
+    SlotIndex: 0
+    Deck: []
+    NextCardIndex: 0
+    TempAttackBonus: 0
+    ResetAttack: 0
+    UnitCardData: {fileID: 0}
+    SourceDeckCardData: []
 --- !u!1 &1762203405
 GameObject:
   m_ObjectHideFlags: 0
@@ -5141,9 +5269,84 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UnitManager
   PlayerUnits: []
+  Slots:
+  - Id: 0
+    Name: 
+    UI: {fileID: 0}
+    EnemyUI: {fileID: 0}
+    BaseMaxHp: 0
+    MaxHp: 0
+    CurrentHp: 0
+    BaseAtk: 0
+    CurrentAtk: 0
+    IsFlying: 0
+    HasTaunt: 0
+    CanAttack: 0
+    IsEvolved: 0
+    EvolveTurnsLeft: 0
+    Equips: []
+  - Id: 0
+    Name: 
+    UI: {fileID: 0}
+    EnemyUI: {fileID: 0}
+    BaseMaxHp: 0
+    MaxHp: 0
+    CurrentHp: 0
+    BaseAtk: 0
+    CurrentAtk: 0
+    IsFlying: 0
+    HasTaunt: 0
+    CanAttack: 0
+    IsEvolved: 0
+    EvolveTurnsLeft: 0
+    Equips: []
+  - Id: 0
+    Name: 
+    UI: {fileID: 0}
+    EnemyUI: {fileID: 0}
+    BaseMaxHp: 0
+    MaxHp: 0
+    CurrentHp: 0
+    BaseAtk: 0
+    CurrentAtk: 0
+    IsFlying: 0
+    HasTaunt: 0
+    CanAttack: 0
+    IsEvolved: 0
+    EvolveTurnsLeft: 0
+    Equips: []
+  - Id: 0
+    Name: 
+    UI: {fileID: 0}
+    EnemyUI: {fileID: 0}
+    BaseMaxHp: 0
+    MaxHp: 0
+    CurrentHp: 0
+    BaseAtk: 0
+    CurrentAtk: 0
+    IsFlying: 0
+    HasTaunt: 0
+    CanAttack: 0
+    IsEvolved: 0
+    EvolveTurnsLeft: 0
+    Equips: []
+  - Id: 0
+    Name: 
+    UI: {fileID: 0}
+    EnemyUI: {fileID: 0}
+    BaseMaxHp: 0
+    MaxHp: 0
+    CurrentHp: 0
+    BaseAtk: 0
+    CurrentAtk: 0
+    IsFlying: 0
+    HasTaunt: 0
+    CanAttack: 0
+    IsEvolved: 0
+    EvolveTurnsLeft: 0
+    Equips: []
   Graveyard: []
   MaxUnits: 5
-  FieldPanel: {fileID: 2035350858}
   FieldUnitPrefab: {fileID: 6671069088114100805, guid: 8a919734eab50b04a818d251387d82c3, type: 3}
 --- !u!1 &1914849133
 GameObject:
@@ -5238,7 +5441,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2035350858
 RectTransform:
   m_ObjectHideFlags: 0
