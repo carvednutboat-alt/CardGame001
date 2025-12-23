@@ -34,6 +34,9 @@ public class GameManager : MonoBehaviour
     [Header("Run State")]
     // 核心修改：这就是你的“总卡组”，包含法术和随从
     public List<CardData> MasterDeck = new List<CardData>();
+    
+    // [NEW] Inspector 配置的默认卡组
+    public List<CardData> defaultStarterDeck = new List<CardData>();
 
     // 用于传递数据给 EventScene
     

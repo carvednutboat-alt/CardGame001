@@ -327,12 +327,16 @@ public class BattleManager : MonoBehaviour
             return;
         }
 
-        // 3. 需选目标的法术 (Heal / Buff / Evolve)
+        // 3. 需选目标的法术 (Heal / Buff / Evolve / Robot Spells)
         // 这些需要先进入瞄准模式，再点击触发效果
         if (card.Data.effectType == CardEffectType.HealUnit ||
             card.Data.effectType == CardEffectType.UnitBuff ||
+            card.Data.effectType == CardEffectType.Fly ||
             card.Data.effectType == CardEffectType.FieldEvolve ||
-            card.Data.effectType == CardEffectType.DamageEnemy)
+            card.Data.effectType == CardEffectType.DamageEnemy ||
+            card.Data.effectType == CardEffectType.GrantOverload ||
+            card.Data.effectType == CardEffectType.DoubleOverload ||
+            card.Data.effectType == CardEffectType.LimitOperationEvolve)
         {
             EnterTargetingMode(card, ui.gameObject);
             return;

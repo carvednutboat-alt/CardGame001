@@ -258,8 +258,24 @@ public class UnitBuffEffect : EffectBase
             // 如果选中己方，则增加【临时】攻击 (配合 CombatManager 里的 TempAttackModifier)
             targetUnit.TempAttackModifier += tempAttack;
 
+            // 特殊处理："突袭" 类卡牌通常意味着冲锋/急袭 (CanAttack = true)
+            // 虽然 EffectType 是 UnitBuff，但为了体验，我们这里判定一下名字或添加新EffectType
+            // 简单起见：如果卡名包含 "突袭" 或 "Rush"，则重置攻击状态
+            if (card.Data.cardName.Contains("突袭") || card.Data.cardName.Contains("Rush"))
+            {
+                targetUnit.CanAttack = true;
+                bm.UIManager.Log($"{targetUnit.Name} 获得突袭效果 (本回合可以攻击)！");
+            }
+
             // 重新计算数值以应用并刷新UI
             bm.CombatManager.RecalculateUnitStats(targetUnit);
+            
+            // ★ 强制刷新确保 UI 同步 (防止 Recalculate 内部逻辑有分支漏掉)
+            if (targetUnit.UI != null) 
+            {
+                targetUnit.UI.UpdateState();
+                targetUnit.UI.SetButtonInteractable(targetUnit.CanAttack); // 刷新按钮状态
+            }
 
             bm.UIManager.Log($"{targetUnit.Name} 获得了 {tempAttack} 点临时攻击力！");
         }

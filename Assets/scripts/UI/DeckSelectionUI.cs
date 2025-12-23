@@ -59,6 +59,13 @@ public class DeckSelectionUI : MonoBehaviour
         {
             SelectDeck(DevCardLoader.DevDeckType.Robot);
         }
+        // [NEW] Custom Button
+        if (GUILayout.Button("自定义 (Inspector)", GUILayout.Height(50)))
+        {
+            // Signal a custom selection by using a dummy value or handling it directly?
+            // Let's use a flag or invoke directly? invoke directly is safer but we want Preview.
+            _selectedType = (DevCardLoader.DevDeckType)(-1); // -1 for Custom
+        }
         GUILayout.EndVertical();
 
         // Right Column: Preview (Text description mostly since we can't easily render cards in OnGUI)
@@ -66,8 +73,12 @@ public class DeckSelectionUI : MonoBehaviour
         GUILayout.Label($"当前选择: {_selectedType}");
         GUILayout.Label("卡组包含:");
         
-        // Manual Description for Preview since DevCardLoader injects directly
-        if (_selectedType == DevCardLoader.DevDeckType.ThousandWeapons)
+        // Manual Description
+        if ((int)_selectedType == -1) // Custom
+        {
+             GUILayout.Label($"自定义卡组 (Inspector)\n包含 {GameManager.Instance.defaultStarterDeck.Count} 张卡牌。");
+        }
+        else if (_selectedType == DevCardLoader.DevDeckType.ThousandWeapons)
         {
             GUILayout.Label("- 千具武·宗师 (Commander 4/4)\n- 3x 侍卫 (2/3 Deathrattle)\n- 3x 新兵 (0/1 Deathrattle)\n- 3x 突击者 (2/1 OnEquip)\n- 2x 试炼之剑");
         }
@@ -81,7 +92,15 @@ public class DeckSelectionUI : MonoBehaviour
         {
             if (GameManager.Instance != null)
             {
-                GameManager.Instance.StartNewGame(_selectedType);
+                if ((int)_selectedType == -1)
+                {
+                    // Custom Inspector Deck
+                    GameManager.Instance.StartNewGame(GameManager.Instance.defaultStarterDeck);
+                }
+                else
+                {
+                    GameManager.Instance.StartNewGame(_selectedType);
+                }
             }
         }
         
