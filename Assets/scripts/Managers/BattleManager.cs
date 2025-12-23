@@ -84,7 +84,15 @@ public class BattleManager : MonoBehaviour
             {
                 if (card.kind == CardKind.Unit)
                 {
-                    unitsForBench.Add(card);
+                    // === 修改：如果单位标记为 startsInDeck，则放入手牌/抽牌堆 ===
+                    if (card.startsInDeck)
+                    {
+                        spellsForHand.Add(card);
+                    }
+                    else
+                    {
+                        unitsForBench.Add(card);
+                    }
                 }
                 else
                 {
@@ -224,6 +232,10 @@ public class BattleManager : MonoBehaviour
             UnitManager.SetAllAttackStatus(false);
             // 重置本回合临时属性 (如突袭加攻)
             UnitManager.ResetTempStats();
+            // === NEW: Check Commander ===
+            UnitManager.CheckCommanderStatus();
+            // === NEW: Overload Processing ===
+            UnitManager.ProcessOverloadEndTurn();
         }
         
         
@@ -288,10 +300,14 @@ public class BattleManager : MonoBehaviour
         if (card.Data.kind == CardKind.Unit)
         {
             // === 修改：召唤限制 ===
-            if (HasSummonedThisTurn)
+            // 只有【非 Deck Unit】（即常规/指挥官单位）才受召唤限制
+            if (!card.Data.startsInDeck)
             {
-                if (UIManager != null) UIManager.Log("<color=red>本回合已经召唤过单位了！</color>");
-                return;
+                if (HasSummonedThisTurn)
+                {
+                    if (UIManager != null) UIManager.Log("<color=red>本回合已经召唤过单位了！</color>");
+                    return;
+                }
             }
 
             // 进入选槽位模式
@@ -436,6 +452,11 @@ public class BattleManager : MonoBehaviour
                 if (UIManager != null) UIManager.Log($"{unit.Name} 本回合已经攻击过或无法进行攻击");
                 return;
             }
+            if (unit.IsFatigued)
+            {
+                if (UIManager != null) UIManager.Log($"{unit.Name} 处于疲劳状态，无法攻击！");
+                return;
+            }
 
             // 选中这个单位作为攻击者
             _selectedAttacker = unit;
@@ -520,7 +541,11 @@ public class BattleManager : MonoBehaviour
         // 尝试召唤
         if (UnitManager.TrySummonUnitAt(index, _pendingCard))
         {
-            HasSummonedThisTurn = true;
+            // === 修改：只有非 Deck Unit 才消耗召唤次数 ===
+            if (!_pendingCard.Data.startsInDeck)
+            {
+                HasSummonedThisTurn = true;
+            }
             
             // 消耗卡牌
             if (DeckManager != null)
@@ -564,6 +589,20 @@ public class BattleManager : MonoBehaviour
         if (UIManager != null)
         {
             UIManager.Log($"{target.Name} 装备了 {card.Data.cardName}");
+        }
+
+        // === 新增：被装备时触发本家检索 ===
+        if (target.SourceCard != null && target.SourceCard.Data != null)
+        {
+            if (target.SourceCard.Data.onReceiveEquipEffect != CardEffectType.None)
+            {
+                EffectBase effect = EffectFactory.GetEffect(target.SourceCard.Data.onReceiveEquipEffect);
+                if (effect != null)
+                {
+                    // 参数：sourceCard 为【被装备的怪兽卡本身】
+                    effect.Execute(this, target.SourceCard, target);
+                }
+            }
         }
     }
 
@@ -757,6 +796,9 @@ public class BattleManager : MonoBehaviour
         {
             foreach (var unit in UnitManager.PlayerUnits)
             {
+                // === NEW: 疲劳状态的单位无法提供颜色响应 ===
+                if (unit.IsFatigued) continue;
+
                 // Assuming RuntimeUnit references original CardData or we store color on Unit
                 // RuntimeUnit usually has 'Data' or 'Template' which is CardData
                 if (unit.SourceCard != null && unit.SourceCard.Data != null && unit.SourceCard.Data.color == card.Data.color)

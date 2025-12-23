@@ -107,6 +107,21 @@ public void Init(BattleManager bm, List<CardData> startingData = null)
         }
     }
 
+    // === 新增：直接添加卡牌到手牌 (用于检索效果) ===
+    public bool AddCardToHand(RuntimeCard card)
+    {
+        if (Hand.Count >= MaxHandSize)
+        {
+            _bm.UIManager.Log($"手牌已满，{card.Data.cardName} 被挤掉了。");
+            DiscardPile.Add(card);
+            return false;
+        }
+
+        Hand.Add(card);
+        CreateCardUI(card);
+        return true;
+    }
+
     private void CreateCardUI(RuntimeCard card)
     {
         CardUI ui = Instantiate(CardPrefab, HandPanel);

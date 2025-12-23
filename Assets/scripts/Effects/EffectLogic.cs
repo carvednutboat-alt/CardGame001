@@ -266,3 +266,148 @@ public class UnitBuffEffect : EffectBase
 
     }
 }
+
+// 9. 检索卡牌效果 (通用：支持亡语找装备、装备找本家)
+public class SearchCardEffect : EffectBase
+{
+    public override void Execute(BattleManager bm, RuntimeCard card, RuntimeUnit targetUnit)
+    {
+        // 判断检索类型
+        if (card.Data.deathEffect == CardEffectType.SearchEquipmentOnDeath)
+        {
+            SearchEquipment(bm);
+        }
+        else if (card.Data.onReceiveEquipEffect == CardEffectType.SearchFamilyOnEquip)
+        {
+            SearchFamilyUnit(bm, card);
+        }
+    }
+
+    private void SearchEquipment(BattleManager bm)
+    {
+        // 目标：卡组 or 墓地 的随机一张“装备牌”
+        // 1. 收集所有符合条件的卡
+        List<RuntimeCard> candidates = new List<RuntimeCard>();
+        
+        // 查牌库
+        foreach (var c in bm.DeckManager.DrawPile)
+        {
+            if (c.Data.isEquipment) candidates.Add(c);
+        }
+        // 查弃牌堆(墓地? 还是说是DiscardPile?) 
+        // 需求说“卡组墓地”，这里假设包含 DiscardPile
+        foreach (var c in bm.DeckManager.DiscardPile)
+        {
+            if (c.Data.isEquipment) candidates.Add(c);
+        }
+
+        if (candidates.Count == 0)
+        {
+            bm.UIManager.Log("卡组和弃牌堆中没有装备牌。");
+            return;
+        }
+
+        // 2. 随机取一张
+        RuntimeCard target = candidates[Random.Range(0, candidates.Count)];
+        
+        // 3. 从原位置移除
+        if (bm.DeckManager.DrawPile.Contains(target)) 
+            bm.DeckManager.DrawPile.Remove(target);
+        else if (bm.DeckManager.DiscardPile.Contains(target))
+            bm.DeckManager.DiscardPile.Remove(target);
+            
+        // 4. 加入手牌
+        bm.DeckManager.AddCardToHand(target);
+        bm.UIManager.Log($"亡语触发：检索到了 {target.Data.cardName}！");
+    }
+
+    private void SearchFamilyUnit(BattleManager bm, RuntimeCard sourceCard)
+    {
+        // 目标：卡组中一张“本家怪兽” (Tag == sourceCard.Tag)
+        // 注意：sourceCard 这里是“被装备的怪兽卡”，还是“触发效果的装备卡”？
+        // 也可以是“触发效果的怪兽本身”。
+        // 根据 BattleManager 调用逻辑：card = 触发效果的卡(即怪兽卡本身)
+        
+        if (sourceCard.Data.cardTag == CardTag.None) return;
+
+        List<RuntimeCard> candidates = new List<RuntimeCard>();
+        foreach (var c in bm.DeckManager.DrawPile)
+        {
+            if (c.Data.kind == CardKind.Unit && c.Data.cardTag == sourceCard.Data.cardTag)
+            {
+                candidates.Add(c);
+            }
+        }
+
+        if (candidates.Count == 0)
+        {
+            bm.UIManager.Log("卡组中没有本家怪兽。");
+            return;
+        }
+
+        // 随机取一张
+        RuntimeCard target = candidates[Random.Range(0, candidates.Count)];
+        
+        bm.DeckManager.DrawPile.Remove(target);
+        bm.DeckManager.AddCardToHand(target);
+        bm.UIManager.Log($"本家共鸣：检索到了 {target.Data.cardName}！");
+    }
+}
+
+// 10. 机器人效果 (Overload 等)
+public class RobotEffect : EffectBase
+{
+    public override void Execute(BattleManager bm, RuntimeCard card, RuntimeUnit targetUnit)
+    {
+        if (targetUnit == null) return;
+        
+        var type = card.Data.effectType;
+
+        if (type == CardEffectType.GrantOverload)
+        {
+            // 给目标施加过载 (Value defined in CardData, usually 2)
+            int amount = card.Data.value; 
+            if (amount <= 0) amount = 2; // Default fallback
+            
+            bm.UnitManager.ModifyOverload(targetUnit, amount);
+        }
+        else if (type == CardEffectType.DoubleOverload)
+        {
+            // 魔法 翻倍过载，但是在回合结束时流失相当于过载的血量
+            // 翻倍：Amount = CurrentOverload
+            int current = targetUnit.Overload;
+            if (current == 0)
+            {
+                bm.UIManager.Log("目标当前无过载，无法翻倍。");
+                return;
+            }
+
+            bm.UnitManager.ModifyOverload(targetUnit, current);
+            
+            // Side Effect: Lose HP equivalent to TOTAL Overload at end of turn
+            // Note: If Overload was 2, Modify(2) -> Total 4.
+            // "Equivalent to Overload". Let's assume the NEW total.
+            targetUnit.PendingOverloadSelfDamage += targetUnit.Overload; 
+            
+            bm.UIManager.Log($"{targetUnit.Name} 过载翻倍！(当前 {targetUnit.Overload}) 回合结束将受到 {targetUnit.Overload} 伤害。");
+        }
+        else if (type == CardEffectType.LimitOperationEvolve)
+        {
+            // 进化 极限运转 指挥官特性+2变为+过载*2
+            // Prerequisite: Check if target is Steam Robot Commander? Or allowing any robot?
+            // "Commander trait... becomes". Implies targeting the Commander.
+            // Assumption: This card targets Ally Commander.
+            
+            if (!targetUnit.RobotEvolved)
+            {
+                targetUnit.RobotEvolved = true;
+                bm.UIManager.Log($"{targetUnit.Name} 极限运转进化！(攻击加成改为 过载x2)");
+                bm.CombatManager.RecalculateUnitStats(targetUnit);
+            }
+            else
+            {
+                bm.UIManager.Log("该单位已经进化过了。");
+            }
+        }
+    }
+}

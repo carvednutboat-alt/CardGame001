@@ -99,10 +99,26 @@ public EventProfile CurrentEventProfile;
         foreach (var node in CurrentMap.Layers[0])
             node.Status = NodeStatus.Attainable;
 
+        // === DEV INJECTION REMOVED (Handled via overload) ===
+        // DevCardLoader.InjectDevCards();
+
         NotifyPlayerStateChanged();
 
         // 4. 进入地图场景
         SceneManager.LoadScene("MapScene");
+    }
+
+    public void StartNewGame(DevCardLoader.DevDeckType deckType)
+    {
+        // 1. Clear MasterDeck explicitly
+        MasterDeck.Clear();
+        
+        // 2. Inject specific deck
+        DevCardLoader.InjectDeck(deckType);
+        
+        // 3. Start Game with this deck
+        // Note: StartNewGame(List) creates a copy. 
+        StartNewGame(MasterDeck);
     }
 
     public void SelectNode(MapNode node)
