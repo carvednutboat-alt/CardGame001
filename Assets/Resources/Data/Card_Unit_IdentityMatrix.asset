@@ -13,10 +13,11 @@ MonoBehaviour:
   m_Name: Card_Unit_IdentityMatrix
   m_EditorClassIdentifier: 
   cost: 4
-  cardName: "Identity Matrix"
+  cardName: Identity Matrix
   kind: 0
   color: 2
-  description: "Commander. When summoned, add 3 Standard Basis to your deck. If you control only this unit, draw a Standard Basis."
+  description: Commander. When summoned, add 3 Standard Basis to your deck. If you
+    control only this unit, draw a Standard Basis.
   unitAttack: 3
   unitHealth: 3
   unitStartsFlying: 0

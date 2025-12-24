@@ -100,6 +100,51 @@ public class UnitManager : MonoBehaviour
         ui.Init(unit, _bm);
 
         _bm.UIManager.Log($"在 {slotIndex + 1} 号位召唤了 {unit.Name}");
+
+        // === NEW: Identity Matrix Trigger (Summon -> Add 3 Standard Basis) ===
+        // Name check or ID check. Using Name for now as configured in Asset.
+        if (unit.Name.Contains("Identity Matrix") || unit.Name.Contains("单位矩阵"))
+        {
+             // Add 3 "Standard Basis" cards to Deck
+             // We need to load the asset "Card_Unit_StandardBasis"
+             // Path: Resources/Data/Card_Unit_StandardBasis
+             CardData basisData = Resources.Load<CardData>("Data/Card_Unit_StandardBasis");
+             if (basisData != null)
+             {
+                 for(int k=0; k<3; k++)
+                 {
+                     RuntimeCard newCard = new RuntimeCard(basisData);
+                     _bm.DeckManager.DrawPile.Add(newCard); // Add to Draw Pile
+                 }
+                 _bm.UIManager.Log("【单位矩阵】效果触发：3张标准基已加入牌库。");
+                 
+                 // Shuffle?
+                 _bm.DeckManager.ShuffleDeck();
+                 
+                 // Secondary Effect: "If only this unit... draw one"
+                 // Check count
+                 int count = 0;
+                 foreach(var s in Slots) if(s != null) count++;
+                 
+                 if (count == 1)
+                 {
+                     // Draw one of them? Or just "Draw a Standard Basis"? 
+                     // "将其中一张标准基加入手卡" -> Search and Draw.
+                     // Since we just added them to DrawPile, we can search DrawPile.
+                     RuntimeCard target = _bm.DeckManager.DrawPile.Find(c => c.Data.cardName.Contains("Standard Basis"));
+                     if (target != null)
+                     {
+                         _bm.DeckManager.DrawPile.Remove(target);
+                         _bm.DeckManager.AddCardToHand(target);
+                         _bm.UIManager.Log("场上仅有单位矩阵，检索一张标准基入手！");
+                     }
+                 }
+             }
+             else
+             {
+                 Debug.LogWarning("Could not load Card_Unit_StandardBasis from Resources/Data/");
+             }
+        }
         
         // 3. Refresh All (for Auras)
         RefreshAllUnits();

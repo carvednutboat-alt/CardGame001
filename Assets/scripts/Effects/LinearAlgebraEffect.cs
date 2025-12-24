@@ -127,17 +127,64 @@ public class TransposeEffect : EffectBase
         {
             int oldAtk = u.Attack;
             int oldHp = u.CurrentHp;
+
+            // === FIX: Consolidate Temp Stats ===
+            // Prevent end-of-turn reset from lowering the new Attack (which comes from HP).
+            // We bake the current Temp modifier into Perm so the total remains stable as the new "Base" for the swap.
+            u.PermAttackModifier += u.TempAttackModifier;
+            u.TempAttackModifier = 0;
             
-            // New Atk should be oldHp.
-            int atkDiff = oldHp - u.Attack; 
+            // Recalculate to ensure u.Attack reflects the shift (value shouldn't change, but source does)
+            // Actually, since Perm + Temp = (Perm+Temp) + 0, Total is same. 
+            // We can skip recalc for Atk source check if we trust the logic, 
+            // but let's use the 'oldAtk' captured above which is the Target for HP.
+            // And use 'oldHp' as Target for Atk.
+            
+            // 1. Calculate and Apply Attack Change
+            // Target: oldHp
+            // Current (after consolidation): u.Attack (should be same as oldAtk)
+            int currentAtk = u.Attack; // This calls getter which uses modifiers. 
+            // Since we just changed modifiers directly without Recalc, 'CurrentAtk' field might be stale 
+            // IF getter returns cached 'CurrentAtk'. 
+            // RuntimeUnit.Attack => CurrentAtk.
+            // CurrentAtk is set by RecalculateUnitStats. 
+            // So we DO need to update CurrentAtk or manually calculate diff using known cached value.
+            // oldAtk holds the correct Total.
+            
+            // Equation: Base + Perm_New + 0 + Equip = oldHp
+            // Perm_New = oldHp - (Base + Equip)
+            // But we don't know Equip easily.
+            // Alternative: Perm_New = Perm_Current + (oldHp - currentAtk)
+            // Perm_Current has incorporated Temp. currentAtk (Total) is oldAtk.
+            
+            int atkDiff = oldHp - oldAtk; 
             u.PermAttackModifier += atkDiff;
             
+            // 2. Calculate and Apply Health Change
             // New Hp should be oldAtk.
+            // We need to adjust BaseMaxHp so that MaxHp >= oldAtk.
+            // Current MaxHp = BaseMaxHp + Bonus.
+            // We want New MaxHp = oldAtk (roughly).
+            // New BaseMaxHp = oldAtk - Bonus = oldAtk - (MaxHp - BaseMaxHp).
+            int hpBonus = u.MaxHp - u.BaseMaxHp;
+            int newBaseMaxHp = oldAtk - hpBonus;
+            if (newBaseMaxHp < 1) newBaseMaxHp = 1; // Minimum 1 Base
+            
+            u.BaseMaxHp = newBaseMaxHp;
+            
+            // 3. Recalculate Logic to update MaxHp and Attack
+            bm.CombatManager.RecalculateUnitStats(u);
+            
+            // 4. Force CurrentHp to Target (oldAtk)
             u.CurrentHp = oldAtk;
-            if (u.CurrentHp > u.MaxHp) u.CurrentHp = u.MaxHp; 
+            // Clamp just in case
+            if (u.CurrentHp > u.MaxHp) u.CurrentHp = u.MaxHp;
+            if (u.CurrentHp < 1) u.CurrentHp = 1; 
             
             bm.UIManager.Log($"{u.Name} 转置了！({oldAtk}/{oldHp} -> {u.Attack}/{u.CurrentHp})");
-            bm.CombatManager.RecalculateUnitStats(u);
+            
+            // 5. Explicitly Update UI since we modified CurrentHp manually after Recalc
+            if (u.UI != null) u.UI.UpdateState();
         }
     }
 }

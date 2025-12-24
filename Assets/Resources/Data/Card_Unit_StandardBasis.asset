@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: Card_Unit_StandardBasis
   m_EditorClassIdentifier: 
   cost: 1
-  cardName: "Standard Basis"
+  cardName: Standard Basis
   kind: 0
   color: 2
-  description: "A fundamental building block."
+  description: A fundamental building block.
   unitAttack: 3
   unitHealth: 1
   unitStartsFlying: 0
@@ -32,7 +32,7 @@ MonoBehaviour:
   EnemyMoves: []
   cardTag: 3
   targetType: 0
-  startsInDeck: 0
+  startsInDeck: 1
   isCommander: 0
   dieWithoutCommander: 1
   equipAttackBonus: 0

@@ -23,7 +23,7 @@ MonoBehaviour:
   unitHasTaunt: 0
   buffGrantFlying: 0
   buffFreeAttackNow: 0
-  effectType: 55
+  effectType: 17
   deathEffect: 0
   onReceiveEquipEffect: 0
   value: 0

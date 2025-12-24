@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: Card_Unit_OrthogonalBasis
   m_EditorClassIdentifier: 
   cost: 3
-  cardName: "Orthogonal Basis"
+  cardName: Orthogonal Basis
   kind: 0
   color: 2
-  description: "+2/+2 if not adjacent to another Orthogonal Basis."
+  description: +2/+2 if not adjacent to another Orthogonal Basis.
   unitAttack: 3
   unitHealth: 3
   unitStartsFlying: 0
@@ -32,7 +32,7 @@ MonoBehaviour:
   EnemyMoves: []
   cardTag: 3
   targetType: 0
-  startsInDeck: 0
+  startsInDeck: 1
   isCommander: 0
   dieWithoutCommander: 1
   equipAttackBonus: 0

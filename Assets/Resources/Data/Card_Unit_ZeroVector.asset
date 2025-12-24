@@ -32,7 +32,7 @@ MonoBehaviour:
   EnemyMoves: []
   cardTag: 3
   targetType: 0
-  startsInDeck: 0
+  startsInDeck: 1
   isCommander: 0
   dieWithoutCommander: 1
   equipAttackBonus: 0

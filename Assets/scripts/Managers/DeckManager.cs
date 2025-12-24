@@ -136,6 +136,15 @@ public void Init(BattleManager bm, List<CardData> startingData = null)
         _bm.UIManager.Log("���ƶ���ϴ���ƿ⡣");
     }
 
+    public void ShuffleDeck()
+    {
+        Shuffle(DrawPile);
+        if (_bm != null && _bm.UIManager != null)
+        {
+            _bm.UIManager.Log("牌库已洗切。");
+        }
+    }
+
     private void Shuffle(List<RuntimeCard> list)
     {
         for (int i = 0; i < list.Count; i++)
