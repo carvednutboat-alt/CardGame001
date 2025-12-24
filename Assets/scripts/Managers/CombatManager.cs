@@ -217,7 +217,10 @@ public class CombatManager : MonoBehaviour
         if (u.SourceCard != null && u.SourceCard.Data != null)
         {
              // Assuming Name or Stats
-             if (u.SourceCard.Data.cardTag == CardTag.Robot && u.BaseAtk == 0 && u.BaseMaxHp == 2)
+             // Fix: Use Card Name "蒸汽哨兵" instead of potentially mutable stats
+             // Also keep compatibility with "Tag + Stats" if necessary, but Name is safer for specific cards.
+             if (u.SourceCard.Data.cardName == "蒸汽哨兵" || 
+                 (u.SourceCard.Data.cardTag == CardTag.Robot && u.BaseAtk == 0 && u.BaseMaxHp == 2))
              {
                  return true;
              }

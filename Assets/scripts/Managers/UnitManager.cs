@@ -274,7 +274,9 @@ public class UnitManager : MonoBehaviour
                 // Or best practice: defined generic Effect Logic elsewhere?
                 // For now, hardcode check for "Robot 1/1" behavior or check a new field.
                 // Let's add a specialized check.
-                if (u.SourceCard.Data.cardName.Contains("1/1") || (u.BaseAtk == 1 && u.BaseMaxHp == 1 && u.SourceCard.Data.cardTag == CardTag.Robot))
+                // Fix: Use Name check "过载增幅器"
+                if (u.SourceCard.Data.cardName == "过载增幅器" || 
+                    (u.SourceCard.Data.cardName.Contains("1/1") && u.SourceCard.Data.cardTag == CardTag.Robot))
                 {
                    boost++;
                 }

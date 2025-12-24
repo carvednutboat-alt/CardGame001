@@ -22,7 +22,57 @@ public class MapSceneManager : MonoBehaviour
     {
         if (GameManager.Instance != null && GameManager.Instance.CurrentMap != null)
         {
+            // === Failsafe: Check if player is stuck ===
+            CheckStuckAndFix(GameManager.Instance);
+            
             DrawMap(GameManager.Instance.CurrentMap);
+        }
+    }
+
+    private void CheckStuckAndFix(GameManager gm)
+    {
+        var node = gm.CurrentNode;
+        if (node != null && node.Status == NodeStatus.Visited)
+        {
+            // Check if any outgoing node is Attainable
+            bool hasPath = false;
+            foreach (var outCoord in node.Outgoing)
+            {
+                var nextNode = gm.GetNode(outCoord);
+                if (nextNode != null && nextNode.Status == NodeStatus.Attainable)
+                {
+                    hasPath = true;
+                    break;
+                }
+            }
+
+            if (!hasPath)
+            {
+                Debug.LogWarning($"[MapProtection] Detected Stuck State at {node.Coordinate}. Attempting auto-fix...");
+                
+                // Fix 1: Ensure connections exist
+                if (node.Outgoing.Count == 0 && node.Coordinate.y < gm.CurrentMap.Layers.Count - 1)
+                {
+                     var nextLayer = gm.CurrentMap.Layers[node.Coordinate.y + 1];
+                     foreach(var nextNode in nextLayer)
+                     {
+                         node.Outgoing.Add(nextNode.Coordinate);
+                         nextNode.Incoming.Add(node.Coordinate);
+                     }
+                     Debug.Log("[MapProtection] Re-established connections to next layer.");
+                }
+
+                // Fix 2: Unlock next nodes
+                foreach (var outCoord in node.Outgoing)
+                {
+                    var nextNode = gm.GetNode(outCoord);
+                    if (nextNode != null)
+                    {
+                        nextNode.Status = NodeStatus.Attainable;
+                        Debug.Log($"[MapProtection] Force Unlocked {nextNode.Coordinate}");
+                    }
+                }
+            }
         }
     }
 

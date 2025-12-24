@@ -190,10 +190,27 @@ public class GameManager : MonoBehaviour
         CurrentNode.Status = NodeStatus.Visited;
 
         // 2. 解锁下一层连接的节点
+        // Failsafe: If Outgoing is empty (bug?), try to find nodes in next layer to connect.
+        if (CurrentNode.Outgoing.Count == 0 && CurrentNode.Coordinate.y < CurrentMap.Layers.Count - 1)
+        {
+             Debug.LogWarning($"[MapFix] Node {CurrentNode.Coordinate} has no outgoing connections! Attempting to connect to next layer...");
+             var nextLayer = CurrentMap.Layers[CurrentNode.Coordinate.y + 1];
+             foreach(var nextNode in nextLayer)
+             {
+                 // Connect to all (or just random? All is safer to prevent softlock)
+                 CurrentNode.Outgoing.Add(nextNode.Coordinate);
+                 nextNode.Incoming.Add(CurrentNode.Coordinate);
+             }
+        }
+
         foreach (var nextCoord in CurrentNode.Outgoing)
         {
             var nextNode = GetNode(nextCoord);
-            if (nextNode != null) nextNode.Status = NodeStatus.Attainable;
+            if (nextNode != null) 
+            {
+                nextNode.Status = NodeStatus.Attainable;
+                Debug.Log($"[Map] Unlocked Next Node: {nextNode.Coordinate}");
+            }
         }
 
         // 3. 【新增修复】 锁定同层的所有其他节点
