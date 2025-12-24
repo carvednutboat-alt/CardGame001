@@ -33,6 +33,7 @@ public enum CardTag
     None,
     MartialArtist, // 千具武 (Red Family)
     Robot,         // 机器人 (New Family)
+    LinearAlgebra, // 线性代数
 }
 
 // 3. 新增枚举：特殊触发效果 (Deathrattle / OnEquip)
@@ -56,6 +57,11 @@ public enum CardEffectType
     GrantOverload,          // 法术：给予过载 (Overload +2)
     DoubleOverload,         // 法术：过载翻倍 (Double Overload)
     LimitOperationEvolve,   // 进化：极限运转 (Change Commander Attack Logic)
+    // === NEW EFFECTS (Linear Algebra) ===
+    LinearAlgebra_SwapColumns, // 初等行 (列) 变换
+    LinearAlgebra_ScalarMult,  // 标量乘法
+    LinearAlgebra_Transpose,   // 转置
+    LinearAlgebra_GramSchmidt, // 施密特正交化
     // === Passive / Triggers (Handled in UnitManager logic usually, but defining here for clarity if needed) ===
     // Unit 0/2 Aura: Neighbor +1 HP (Implement in CombatManager stats check)
     // Unit 2/1 Trigger: On Kill -> Gain Overload (Implement in CombatManager/UnitManager)

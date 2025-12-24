@@ -20,12 +20,16 @@ public class UnitManager : MonoBehaviour
     // === 新增：用于选目标时的状态备份 ===
     private Dictionary<int, bool> _attackStateBackup = new Dictionary<int, bool>();
 
+    // === 新增：全局效果标志 ===
+    public bool PlayerImmuneToEffects = false; // Rank >= Threshold 触发
+
     public void Init(BattleManager bm)
     {
         _bm = bm;
         PlayerUnits.Clear();
         Graveyard.Clear();
         _attackStateBackup.Clear();
+        PlayerImmuneToEffects = false; // Reset
 
         // 重置槽位数据
         for (int i = 0; i < 5; i++) Slots[i] = null;
@@ -358,6 +362,27 @@ public class UnitManager : MonoBehaviour
                     _bm.UIManager.Log($"{u.Name} 因失去指挥官而撤退（自毁）。");
                     KillUnit(u);
                 }
+            }
+        }
+    }
+
+    // === 强制刷新布局 (交换位置后调用) ===
+    public void ForceRefreshLayout()
+    {
+        // 1. 清空所有 Slot UI 的子物体 (或者重新SetParent)
+        // 这里的逻辑：Slot 0-4 是固定位置。Data 在 Slots[] 里已经交换了。
+        // 我们需要把 Unit.UI 的 Parent 换到对应的 Slot Transform 下。
+        
+        for (int i = 0; i < 5; i++)
+        {
+            RuntimeUnit unit = Slots[i];
+            Transform slotTr = _bm.UIManager.GetPlayerSlotTransform(i);
+            
+            if (unit != null && unit.UI != null && slotTr != null)
+            {
+                unit.UI.transform.SetParent(slotTr);
+                unit.UI.transform.localPosition = Vector3.zero;
+                unit.UI.transform.localScale = Vector3.one;
             }
         }
     }

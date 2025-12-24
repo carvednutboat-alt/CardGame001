@@ -22,7 +22,11 @@ public class RuntimeUnit
 
     public int BaseAtk;   // 裸装攻击力
     public int CurrentAtk;// 当前攻击力（含装备）
+    public int PermAttackModifier; // 永久攻击力修正
     public int TempAttackModifier; // 临时攻击力修正 (回合结束清零)
+    
+    // === 新增：显示名称覆盖 (用于Evolve变名) ===
+    public string OverrideName;
 
     public int Attack => CurrentAtk; // 兼容属性
 

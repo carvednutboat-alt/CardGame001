@@ -18,6 +18,11 @@ public static class EffectFactory
             case CardEffectType.DoubleOverload:
             case CardEffectType.LimitOperationEvolve:
                 return new RobotEffect();
+            // === NEW: Linear Algebra ===
+            case CardEffectType.LinearAlgebra_SwapColumns: return new SwapColumnsEffect();
+            case CardEffectType.LinearAlgebra_ScalarMult: return new ScalarMultEffect();
+            case CardEffectType.LinearAlgebra_Transpose: return new TransposeEffect();
+            case CardEffectType.LinearAlgebra_GramSchmidt: return new GramSchmidtEffect();
             default: return null;
         }
     }

@@ -21,6 +21,26 @@ public class CombatManager : MonoBehaviour
 
         // 1. 造成伤害
         int damage = attacker.CurrentAtk;
+        
+        // === NEW: Eigenvector Effect (Double Damage if specific condition) ===
+        // "Unit 3/1 Feature Vector: Double Damage if affected by Transformation"
+        // "Affected by Transformation" -> Hard to track "Transformation" specifically without status system.
+        // Interpretation: If "Secondary Effect" is active? Or "Transformation" card played this turn?
+        // Simpler: If attacker has "LinearAlgebra" Tag and ... ?
+        // User said: "当它受到变换字段卡影响时".
+        // Let's assume there's a buff flag or we check for a "Transformation" card in play history?
+        // Better: Use `PermAttackModifier > 0` or `TempAttackModifier > 0` as proxy for "Enhanced"?
+        // Or check `TempAttackModifier` specifically from "Row Operation" (Swap Columns gives +1).
+        // Let's assume: If (Name == "特征向量") and (Has moved/swapped this turn?)
+        // Or simplification: If (Name == "特征向量") -> Double Damage (Always? No, too strong).
+        // Let's check for specific Buffer Effect: "Row Operation" gave +1 Permanent.
+        // So if PermAttackModifier > 0?
+        if ((attacker.Name.Contains("特征向量") || attacker.Name.Contains("Eigenvector")) && attacker.PermAttackModifier > 0)
+        {
+             damage *= 2;
+             _bm.UIManager.Log($"【特征向量】受变换影响，伤害翻倍！({damage})");
+        }
+
         _bm.UIManager.Log($"{attacker.Name} 攻击了 {target.Name}！");
         ApplyDamage(target, damage, attacker);
 
@@ -66,6 +86,27 @@ public class CombatManager : MonoBehaviour
         if (target.IsDead)
         {
             _bm.UIManager.Log($"{target.Name} 被击败了！");
+
+            // === NEW: Zero Vector Effect (0/1 Taunt) ===
+            // "Unit 0/1 Attack this -> Attacker ATK becomes 0 until End Turn"
+            // "持续至回合结束" -> TempModifier = -CurrentAtk
+            if (target.Name.Contains("零向量") || target.Name.Contains("Zero Vector"))
+            {
+               if (source != null && !source.IsDead)
+               {
+                   _bm.UIManager.Log($"【零向量】效果触发！{source.Name} 攻击力归零 (本回合)。");
+                   source.TempAttackModifier -= source.CurrentAtk; 
+                   // Note: If CurrentAtk is 5, Mod -5. Result 0. If Mod was already +2, Base 3. Result 0.
+                   // Correct way: Set value to 0. 
+                   // source.CurrentAtk = 0; // But Recalc might override.
+                   // Best: TempAttackModifier = - (Base + Perm + EquipBase + EquipBonus) ? 
+                   // Lazy way: A very large negative number clamped to 0? Or Flag?
+                   // Let's use the Modifier approach:
+                   // Goal: Final = 0. Final = Calc(). 
+                   // source.TempAttackModifier -= source.CurrentAtk; works if we don't recalc immediately to something else.
+                   RecalculateUnitStats(source);
+               }
+            }
 
             // === NEW: OnKill Trigger (Robot 2-1) ===
             // "Unit 2-1: When this unit destroys an enemy, gain Overload 1"
@@ -176,8 +217,9 @@ public class CombatManager : MonoBehaviour
             }
         }
 
-        // 加上临时攻击力
+        // 加上临时攻击力 和 永久修正
         finalAtk += unit.TempAttackModifier;
+        finalAtk += unit.PermAttackModifier;
 
         // 4. 应用攻击力
         unit.CurrentAtk = finalAtk;
