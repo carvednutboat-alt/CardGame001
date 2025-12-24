@@ -91,6 +91,12 @@ void ApplyEffect(EventOptionData opt)
                 if (opt.TargetCard != null)
                     GameManager.Instance.AddCardToDeck(opt.TargetCard);
                 break;
+            case EventEffectType.GainRelic:
+                GameManager.Instance.GainRandomRelic();
+                break;
+            case EventEffectType.OpenCardReward:
+                GameManager.Instance.OpenCardReward();
+                break;
         }
     }
 

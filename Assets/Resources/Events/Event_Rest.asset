@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7dd5a27faad0d434d9006d05dc4da272, type: 3}
+  m_Name: Event_Rest
+  m_EditorClassIdentifier: 
+  Title: "Rest Site"
+  Description: "You find a safe location to camp. The fire is warm."
+  EventImage: {fileID: 0}
+  Options:
+  - OptionText: "Rest (Heal 30 HP)"
+    ResultText: "You rested and recovered health."
+    Effect: 1
+    Value: 30
+    TargetCard: {fileID: 0}
+    Effects: []
+  - OptionText: "Meditate (Get Card)"
+    ResultText: "You meditated and found a new card."
+    Effect: 9
+    Value: 0
+    TargetCard: {fileID: 0}
+    Effects: []

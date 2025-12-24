@@ -11,115 +11,220 @@ public class CombatManager : MonoBehaviour
     }
 
     // ==========================================
-    // 1. ´¦Àí¹ÖÊŞÆÕ¹¥ (ProcessUnitAttack)
-    //    ²ÎÊıĞŞ¸ÄÎª£º¹¥»÷Õß, Ä¿±ê
+    // 1. å¤„ç†æ€ªå…½æ™®æ”» (ProcessUnitAttack)
+    //    å‚æ•°ä¿®æ”¹ä¸ºï¼šæ”»å‡»è€…, ç›®æ ‡
     // ==========================================
-    // Ôö¼Ó²ÎÊı£ºconsumeAction (ÊÇ·ñÏûºÄĞĞ¶¯´ÎÊı)£¬Ä¬ÈÏ true
+    // å¢åŠ å‚æ•°ï¼šconsumeAction (æ˜¯å¦æ¶ˆè€—è¡ŒåŠ¨æ¬¡æ•°)ï¼Œé»˜è®¤ true
     public void ProcessUnitAttack(RuntimeUnit attacker, RuntimeUnit target, bool consumeAction = true)
     {
         if (attacker == null || target == null) return;
 
-        // 1. Ôì³ÉÉËº¦
+        // 1. é€ æˆä¼¤å®³
         int damage = attacker.CurrentAtk;
-        _bm.UIManager.Log($"{attacker.Name} ¹¥»÷ÁË {target.Name}£¡");
-        ApplyDamage(target, damage);
+        
+        // === NEW: Eigenvector Effect (Double Damage if specific condition) ===
+        // "Unit 3/1 Feature Vector: Double Damage if affected by Transformation"
+        // "Affected by Transformation" -> Hard to track "Transformation" specifically without status system.
+        // Interpretation: If "Secondary Effect" is active? Or "Transformation" card played this turn?
+        // Simpler: If attacker has "LinearAlgebra" Tag and ... ?
+        // User said: "å½“å®ƒå—åˆ°å˜æ¢å­—æ®µå¡å½±å“æ—¶".
+        // Let's assume there's a buff flag or we check for a "Transformation" card in play history?
+        // Better: Use `PermAttackModifier > 0` or `TempAttackModifier > 0` as proxy for "Enhanced"?
+        // Or check `TempAttackModifier` specifically from "Row Operation" (Swap Columns gives +1).
+        // Let's assume: If (Name == "ç‰¹å¾å‘é‡") and (Has moved/swapped this turn?)
+        // Or simplification: If (Name == "ç‰¹å¾å‘é‡") -> Double Damage (Always? No, too strong).
+        // Let's check for specific Buffer Effect: "Row Operation" gave +1 Permanent.
+        // So if PermAttackModifier > 0?
+        if ((attacker.Name.Contains("ç‰¹å¾å‘é‡") || attacker.Name.Contains("Eigenvector")) && attacker.PermAttackModifier > 0)
+        {
+             damage *= 2;
+             _bm.UIManager.Log($"ã€ç‰¹å¾å‘é‡ã€‘å—å˜æ¢å½±å“ï¼Œä¼¤å®³ç¿»å€ï¼({damage})");
+        }
 
-        // 2. === ĞŞ¸´ºËĞÄ£º¿Û³ıĞĞ¶¯´ÎÊı ===
+        _bm.UIManager.Log($"{attacker.Name} æ”»å‡»äº† {target.Name}ï¼");
+        ApplyDamage(target, damage, attacker);
+
+        // 2. === ä¿®å¤æ ¸å¿ƒï¼šæ‰£é™¤è¡ŒåŠ¨æ¬¡æ•° ===
         if (consumeAction)
         {
             attacker.CanAttack = false;
 
-            // Ë¢ĞÂ¹¥»÷ÕßµÄ UI (°´Å¥±ä»Ò)
+            // åˆ·æ–°æ”»å‡»è€…çš„ UI (æŒ‰é’®å˜ç°)
             if (attacker.UI != null)
             {
-                attacker.UI.UpdateState(); // Ò²¾ÍÊÇ UpdateStats
+                attacker.UI.UpdateState(); // ä¹Ÿå°±æ˜¯ UpdateStats
             }
         }
     }
 
     // ==========================================
-    // 2. ´¦ÀíÍ¨ÓÃÉËº¦ (ApplyDamage) - ¡¾Õâ¾ÍÊÇÄãÈ±Ê§µÄ·½·¨£¡¡¿
-    //    ÓÃÓÚ·¨Êõ¡¢Ğ§¹û¡¢AOEµÈÖ±½Ó¿ÛÑªµÄÇé¿ö
+    // 2. å¤„ç†é€šç”¨ä¼¤å®³ (ApplyDamage) - ã€è¿™å°±æ˜¯ä½ ç¼ºå¤±çš„æ–¹æ³•ï¼ã€‘
+    //    ç”¨äºæ³•æœ¯ã€æ•ˆæœã€AOEç­‰ç›´æ¥æ‰£è¡€çš„æƒ…å†µ
     // ==========================================
-    public void ApplyDamage(RuntimeUnit target, int damage)
+    public void ApplyDamage(RuntimeUnit target, int damage, RuntimeUnit source = null)
     {
         if (target == null) return;
 
-        // 1. ¿ÛÑªÂß¼­
+        // 1. æ‰£è¡€é€»è¾‘
         target.CurrentHp -= damage;
         if (target.CurrentHp < 0) target.CurrentHp = 0;
 
-        // 2. Ë¢ĞÂ UI
-        // Èç¹ûÊÇÍæ¼Òµ¥Î»
+        // 2. åˆ·æ–° UI
+        // å¦‚æœæ˜¯ç©å®¶å•ä½
         if (target.UI != null)
         {
             target.UI.UpdateState();
         }
-        // Èç¹ûÊÇµĞÈËµ¥Î»
+        // å¦‚æœæ˜¯æ•Œäººå•ä½
         else if (target.EnemyUI != null)
         {
             target.EnemyUI.UpdateHP();
             target.EnemyUI.UpdateAttack();
         }
 
-        // 3. ËÀÍöÅĞ¶¨
+        // 3. æ­»äº¡åˆ¤å®š
         if (target.IsDead)
         {
-            _bm.UIManager.Log($"{target.Name} ±»»÷°ÜÁË£¡");
+            _bm.UIManager.Log($"{target.Name} è¢«å‡»è´¥äº†ï¼");
 
-            // Çø·ÖÊÇµĞÈË»¹ÊÇÍæ¼ÒËæ´Ó
-            // Í¨³£µĞÈËÃ»ÓĞ SourceCard »òÕß ID Îª -1 (È¡¾öÓÚÄãµÄ¹¹Ôìº¯Êı)
+            // === NEW: Zero Vector Effect (0/1 Taunt) ===
+            // "Unit 0/1 Attack this -> Attacker ATK becomes 0 until End Turn"
+            // "æŒç»­è‡³å›åˆç»“æŸ" -> TempModifier = -CurrentAtk
+            if (target.Name.Contains("é›¶å‘é‡") || target.Name.Contains("Zero Vector"))
+            {
+               if (source != null && !source.IsDead)
+               {
+                   _bm.UIManager.Log($"ã€é›¶å‘é‡ã€‘æ•ˆæœè§¦å‘ï¼{source.Name} æ”»å‡»åŠ›å½’é›¶ (æœ¬å›åˆ)ã€‚");
+                   source.TempAttackModifier -= source.CurrentAtk; 
+                   // Note: If CurrentAtk is 5, Mod -5. Result 0. If Mod was already +2, Base 3. Result 0.
+                   // Correct way: Set value to 0. 
+                   // source.CurrentAtk = 0; // But Recalc might override.
+                   // Best: TempAttackModifier = - (Base + Perm + EquipBase + EquipBonus) ? 
+                   // Lazy way: A very large negative number clamped to 0? Or Flag?
+                   // Let's use the Modifier approach:
+                   // Goal: Final = 0. Final = Calc(). 
+                   // source.TempAttackModifier -= source.CurrentAtk; works if we don't recalc immediately to something else.
+                   RecalculateUnitStats(source);
+               }
+            }
+
+            // === NEW: OnKill Trigger (Robot 2-1) ===
+            // "Unit 2-1: When this unit destroys an enemy, gain Overload 1"
+            if (source != null && !source.IsDead)
+            {
+                // Check if source is the Robot 2-1
+                if (source.SourceCard != null && source.SourceCard.Data != null 
+                    && source.SourceCard.Data.cardTag == CardTag.Robot 
+                    && source.BaseAtk == 2 && source.BaseMaxHp == 1)
+                {
+                    _bm.UIManager.Log($"{source.Name} å‡»æ€è§¦å‘ï¼šè·å¾—è¿‡è½½ 1");
+                    _bm.UnitManager.ModifyOverload(source, 1);
+                }
+            }
+
+            // åŒºåˆ†æ˜¯æ•Œäººè¿˜æ˜¯ç©å®¶éšä»
+            // é€šå¸¸æ•Œäººæ²¡æœ‰ SourceCard æˆ–è€… ID ä¸º -1 (å–å†³äºä½ çš„æ„é€ å‡½æ•°)
             if (target.SourceCard == null || target.Id == -1)
             {
-                // Í¨Öª EnemyManager µĞÈËËÀÁË
+                // é€šçŸ¥ EnemyManager æ•Œäººæ­»äº†
                 _bm.EnemyManager.OnEnemyDie(target);
             }
             else
             {
-                // Í¨Öª UnitManager Ëæ´ÓËÀÁË
+                // é€šçŸ¥ UnitManager éšä»æ­»äº†
                 _bm.UnitManager.KillUnit(target);
             }
         }
     }
 
     // ==========================================
-    // 3. ÖØĞÂ¼ÆËãÊıÖµ (RecalculateUnitStats)
-    //    ±» EffectLogic.cs ÖĞµÄ FieldEvolveEffect µ÷ÓÃ
+    // 3. é‡æ–°è®¡ç®—æ•°å€¼ (RecalculateUnitStats)
+    //    è¢« EffectLogic.cs ä¸­çš„ FieldEvolveEffect è°ƒç”¨
     // ==========================================
     // ==========================================
-    // ÖØĞÂ¼ÆËãÊıÖµ (ºËĞÄÂß¼­)
+    // é‡æ–°è®¡ç®—æ•°å€¼ (æ ¸å¿ƒé€»è¾‘)
     // ==========================================
     public void RecalculateUnitStats(RuntimeUnit unit)
     {
         if (unit == null) return;
 
-        // 1. ¼ÇÂ¼¾ÉµÄÉÏÏŞ£¬ÓÃÀ´¼ÆËãÑªÁ¿²îÖµ
+        // 1. è®°å½•æ—§çš„ä¸Šé™ï¼Œç”¨æ¥è®¡ç®—è¡€é‡å·®å€¼
         int oldMaxHp = unit.MaxHp;
 
-        // 2. ÖØÖÃÎªÂãÌåÊıÖµ
+        // 2. é‡ç½®ä¸ºè£¸ä½“æ•°å€¼
         int finalAtk = unit.BaseAtk;
         int finalMaxHp = unit.BaseMaxHp;
 
-        // 3. ¼ÆËã×°±¸´øÀ´µÄ¼Ó³É
-        // ¹æÔò£ºÃ¿¼ş×°±¸±¾ÉíÌá¹© +1/+1 (½ø»¯ºó +2/+2)
+        // 3. è®¡ç®—è£…å¤‡å¸¦æ¥çš„åŠ æˆ
+        // è§„åˆ™ï¼šæ¯ä»¶è£…å¤‡æœ¬èº«æä¾› +1/+1 (è¿›åŒ–å +2/+2)
         int statsPerEquip = unit.IsEvolved ? 2 : 1;
 
-        // ÀÛ¼ÓËùÓĞ×°±¸
+        // ç´¯åŠ æ‰€æœ‰è£…å¤‡
         foreach (var equipData in unit.Equips)
         {
-            // A. »úÖÆ¼Ó³É (Ã¿ÕÅ¿¨¶¼ÓĞ)
+            // A. æœºåˆ¶åŠ æˆ (æ¯å¼ å¡éƒ½æœ‰)
             finalAtk += statsPerEquip;
             finalMaxHp += statsPerEquip;
 
-            // B. ¿¨ÅÆ×ÔÉíÊôĞÔ¼Ó³É (Èç¹û CardData ÀïÌîÁË value)
-            finalMaxHp += equipData.equipHealthBonus; // Èç¹û¿¨ÅÆ»¹ÄÜ¶îÍâ¼ÓÑª£¬ÔÚÕâÀï¼Ó
+            // B. å¡ç‰Œè‡ªèº«å±æ€§åŠ æˆ (å¦‚æœ CardData é‡Œå¡«äº† value)
+            finalMaxHp += equipData.equipHealthBonus; // å¦‚æœå¡ç‰Œè¿˜èƒ½é¢å¤–åŠ è¡€ï¼Œåœ¨è¿™é‡ŒåŠ 
             finalAtk += equipData.equipAttackBonus;
         }
 
-        // 4. Ó¦ÓÃ¹¥»÷Á¦
+        // === NEW: Overload Bonus (Steam Robot) ===
+        // "Commander Steam Robot 3-5 Overload Mode (+2/+0)"
+        // "Evolution Limit Operation Commander trait +2 becomes +Overload*2"
+        if (unit.Overload > 0)
+        {
+            // Checking if it is the Steam Robot Commander.
+            // Condition: IsCommander && Robot Tag? Or Name?
+            // User said "Commander Steam Robot".
+            if (unit.SourceCard != null && unit.SourceCard.Data != null && unit.SourceCard.Data.isCommander && unit.SourceCard.Data.cardTag == CardTag.Robot)
+            {
+                if (unit.RobotEvolved)
+                {
+                    finalAtk += (unit.Overload * 2);
+                    _bm.UIManager.Log($"{unit.Name} æé™è¿è½¬: +{unit.Overload * 2} æ”»å‡»");
+                }
+                else
+                {
+                    finalAtk += 2;
+                }
+            }
+        }
+
+        // === NEW: Aura (0/2 Robot) ===
+        // "3 x Soldier unit 0/2 Taunt: Adjacent Friendly +1 Health"
+        // Need to find my position and check neighbors.
+        if (_bm != null && _bm.UnitManager != null)
+        {
+            int myIndex = -1;
+            for(int i=0; i<5; i++)
+            {
+                if (_bm.UnitManager.Slots[i] == unit)
+                {
+                    myIndex = i;
+                    break;
+                }
+            }
+
+            if (myIndex != -1)
+            {
+                // Check Left
+                if (CheckNeighborAura(_bm.UnitManager.Slots, myIndex - 1)) finalMaxHp += 1;
+                // Check Right
+                if (CheckNeighborAura(_bm.UnitManager.Slots, myIndex + 1)) finalMaxHp += 1;
+            }
+        }
+
+        // åŠ ä¸Šä¸´æ—¶æ”»å‡»åŠ› å’Œ æ°¸ä¹…ä¿®æ­£
+        finalAtk += unit.TempAttackModifier;
+        finalAtk += unit.PermAttackModifier;
+
+        // 4. åº”ç”¨æ”»å‡»åŠ›
         unit.CurrentAtk = finalAtk;
 
-        // 5. Ó¦ÓÃÑªÁ¿ (¹Ø¼üËã·¨£ºÉÏÏŞ¼ÓÁË¶àÉÙ£¬µ±Ç°Ñª¾Í»Ø¶àÉÙ)
+        // 5. åº”ç”¨è¡€é‡ (å…³é”®ç®—æ³•ï¼šä¸Šé™åŠ äº†å¤šå°‘ï¼Œå½“å‰è¡€å°±å›å¤šå°‘)
         unit.MaxHp = finalMaxHp;
 
         int diff = finalMaxHp - oldMaxHp;
@@ -127,12 +232,12 @@ public class CombatManager : MonoBehaviour
         {
             unit.CurrentHp += diff;
 
-            // ĞŞÕı±ß½ç
+            // ä¿®æ­£è¾¹ç•Œ
             if (unit.CurrentHp > unit.MaxHp) unit.CurrentHp = unit.MaxHp;
-            if (unit.CurrentHp < 1) unit.CurrentHp = 1; // ×°±¸±ä¸üÍ¨³£²»ÖÂËÀ
+            if (unit.CurrentHp < 1) unit.CurrentHp = 1; // è£…å¤‡å˜æ›´é€šå¸¸ä¸è‡´æ­»
         }
 
-        // 6. Ë¢ĞÂ UI
+        // 6. åˆ·æ–° UI
         if (unit.UI != null) unit.UI.UpdateState();
         else if (unit.EnemyUI != null)
         { 
@@ -142,5 +247,25 @@ public class CombatManager : MonoBehaviour
 
     }
 
-    // Èç¹û»¹ÓĞ ApplyBattleDamage ÕâÖÖ¾É·½·¨£¬½¨ÒéÉ¾³ı»òÖØ¶¨Ïòµ½ ApplyDamage
+    private bool CheckNeighborAura(RuntimeUnit[] slots, int index)
+    {
+        if (index < 0 || index >= slots.Length) return false;
+        var u = slots[index];
+        if (u == null) return false;
+        if (u.IsDead) return false;
+        
+        // Check if it is the 0/2 Robot
+        // Criteria: Tag=Robot, BaseAtk=0, BaseMaxHp=2 (or ID/Name check)
+        if (u.SourceCard != null && u.SourceCard.Data != null)
+        {
+             // Assuming Name or Stats
+             if (u.SourceCard.Data.cardTag == CardTag.Robot && u.BaseAtk == 0 && u.BaseMaxHp == 2)
+             {
+                 return true;
+             }
+        }
+        return false;
+    }
+
+    // å¦‚æœè¿˜æœ‰ ApplyBattleDamage è¿™ç§æ—§æ–¹æ³•ï¼Œå»ºè®®åˆ é™¤æˆ–é‡å®šå‘åˆ° ApplyDamage
 }

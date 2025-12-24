@@ -1,28 +1,28 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-// 1. ¶ÔµĞÈËÔì³ÉÉËº¦ (µ¥Ìå)
+// 1. å¯¹æ•Œäººé€ æˆä¼¤å®³ (å•ä½“)
 public class DamageEnemyEffect : EffectBase
 {
     public override void Execute(BattleManager bm, RuntimeCard card, RuntimeUnit targetUnit)
     {
-        // ±ØĞëÒªÓĞÄ¿±ê²ÅÄÜÔì³Éµ¥ÌåÉËº¦
+        // å¿…é¡»è¦æœ‰ç›®æ ‡æ‰èƒ½é€ æˆå•ä½“ä¼¤å®³
         if (targetUnit == null)
         {
-            bm.UIManager.Log("Ã»ÓĞÖ¸¶¨ÉËº¦Ä¿±ê£¡");
+            bm.UIManager.Log("æ²¡æœ‰æŒ‡å®šä¼¤å®³ç›®æ ‡ï¼");
             return;
         }
 
         int dmg = card.Data.value;
 
-        // Ê¹ÓÃ CombatManager µÄÍ¨ÓÃÉËº¦½Ó¿Ú
+        // ä½¿ç”¨ CombatManager çš„é€šç”¨ä¼¤å®³æ¥å£
         bm.CombatManager.ApplyDamage(targetUnit, dmg);
 
-        bm.UIManager.Log($"¶Ô {targetUnit.Name} Ôì³É {dmg} µã·¨ÊõÉËº¦£¡");
+        bm.UIManager.Log($"å¯¹ {targetUnit.Name} é€ æˆ {dmg} ç‚¹æ³•æœ¯ä¼¤å®³ï¼");
     }
 }
 
-// 2. ÖÎÁÆµ¥Î»
+// 2. æ²»ç–—å•ä½
 public class HealUnitEffect : EffectBase
 {
     public override void Execute(BattleManager bm, RuntimeCard card, RuntimeUnit targetUnit)
@@ -30,39 +30,39 @@ public class HealUnitEffect : EffectBase
         if (targetUnit == null) return;
 
         int heal = card.Data.value;
-        // Âß¼­£ºÖ±½Ó¼ÓÑª£¬È»ºóClamp
+        // é€»è¾‘ï¼šç›´æ¥åŠ è¡€ï¼Œç„¶åClamp
         targetUnit.CurrentHp = Mathf.Min(targetUnit.CurrentHp + heal, targetUnit.MaxHp);
 
-        // Ë¢ĞÂ UI (¼æÈİÍæ¼ÒºÍµĞÈË)
+        // åˆ·æ–° UI (å…¼å®¹ç©å®¶å’Œæ•Œäºº)
         if (targetUnit.UI != null) targetUnit.UI.UpdateState();
         else if (targetUnit.EnemyUI != null) targetUnit.EnemyUI.UpdateHP();
 
-        bm.UIManager.Log($"{targetUnit.Name} »Ö¸´ÁË {heal} µãÉúÃü¡£");
+        bm.UIManager.Log($"{targetUnit.Name} æ¢å¤äº† {heal} ç‚¹ç”Ÿå‘½ã€‚");
     }
 
     public override bool CheckCondition(BattleManager bm, RuntimeCard sourceCard, RuntimeUnit targetUnit)
     {
         if (targetUnit != null && targetUnit.CurrentHp >= targetUnit.MaxHp)
         {
-            bm.UIManager.Log($"{targetUnit.Name} ÒÑ¾­ÊÇÂúÑª£¬ÖÎÁÆ¿¨²»»á±»ÏûºÄ¡£");
+            bm.UIManager.Log($"{targetUnit.Name} å·²ç»æ˜¯æ»¡è¡€ï¼Œæ²»ç–—å¡ä¸ä¼šè¢«æ¶ˆè€—ã€‚");
             return false;
         }
         return true;
     }
 }
 
-// 3. ³éÅÆ
+// 3. æŠ½ç‰Œ
 public class DrawCardsEffect : EffectBase
 {
     public override void Execute(BattleManager bm, RuntimeCard card, RuntimeUnit targetUnit)
     {
         int count = card.Data.value;
         bm.DeckManager.DrawCards(count);
-        bm.UIManager.Log($"³éÁË {count} ÕÅÅÆ¡£");
+        bm.UIManager.Log($"æŠ½äº† {count} å¼ ç‰Œã€‚");
     }
 }
 
-// 4. ·ÉĞĞ
+// 4. é£è¡Œ
 public class FlyEffect : EffectBase
 {
     public override void Execute(BattleManager bm, RuntimeCard card, RuntimeUnit targetUnit)
@@ -71,68 +71,68 @@ public class FlyEffect : EffectBase
 
         var data = card.Data;
 
-        // Æğ·É
+        // èµ·é£
         if (data.buffGrantFlying)
         {
             if (!targetUnit.IsFlying)
             {
                 targetUnit.IsFlying = true;
-                bm.UIManager.Log($"{targetUnit.Name} »ñµÃÁË¡¾Æğ·É¡¿×´Ì¬£¡");
+                bm.UIManager.Log($"{targetUnit.Name} è·å¾—äº†ã€èµ·é£ã€‘çŠ¶æ€ï¼");
             }
         }
 
-        // Á¢¿Ì¹¥»÷
+        // ç«‹åˆ»æ”»å‡»
         if (data.buffFreeAttackNow)
         {
-            // Âß¼­ĞŞÕı£ºÒòÎªÕâÊÇ¸ø¼º·½µ¥Î»¼ÓBuff£¬µ«ÎÒÃÇ²¢Ã»ÓĞÖ¸¶¨Òª¹¥»÷ÄÄ¸öµĞÈË¡£
-            // ËùÒÔÕâÀïÉè¶¨Îª£ºËæ»ú¹¥»÷Ò»¸öÇ°ÅÅµĞÈË¡£
+            // é€»è¾‘ä¿®æ­£ï¼šå› ä¸ºè¿™æ˜¯ç»™å·±æ–¹å•ä½åŠ Buffï¼Œä½†æˆ‘ä»¬å¹¶æ²¡æœ‰æŒ‡å®šè¦æ”»å‡»å“ªä¸ªæ•Œäººã€‚
+            // æ‰€ä»¥è¿™é‡Œè®¾å®šä¸ºï¼šéšæœºæ”»å‡»ä¸€ä¸ªå‰æ’æ•Œäººã€‚
             if (bm.EnemyManager.ActiveEnemies.Count > 0)
             {
-                // Ëæ»úÑ¡Ò»¸öµĞÈË
+                // éšæœºé€‰ä¸€ä¸ªæ•Œäºº
                 int idx = Random.Range(0, bm.EnemyManager.ActiveEnemies.Count);
                 var randomEnemy = bm.EnemyManager.ActiveEnemies[idx];
 
-                bm.UIManager.Log($"{targetUnit.Name} ·¢¶¯ÁË¶îÍâ¹¥»÷£¡Ä¿±ê£º{randomEnemy.UnitData.Name}");
+                bm.UIManager.Log($"{targetUnit.Name} å‘åŠ¨äº†é¢å¤–æ”»å‡»ï¼ç›®æ ‡ï¼š{randomEnemy.UnitData.Name}");
 
-                // === ĞŞ¸Ä£º¶îÍâ¹¥»÷²»ÏûºÄĞĞ¶¯´ÎÊı (consumeAction: false) ===
+                // === ä¿®æ”¹ï¼šé¢å¤–æ”»å‡»ä¸æ¶ˆè€—è¡ŒåŠ¨æ¬¡æ•° (consumeAction: false) ===
                 bm.CombatManager.ProcessUnitAttack(targetUnit, randomEnemy.UnitData, consumeAction: false);
             }
             else
             {
-                bm.UIManager.Log("³¡ÉÏÃ»ÓĞµĞÈË£¬ÎŞ·¨·¢¶¯¶îÍâ¹¥»÷¡£");
+                bm.UIManager.Log("åœºä¸Šæ²¡æœ‰æ•Œäººï¼Œæ— æ³•å‘åŠ¨é¢å¤–æ”»å‡»ã€‚");
             }
         }
 
-        // Ë¢ĞÂ UI
+        // åˆ·æ–° UI
         if (targetUnit.UI != null) targetUnit.UI.UpdateState();
     }
 }
 
-// 5. ×Ö¶Î½ø»¯ (»ìºÏĞ§¹û£º½ø»¯ + ³éÅÆ)
+// 5. å­—æ®µè¿›åŒ– (æ··åˆæ•ˆæœï¼šè¿›åŒ– + æŠ½ç‰Œ)
 public class FieldEvolveEffect : EffectBase
 {
     public override void Execute(BattleManager bm, RuntimeCard card, RuntimeUnit targetUnit)
     {
         if (targetUnit == null) return;
 
-        // ½ø»¯Âß¼­
+        // è¿›åŒ–é€»è¾‘
         targetUnit.IsEvolved = true;
         targetUnit.EvolveTurnsLeft = 3;
 
-        bm.UIManager.Log($"{targetUnit.Name} ½ø»¯ÁË£¡³ÖĞø3»ØºÏ¡£");
+        bm.UIManager.Log($"{targetUnit.Name} è¿›åŒ–äº†ï¼æŒç»­3å›åˆã€‚");
 
-        // ÖØĞÂ¼ÆËãÊıÖµ£¨ÒòÎª½ø»¯¿ÉÄÜ¼ÓÊôĞÔ£©
+        // é‡æ–°è®¡ç®—æ•°å€¼ï¼ˆå› ä¸ºè¿›åŒ–å¯èƒ½åŠ å±æ€§ï¼‰
         bm.CombatManager.RecalculateUnitStats(targetUnit);
 
-        // Èç¹ûÅäÖÃÁË value > 0£¬ÔòË³±ã³éÅÆ£¨Âú×ãÄãµÄ»ìºÏĞèÇó£©
+        // å¦‚æœé…ç½®äº† value > 0ï¼Œåˆ™é¡ºä¾¿æŠ½ç‰Œï¼ˆæ»¡è¶³ä½ çš„æ··åˆéœ€æ±‚ï¼‰
         if (card.Data.value > 0)
         {
             bm.DeckManager.DrawCards(card.Data.value);
-            bm.UIManager.Log($"½ø»¯¶îÍâĞ§¹û£º³éÁË {card.Data.value} ÕÅÅÆ¡£");
+            bm.UIManager.Log($"è¿›åŒ–é¢å¤–æ•ˆæœï¼šæŠ½äº† {card.Data.value} å¼ ç‰Œã€‚");
         }
 
-        // === ĞŞ¸´µã£º½ø»¯ºóÖØÖÃ¹¥»÷×´Ì¬ ===
-        // Ö»ÓĞÔÚ¡°±¾»ØºÏÔÊĞí¹¥»÷¡±µÄÇ°ÌáÏÂ£¬½ø»¯²ÅÖØÖÃ¹¥»÷
+        // === ä¿®å¤ç‚¹ï¼šè¿›åŒ–åé‡ç½®æ”»å‡»çŠ¶æ€ ===
+        // åªæœ‰åœ¨â€œæœ¬å›åˆå…è®¸æ”»å‡»â€çš„å‰æä¸‹ï¼Œè¿›åŒ–æ‰é‡ç½®æ”»å‡»
         if (bm.CurrentTurnCanAttack)
         {
             targetUnit.CanAttack = true;
@@ -143,12 +143,12 @@ public class FieldEvolveEffect : EffectBase
 
     public override bool CheckCondition(BattleManager bm, RuntimeCard sourceCard, RuntimeUnit targetUnit)
     {
-        // ¼ì²éÊÇ·ñÓĞ×°±¸
+        // æ£€æŸ¥æ˜¯å¦æœ‰è£…å¤‡
         if (targetUnit != null)
         {
             if (targetUnit.Equips == null || targetUnit.Equips.Count == 0)
             {
-                bm.UIManager.Log("Ã»ÓĞ×°±¸µÄµ¥Î»²»ÄÜÊ¹ÓÃ½ø»¯¿¨¡£");
+                bm.UIManager.Log("æ²¡æœ‰è£…å¤‡çš„å•ä½ä¸èƒ½ä½¿ç”¨è¿›åŒ–å¡ã€‚");
                 return false;
             }
         }
@@ -156,65 +156,65 @@ public class FieldEvolveEffect : EffectBase
     }
 }
 
-// 6. È«³¡AOE (µĞ·½)
+// 6. å…¨åœºAOE (æ•Œæ–¹)
 public class DamageAllEnemiesEffect : EffectBase
 {
     public override void Execute(BattleManager bm, RuntimeCard card, RuntimeUnit targetUnit)
     {
         int dmg = card.Data.value;
 
-        // === ĞŞ¸´£º±éÀúËùÓĞµĞÈËÔì³ÉÉËº¦ ===
-        // ×¢Òâ£ºÒªµ¹Ğò±éÀú»òÕß¿½±´ÁĞ±í£¬ÒòÎªÈç¹ûÉËº¦µ¼ÖÂµĞÈËËÀÍö£¬ÁĞ±í¿ÉÄÜ»á±ä
-        // µ«ÎÒÃÇÔÚ EnemyManager.OnEnemyDie ÀïÒÆ³ıµÄÊÇ ActiveEnemies£¬ËùÒÔÕâÀïÓÃ¸±±¾±È½Ï°²È«
+        // === ä¿®å¤ï¼šéå†æ‰€æœ‰æ•Œäººé€ æˆä¼¤å®³ ===
+        // æ³¨æ„ï¼šè¦å€’åºéå†æˆ–è€…æ‹·è´åˆ—è¡¨ï¼Œå› ä¸ºå¦‚æœä¼¤å®³å¯¼è‡´æ•Œäººæ­»äº¡ï¼Œåˆ—è¡¨å¯èƒ½ä¼šå˜
+        // ä½†æˆ‘ä»¬åœ¨ EnemyManager.OnEnemyDie é‡Œç§»é™¤çš„æ˜¯ ActiveEnemiesï¼Œæ‰€ä»¥è¿™é‡Œç”¨å‰¯æœ¬æ¯”è¾ƒå®‰å…¨
         var enemiesSnapshot = new List<EnemyManager.RuntimeEnemy>(bm.EnemyManager.ActiveEnemies);
 
         foreach (var enemy in enemiesSnapshot)
         {
-            // ¶ÔÃ¿¸öµĞÈËµÄ UnitData Ôì³ÉÉËº¦
+            // å¯¹æ¯ä¸ªæ•Œäººçš„ UnitData é€ æˆä¼¤å®³
             bm.CombatManager.ApplyDamage(enemy.UnitData, dmg);
         }
 
-        bm.UIManager.Log($"¶ÔËùÓĞµĞÈËÔì³É {dmg} µã AOE ÉËº¦£¡");
+        bm.UIManager.Log($"å¯¹æ‰€æœ‰æ•Œäººé€ æˆ {dmg} ç‚¹ AOE ä¼¤å®³ï¼");
     }
 }
 
-// 7. ¸´»îµ¥Î» (ËÀÕßËÕÉú)
+// 7. å¤æ´»å•ä½ (æ­»è€…è‹ç”Ÿ)
 public class ReviveUnitEffect : EffectBase
 {
     public override void Execute(BattleManager bm, RuntimeCard card, RuntimeUnit targetUnit)
     {
-        // 1. ¼ì²éÄ¹µØÓĞÃ»ÓĞ¶«Î÷
+        // 1. æ£€æŸ¥å¢“åœ°æœ‰æ²¡æœ‰ä¸œè¥¿
         if (bm.UnitManager.Graveyard.Count == 0)
         {
-            bm.UIManager.Log("Ä¹µØÀïÃ»ÓĞ¹ÖÊŞ£¬ÎŞ·¨¸´»î£¡");
+            bm.UIManager.Log("å¢“åœ°é‡Œæ²¡æœ‰æ€ªå…½ï¼Œæ— æ³•å¤æ´»ï¼");
             return;
         }
 
-        // 2. È·¶¨¸´»îÊıÁ¿ (Í¨³£ÊÇ 1)
+        // 2. ç¡®å®šå¤æ´»æ•°é‡ (é€šå¸¸æ˜¯ 1)
         int count = Mathf.Max(1, card.Data.value);
         int revivedCount = 0;
 
-        // 3. µ¹Ğò±éÀúÄ¹µØ (Í¨³£¸´»î¸ÕËÀµÄ£¬»òÕßËæ»ú£¬ÕâÀïÑİÊ¾¸´»î×îºó½øÄ¹µØµÄ)
+        // 3. å€’åºéå†å¢“åœ° (é€šå¸¸å¤æ´»åˆšæ­»çš„ï¼Œæˆ–è€…éšæœºï¼Œè¿™é‡Œæ¼”ç¤ºå¤æ´»æœ€åè¿›å¢“åœ°çš„)
         for (int i = bm.UnitManager.Graveyard.Count - 1; i >= 0; i--)
         {
             if (revivedCount >= count) break;
 
-            // ¼ì²é³¡ÉÏÎ»ÖÃÊÇ·ñÂúÁË
+            // æ£€æŸ¥åœºä¸Šä½ç½®æ˜¯å¦æ»¡äº†
             if (bm.UnitManager.PlayerUnits.Count >= bm.UnitManager.MaxUnits)
             {
-                bm.UIManager.Log("³¡ÉÏÎ»ÖÃÒÑÂú£¬ÎŞ·¨¼ÌĞø¸´»î¡£");
+                bm.UIManager.Log("åœºä¸Šä½ç½®å·²æ»¡ï¼Œæ— æ³•ç»§ç»­å¤æ´»ã€‚");
                 break;
             }
 
             RuntimeCard deadCard = bm.UnitManager.Graveyard[i];
 
-            // Ö´ĞĞÕÙ»½
-            // ×¢Òâ£ºTrySummonUnit »áÉú³ÉĞÂµÄ RuntimeUnit£¬ÑªÁ¿ÊÇÂúµÄ
+            // æ‰§è¡Œå¬å”¤
+            // æ³¨æ„ï¼šTrySummonUnit ä¼šç”Ÿæˆæ–°çš„ RuntimeUnitï¼Œè¡€é‡æ˜¯æ»¡çš„
             if (bm.UnitManager.TrySummonUnit(deadCard))
             {
-                bm.UnitManager.Graveyard.RemoveAt(i); // ´ÓÄ¹µØÒÆ³ı
+                bm.UnitManager.Graveyard.RemoveAt(i); // ä»å¢“åœ°ç§»é™¤
                 bm.UIManager.RefreshGraveyardIfOpen();
-                bm.UIManager.Log($"¡¾ËÀÕßËÕÉú¡¿¸´»îÁË {deadCard.Data.cardName}£¡");
+                bm.UIManager.Log($"ã€æ­»è€…è‹ç”Ÿã€‘å¤æ´»äº† {deadCard.Data.cardName}ï¼");
                 revivedCount++;
             }
         }
@@ -222,44 +222,208 @@ public class ReviveUnitEffect : EffectBase
 
     public override bool CheckCondition(BattleManager bm, RuntimeCard sourceCard, RuntimeUnit targetUnit)
     {
-        // ¼ì²éÄ¹µØ
+        // æ£€æŸ¥å¢“åœ°
         if (bm.UnitManager.Graveyard.Count == 0)
         {
-            bm.UIManager.Log("Ä¹µØÀïÃ»ÓĞµ¥Î»£¬¸´»î¿¨²»»á±»ÏûºÄ¡£");
+            bm.UIManager.Log("å¢“åœ°é‡Œæ²¡æœ‰å•ä½ï¼Œå¤æ´»å¡ä¸ä¼šè¢«æ¶ˆè€—ã€‚");
             return false;
         }
         return true;
     }
 }
 
-// 8. Í¨ÓÃĞ§¹û
+// 8. é€šç”¨æ•ˆæœ
 public class UnitBuffEffect : EffectBase
 {
     public override void Execute(BattleManager bm, RuntimeCard card, RuntimeUnit targetUnit)
     { 
-        // ±ØĞëÒªÓĞÄ¿±ê
+        // å¿…é¡»è¦æœ‰ç›®æ ‡
         if (targetUnit == null)
         {
-            bm.UIManager.Log("Ã»ÓĞÖ¸¶¨ÉËº¦Ä¿±ê£¡");
+            bm.UIManager.Log("æ²¡æœ‰æŒ‡å®šä¼¤å®³ç›®æ ‡ï¼");
             return;
         }
         if (targetUnit.Id == -1) {
             int dmg = card.Data.value;
 
-            // Èç¹ûÑ¡ÖĞµĞÈË£¬ÔòÔì³ÉÉËº¦£¨ÀàËÆÓë»ğÇò£©
+            // å¦‚æœé€‰ä¸­æ•Œäººï¼Œåˆ™é€ æˆä¼¤å®³ï¼ˆç±»ä¼¼ä¸ç«çƒï¼‰
             bm.CombatManager.ApplyDamage(targetUnit, dmg);
 
-            bm.UIManager.Log($"¶Ô {targetUnit.Name} Ôì³É {dmg} µã·¨ÊõÉËº¦£¡");
+            bm.UIManager.Log($"å¯¹ {targetUnit.Name} é€ æˆ {dmg} ç‚¹æ³•æœ¯ä¼¤å®³ï¼");
         }
         if (targetUnit.Id > 0)
         {
             int tempAttack = card.Data.value;
 
-            // Èç¹ûÑ¡ÖĞ¼º·½£¬ÔòÔö¼Ó¹¥»÷
-            targetUnit.CurrentAtk += tempAttack;
+            // å¦‚æœé€‰ä¸­å·±æ–¹ï¼Œåˆ™å¢åŠ ã€ä¸´æ—¶ã€‘æ”»å‡» (é…åˆ CombatManager é‡Œçš„ TempAttackModifier)
+            targetUnit.TempAttackModifier += tempAttack;
 
-            bm.UIManager.Log($"{targetUnit.Name} ÌáÉıÁË {tempAttack} µã¹¥»÷Á¦£¡");
+            // ç‰¹æ®Šå¤„ç†ï¼š"çªè¢­" ç±»å¡ç‰Œé€šå¸¸æ„å‘³ç€å†²é”‹/æ€¥è¢­ (CanAttack = true)
+            // è™½ç„¶ EffectType æ˜¯ UnitBuffï¼Œä½†ä¸ºäº†ä½“éªŒï¼Œæˆ‘ä»¬è¿™é‡Œåˆ¤å®šä¸€ä¸‹åå­—æˆ–æ·»åŠ æ–°EffectType
+            // ç®€å•èµ·è§ï¼šå¦‚æœå¡ååŒ…å« "çªè¢­" æˆ– "Rush"ï¼Œåˆ™é‡ç½®æ”»å‡»çŠ¶æ€
+            if (card.Data.cardName.Contains("çªè¢­") || card.Data.cardName.Contains("Rush"))
+            {
+                targetUnit.CanAttack = true;
+                bm.UIManager.Log($"{targetUnit.Name} è·å¾—çªè¢­æ•ˆæœ (æœ¬å›åˆå¯ä»¥æ”»å‡»)ï¼");
+            }
+
+            // é‡æ–°è®¡ç®—æ•°å€¼ä»¥åº”ç”¨å¹¶åˆ·æ–°UI
+            bm.CombatManager.RecalculateUnitStats(targetUnit);
+            
+            // â˜… å¼ºåˆ¶åˆ·æ–°ç¡®ä¿ UI åŒæ­¥ (é˜²æ­¢ Recalculate å†…éƒ¨é€»è¾‘æœ‰åˆ†æ”¯æ¼æ‰)
+            if (targetUnit.UI != null) 
+            {
+                targetUnit.UI.UpdateState();
+                targetUnit.UI.SetButtonInteractable(targetUnit.CanAttack); // åˆ·æ–°æŒ‰é’®çŠ¶æ€
+            }
+
+            bm.UIManager.Log($"{targetUnit.Name} è·å¾—äº† {tempAttack} ç‚¹ä¸´æ—¶æ”»å‡»åŠ›ï¼");
         }
 
+    }
+}
+
+// 9. æ£€ç´¢å¡ç‰Œæ•ˆæœ (é€šç”¨ï¼šæ”¯æŒäº¡è¯­æ‰¾è£…å¤‡ã€è£…å¤‡æ‰¾æœ¬å®¶)
+public class SearchCardEffect : EffectBase
+{
+    public override void Execute(BattleManager bm, RuntimeCard card, RuntimeUnit targetUnit)
+    {
+        // åˆ¤æ–­æ£€ç´¢ç±»å‹
+        if (card.Data.deathEffect == CardEffectType.SearchEquipmentOnDeath)
+        {
+            SearchEquipment(bm);
+        }
+        else if (card.Data.onReceiveEquipEffect == CardEffectType.SearchFamilyOnEquip)
+        {
+            SearchFamilyUnit(bm, card);
+        }
+    }
+
+    private void SearchEquipment(BattleManager bm)
+    {
+        // ç›®æ ‡ï¼šå¡ç»„ or å¢“åœ° çš„éšæœºä¸€å¼ â€œè£…å¤‡ç‰Œâ€
+        // 1. æ”¶é›†æ‰€æœ‰ç¬¦åˆæ¡ä»¶çš„å¡
+        List<RuntimeCard> candidates = new List<RuntimeCard>();
+        
+        // æŸ¥ç‰Œåº“
+        foreach (var c in bm.DeckManager.DrawPile)
+        {
+            if (c.Data.isEquipment) candidates.Add(c);
+        }
+        // æŸ¥å¼ƒç‰Œå †(å¢“åœ°? è¿˜æ˜¯è¯´æ˜¯DiscardPile?) 
+        // éœ€æ±‚è¯´â€œå¡ç»„å¢“åœ°â€ï¼Œè¿™é‡Œå‡è®¾åŒ…å« DiscardPile
+        foreach (var c in bm.DeckManager.DiscardPile)
+        {
+            if (c.Data.isEquipment) candidates.Add(c);
+        }
+
+        if (candidates.Count == 0)
+        {
+            bm.UIManager.Log("å¡ç»„å’Œå¼ƒç‰Œå †ä¸­æ²¡æœ‰è£…å¤‡ç‰Œã€‚");
+            return;
+        }
+
+        // 2. éšæœºå–ä¸€å¼ 
+        RuntimeCard target = candidates[Random.Range(0, candidates.Count)];
+        
+        // 3. ä»åŸä½ç½®ç§»é™¤
+        if (bm.DeckManager.DrawPile.Contains(target)) 
+            bm.DeckManager.DrawPile.Remove(target);
+        else if (bm.DeckManager.DiscardPile.Contains(target))
+            bm.DeckManager.DiscardPile.Remove(target);
+            
+        // 4. åŠ å…¥æ‰‹ç‰Œ
+        bm.DeckManager.AddCardToHand(target);
+        bm.UIManager.Log($"äº¡è¯­è§¦å‘ï¼šæ£€ç´¢åˆ°äº† {target.Data.cardName}ï¼");
+    }
+
+    private void SearchFamilyUnit(BattleManager bm, RuntimeCard sourceCard)
+    {
+        // ç›®æ ‡ï¼šå¡ç»„ä¸­ä¸€å¼ â€œæœ¬å®¶æ€ªå…½â€ (Tag == sourceCard.Tag)
+        // æ³¨æ„ï¼šsourceCard è¿™é‡Œæ˜¯â€œè¢«è£…å¤‡çš„æ€ªå…½å¡â€ï¼Œè¿˜æ˜¯â€œè§¦å‘æ•ˆæœçš„è£…å¤‡å¡â€ï¼Ÿ
+        // ä¹Ÿå¯ä»¥æ˜¯â€œè§¦å‘æ•ˆæœçš„æ€ªå…½æœ¬èº«â€ã€‚
+        // æ ¹æ® BattleManager è°ƒç”¨é€»è¾‘ï¼šcard = è§¦å‘æ•ˆæœçš„å¡(å³æ€ªå…½å¡æœ¬èº«)
+        
+        if (sourceCard.Data.cardTag == CardTag.None) return;
+
+        List<RuntimeCard> candidates = new List<RuntimeCard>();
+        foreach (var c in bm.DeckManager.DrawPile)
+        {
+            if (c.Data.kind == CardKind.Unit && c.Data.cardTag == sourceCard.Data.cardTag)
+            {
+                candidates.Add(c);
+            }
+        }
+
+        if (candidates.Count == 0)
+        {
+            bm.UIManager.Log("å¡ç»„ä¸­æ²¡æœ‰æœ¬å®¶æ€ªå…½ã€‚");
+            return;
+        }
+
+        // éšæœºå–ä¸€å¼ 
+        RuntimeCard target = candidates[Random.Range(0, candidates.Count)];
+        
+        bm.DeckManager.DrawPile.Remove(target);
+        bm.DeckManager.AddCardToHand(target);
+        bm.UIManager.Log($"æœ¬å®¶å…±é¸£ï¼šæ£€ç´¢åˆ°äº† {target.Data.cardName}ï¼");
+    }
+}
+
+// 10. æœºå™¨äººæ•ˆæœ (Overload ç­‰)
+public class RobotEffect : EffectBase
+{
+    public override void Execute(BattleManager bm, RuntimeCard card, RuntimeUnit targetUnit)
+    {
+        if (targetUnit == null) return;
+        
+        var type = card.Data.effectType;
+
+        if (type == CardEffectType.GrantOverload)
+        {
+            // ç»™ç›®æ ‡æ–½åŠ è¿‡è½½ (Value defined in CardData, usually 2)
+            int amount = card.Data.value; 
+            if (amount <= 0) amount = 2; // Default fallback
+            
+            bm.UnitManager.ModifyOverload(targetUnit, amount);
+        }
+        else if (type == CardEffectType.DoubleOverload)
+        {
+            // é­”æ³• ç¿»å€è¿‡è½½ï¼Œä½†æ˜¯åœ¨å›åˆç»“æŸæ—¶æµå¤±ç›¸å½“äºè¿‡è½½çš„è¡€é‡
+            // ç¿»å€ï¼šAmount = CurrentOverload
+            int current = targetUnit.Overload;
+            if (current == 0)
+            {
+                bm.UIManager.Log("ç›®æ ‡å½“å‰æ— è¿‡è½½ï¼Œæ— æ³•ç¿»å€ã€‚");
+                return;
+            }
+
+            bm.UnitManager.ModifyOverload(targetUnit, current);
+            
+            // Side Effect: Lose HP equivalent to TOTAL Overload at end of turn
+            // Note: If Overload was 2, Modify(2) -> Total 4.
+            // "Equivalent to Overload". Let's assume the NEW total.
+            targetUnit.PendingOverloadSelfDamage += targetUnit.Overload; 
+            
+            bm.UIManager.Log($"{targetUnit.Name} è¿‡è½½ç¿»å€ï¼(å½“å‰ {targetUnit.Overload}) å›åˆç»“æŸå°†å—åˆ° {targetUnit.Overload} ä¼¤å®³ã€‚");
+        }
+        else if (type == CardEffectType.LimitOperationEvolve)
+        {
+            // è¿›åŒ– æé™è¿è½¬ æŒ‡æŒ¥å®˜ç‰¹æ€§+2å˜ä¸º+è¿‡è½½*2
+            // Prerequisite: Check if target is Steam Robot Commander? Or allowing any robot?
+            // "Commander trait... becomes". Implies targeting the Commander.
+            // Assumption: This card targets Ally Commander.
+            
+            if (!targetUnit.RobotEvolved)
+            {
+                targetUnit.RobotEvolved = true;
+                bm.UIManager.Log($"{targetUnit.Name} æé™è¿è½¬è¿›åŒ–ï¼(æ”»å‡»åŠ æˆæ”¹ä¸º è¿‡è½½x2)");
+                bm.CombatManager.RecalculateUnitStats(targetUnit);
+            }
+            else
+            {
+                bm.UIManager.Log("è¯¥å•ä½å·²ç»è¿›åŒ–è¿‡äº†ã€‚");
+            }
+        }
     }
 }

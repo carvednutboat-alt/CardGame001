@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07b54b35d8588e44d9baa982855cf548, type: 3}
+  m_Name: Card_Spell_ScalarMult
+  m_EditorClassIdentifier: 
+  cost: 2
+  cardName: "Scalar Multiplication"
+  kind: 1
+  color: 2
+  description: "Identity Matrix and units near Linear Algebra cards double their ATK/HP this turn."
+  unitAttack: 0
+  unitHealth: 0
+  unitStartsFlying: 0
+  unitHasTaunt: 0
+  buffGrantFlying: 0
+  buffFreeAttackNow: 0
+  effectType: 17
+  deathEffect: 0
+  onReceiveEquipEffect: 0
+  value: 0
+  isEquipment: 0
+  isFieldEquipment: 0
+  EnemyMoves: []
+  cardTag: 3
+  targetType: 0
+  startsInDeck: 0
+  isCommander: 0
+  dieWithoutCommander: 0
+  equipAttackBonus: 0
+  equipHealthBonus: 0
+  shieldEffectDamage: 0
+  shieldEffectDestroy: 0
+  shieldBattleDestroy: 0
+  extraAttackOnFailedKill: 0

@@ -33,6 +33,8 @@ public class BattleManager : MonoBehaviour
 
     // === 内部状态 ===
     public bool IsTargetingMode = false;
+    public bool IsSlotSelectionMode = false; // 新增：选槽位模式
+
     private RuntimeCard _pendingCard;
     private GameObject _pendingCardUIObj;
 
@@ -82,7 +84,15 @@ public class BattleManager : MonoBehaviour
             {
                 if (card.kind == CardKind.Unit)
                 {
-                    unitsForBench.Add(card);
+                    // === 修改：如果单位标记为 startsInDeck，则放入手牌/抽牌堆 ===
+                    if (card.startsInDeck)
+                    {
+                        spellsForHand.Add(card);
+                    }
+                    else
+                    {
+                        unitsForBench.Add(card);
+                    }
                 }
                 else
                 {
@@ -170,7 +180,22 @@ public class BattleManager : MonoBehaviour
 
         if (drawCard && DeckManager != null)
         {
-            DeckManager.DrawCards(1);
+            int baseDraw = 1;
+            int extraDraw = 0;
+            
+            // 检查Relic额外抽牌效果
+            if (RelicManager.Instance != null)
+            {
+                extraDraw = RelicManager.Instance.GetExtraDrawCount();
+            }
+            
+            int totalDraw = baseDraw + extraDraw;
+            DeckManager.DrawCards(totalDraw);
+            
+            if (extraDraw > 0 && UIManager != null)
+            {
+                UIManager.Log($"额外抽牌数: +{extraDraw}");
+            }
         }
         else if (UIManager != null)
         {
@@ -191,7 +216,7 @@ public class BattleManager : MonoBehaviour
 
     public void OnEndTurnButton()
     {
-        if (IsTargetingMode) return;
+        if (IsTargetingMode || IsSlotSelectionMode) return;
         
         // === 添加空值检查 ===
         if (EnemyManager == null)
@@ -205,6 +230,19 @@ public class BattleManager : MonoBehaviour
         if (UnitManager != null)
         {
             UnitManager.SetAllAttackStatus(false);
+            // 重置本回合临时属性 (如突袭加攻)
+            UnitManager.ResetTempStats();
+            // === NEW: Check Commander ===
+            UnitManager.CheckCommanderStatus();
+            // === NEW: Overload Processing ===
+            UnitManager.ProcessOverloadEndTurn();
+        }
+        
+        
+        // 触发Relic回合结束效果
+        if (RelicManager.Instance != null)
+        {
+            RelicManager.Instance.TriggerEndTurnEffects(this);
         }
         
         EnemyTurn(canAttack: true);
@@ -242,11 +280,14 @@ public class BattleManager : MonoBehaviour
             return;
         }
 
-        if (IsTargetingMode)
+        if (IsTargetingMode || IsSlotSelectionMode)
         {
             CancelTargeting();
             return;
         }
+
+        // === COLOR CHECK ===
+        if (!CheckColorCondition(card)) return;
 
         // 如果正在选择攻击目标时点了卡牌，取消攻击选择
         if (_selectedAttacker != null)
@@ -259,17 +300,18 @@ public class BattleManager : MonoBehaviour
         if (card.Data.kind == CardKind.Unit)
         {
             // === 修改：召唤限制 ===
-            if (HasSummonedThisTurn)
+            // 只有【非 Deck Unit】（即常规/指挥官单位）才受召唤限制
+            if (!card.Data.startsInDeck)
             {
-                if (UIManager != null) UIManager.Log("<color=red>本回合已经召唤过单位了！</color>");
-                return;
+                if (HasSummonedThisTurn)
+                {
+                    if (UIManager != null) UIManager.Log("<color=red>本回合已经召唤过单位了！</color>");
+                    return;
+                }
             }
 
-            if (UnitManager != null && UnitManager.TrySummonUnit(card))
-            {
-                HasSummonedThisTurn = true; // 标记召唤
-                Destroy(ui.gameObject);
-            }
+            // 进入选槽位模式
+            EnterSlotSelectionMode(card, ui.gameObject);
             return;
         }
 
@@ -285,12 +327,18 @@ public class BattleManager : MonoBehaviour
             return;
         }
 
-        // 3. 需选目标的法术 (Heal / Buff / Evolve)
+        // 3. 需选目标的法术 (Heal / Buff / Evolve / Robot Spells)
         // 这些需要先进入瞄准模式，再点击触发效果
         if (card.Data.effectType == CardEffectType.HealUnit ||
             card.Data.effectType == CardEffectType.UnitBuff ||
+            card.Data.effectType == CardEffectType.Fly ||
             card.Data.effectType == CardEffectType.FieldEvolve ||
-            card.Data.effectType == CardEffectType.DamageEnemy)
+            card.Data.effectType == CardEffectType.DamageEnemy ||
+            card.Data.effectType == CardEffectType.GrantOverload ||
+            card.Data.effectType == CardEffectType.DoubleOverload ||
+            card.Data.effectType == CardEffectType.LimitOperationEvolve ||
+            // === NEW: Linear Algebra Special Targeting ===
+            card.Data.effectType == CardEffectType.LinearAlgebra_SwapColumns) // Row Ops needs target
         {
             EnterTargetingMode(card, ui.gameObject);
             return;
@@ -410,6 +458,11 @@ public class BattleManager : MonoBehaviour
                 if (UIManager != null) UIManager.Log($"{unit.Name} 本回合已经攻击过或无法进行攻击");
                 return;
             }
+            if (unit.IsFatigued)
+            {
+                if (UIManager != null) UIManager.Log($"{unit.Name} 处于疲劳状态，无法攻击！");
+                return;
+            }
 
             // 选中这个单位作为攻击者
             _selectedAttacker = unit;
@@ -484,6 +537,48 @@ public class BattleManager : MonoBehaviour
         }
     }
 
+    // === 新增：槽位点击处理 ===
+    public void OnBattleSlotClicked(int index, bool isPlayerSide)
+    {
+        // 只有在选槽位模式且点击的是己方槽位才有效
+        if (!IsSlotSelectionMode || !isPlayerSide) return;
+        if (_pendingCard == null || UnitManager == null) return;
+
+        // 尝试召唤
+        if (UnitManager.TrySummonUnitAt(index, _pendingCard))
+        {
+            // === 修改：只有非 Deck Unit 才消耗召唤次数 ===
+            if (!_pendingCard.Data.startsInDeck)
+            {
+                HasSummonedThisTurn = true;
+            }
+            
+            // 消耗卡牌
+            if (DeckManager != null)
+            {
+                // 单位召唤后，卡牌离开手牌但 *不* 进墓地（除非它死了）
+                DeckManager.RemoveCardFromHand(_pendingCard, _pendingCardUIObj);
+            }
+            
+            // 退出模式
+            ExitTargetingMode(); // 复用退出逻辑
+        }
+    }
+
+    private void EnterSlotSelectionMode(RuntimeCard card, GameObject uiObj)
+    {
+        IsSlotSelectionMode = true;
+        _pendingCard = card;
+        _pendingCardUIObj = uiObj;
+        _selectedAttacker = null;
+
+        if (UIManager != null)
+        {
+            UIManager.Log("请选择召唤位置...");
+            UIManager.HighlightPlayerSlots(true);
+        }
+    }
+
     private void ApplyEquipment(RuntimeCard card, RuntimeUnit target)
     {
         if (card == null || card.Data == null || target == null) return;
@@ -500,6 +595,20 @@ public class BattleManager : MonoBehaviour
         if (UIManager != null)
         {
             UIManager.Log($"{target.Name} 装备了 {card.Data.cardName}");
+        }
+
+        // === 新增：被装备时触发本家检索 ===
+        if (target.SourceCard != null && target.SourceCard.Data != null)
+        {
+            if (target.SourceCard.Data.onReceiveEquipEffect != CardEffectType.None)
+            {
+                EffectBase effect = EffectFactory.GetEffect(target.SourceCard.Data.onReceiveEquipEffect);
+                if (effect != null)
+                {
+                    // 参数：sourceCard 为【被装备的怪兽卡本身】
+                    effect.Execute(this, target.SourceCard, target);
+                }
+            }
         }
     }
 
@@ -549,18 +658,22 @@ public class BattleManager : MonoBehaviour
     private void ExitTargetingMode()
     {
         IsTargetingMode = false;
+        IsSlotSelectionMode = false; // 同时重置这个
+        
         _pendingCard = null;
         _pendingCardUIObj = null;
         if (UnitManager != null)
         {
             UnitManager.RestoreStateAfterTargeting();
         }
+        // 取消高亮
+        if (UIManager != null) UIManager.HighlightPlayerSlots(false);
     }
 
     private void CancelTargeting()
     {
-        if (!IsTargetingMode) return;
-        if (UIManager != null) UIManager.Log("已取消施法！");
+        if (!IsTargetingMode && !IsSlotSelectionMode) return;
+        if (UIManager != null) UIManager.Log("已取消操作！");
         ExitTargetingMode();
     }
 
@@ -673,5 +786,40 @@ public class BattleManager : MonoBehaviour
         {
             GameManager.Instance.OnRunFailed();
         }
+    }
+
+    // === Color Mechanism ===
+    private bool CheckColorCondition(RuntimeCard card)
+    {
+        // 1. Colorless cards are always free
+        if (card.Data.color == CardColor.Colorless) return true;
+
+        // 2. Units are exempt (to allow bootstrapping)
+        if (card.Data.kind == CardKind.Unit) return true;
+
+        // 3. Check if we have a unit of the same color
+        if (UnitManager != null)
+        {
+            foreach (var unit in UnitManager.PlayerUnits)
+            {
+                // === NEW: 疲劳状态的单位无法提供颜色响应 ===
+                if (unit.IsFatigued) continue;
+
+                // Assuming RuntimeUnit references original CardData or we store color on Unit
+                // RuntimeUnit usually has 'Data' or 'Template' which is CardData
+                if (unit.SourceCard != null && unit.SourceCard.Data != null && unit.SourceCard.Data.color == card.Data.color)
+                {
+                    return true;
+                }
+            }
+        }
+
+        // 4. Failed
+        if (UIManager != null)
+        {
+            string colorName = card.Data.color.ToString();
+            UIManager.Log($"<color=red>需场上有 {colorName} 单位才能使用此卡！</color>");
+        }
+        return false;
     }
 }
