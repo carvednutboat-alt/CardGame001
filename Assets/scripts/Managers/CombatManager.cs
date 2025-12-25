@@ -58,7 +58,25 @@ public class CombatManager : MonoBehaviour
     }
 
     // ==========================================
-    // 2. 处理通用伤害 (ApplyDamage) - 【这就是你缺失的方法！】
+    // 2. 处理治疗 (ApplyHeal)
+    // ==========================================
+    public void ApplyHeal(RuntimeUnit target, int amount)
+    {
+        if (target == null) return;
+        
+        // 1. 回血逻辑
+        target.CurrentHp += amount;
+        if (target.CurrentHp > target.MaxHp) target.CurrentHp = target.MaxHp;
+        
+        // 2. 刷新 UI
+        if (target.UI != null) target.UI.UpdateState();
+        else if (target.EnemyUI != null) target.EnemyUI.UpdateHP();
+        
+        _bm.UIManager.Log($"{target.Name} 恢复了 {amount} 点生命。");
+    }
+
+    // ==========================================
+    // 3. 处理通用伤害 (ApplyDamage)
     //    用于法术、效果、AOE等直接扣血的情况
     // ==========================================
     public void ApplyDamage(RuntimeUnit target, int damage, RuntimeUnit source = null)

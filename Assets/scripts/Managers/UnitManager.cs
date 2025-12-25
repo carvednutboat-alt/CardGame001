@@ -169,16 +169,16 @@ public class UnitManager : MonoBehaviour
         }
 
         // === 新增：亡语效果 (Deathrattle) ===
-        if (unit.SourceCard != null && unit.SourceCard.Data != null)
+        if (unit.SourceCard != null && unit.SourceCard.Effects != null)
         {
-            if (unit.SourceCard.Data.deathEffect != CardEffectType.None)
+            foreach(var e in unit.SourceCard.Effects) 
             {
-                EffectBase effect = EffectFactory.GetEffect(unit.SourceCard.Data.deathEffect);
-                if (effect != null)
-                {
-                    _bm.UIManager.Log($"触发亡语：{unit.Name}");
-                    effect.Execute(_bm, unit.SourceCard, null);
-                }
+               // Trigger Deathrattle (TYPE_TRIGGER = 2)
+               if (e.EffectCode == Effect.TYPE_TRIGGER) 
+               {
+                   _bm.UIManager.Log($"触发亡语：{unit.Name}");
+                   e.ExecuteOperation(_bm);
+               }
             }
         }
 

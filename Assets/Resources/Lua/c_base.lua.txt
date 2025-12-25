@@ -1,0 +1,19 @@
+-- c_base.lua
+-- Enums (You might want to auto-gen these, but hardcoding for now)
+CardTargetType = {
+    None = 0,
+    Ally = 1,
+    Enemy = 2,
+    All = 3
+}
+
+EffectCode = {
+    EVENT_FREE_CHAIN = 0
+}
+
+-- Global Helpers
+function GetID() 
+    -- This is usually handled by the file naming convention in YGOPRO
+    -- Here we might just return a number if needed
+    return 0 
+end

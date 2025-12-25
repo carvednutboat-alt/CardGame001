@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 07b54b35d8588e44d9baa982855cf548, type: 3}
   m_Name: Card_Spell_ScalarMult
   m_EditorClassIdentifier: 
+  id: 1001
   cost: 2
   cardName: "标量乘法"
   kind: 1

@@ -1059,13 +1059,13 @@ MonoBehaviour:
   defaultStarterDeck:
   - {fileID: 11400000, guid: bc94edf87407fcc40a82e580538296d2, type: 2}
   - {fileID: 11400000, guid: 25c03b92ecae2a243b215459539f9d45, type: 2}
-  - {fileID: 11400000, guid: 25c03b92ecae2a243b215459539f9d45, type: 2}
   - {fileID: 11400000, guid: 1a0783af32c36db4483ad6d2683f4b13, type: 2}
   - {fileID: 11400000, guid: 6791d4e60da1aca4bab3a7e412ef9748, type: 2}
   - {fileID: 11400000, guid: a40aa0733a01ce44e8f58002c43f3a48, type: 2}
   - {fileID: 11400000, guid: c1a59a8b2e9ff8e4c837473174f7092f, type: 2}
   - {fileID: 11400000, guid: c1a59a8b2e9ff8e4c837473174f7092f, type: 2}
   - {fileID: 11400000, guid: c1a59a8b2e9ff8e4c837473174f7092f, type: 2}
+  - {fileID: 11400000, guid: 082f9e677bb01ca4185e3bd53b5f50e2, type: 2}
   - {fileID: 11400000, guid: 082f9e677bb01ca4185e3bd53b5f50e2, type: 2}
   CurrentEnemyUnits: []
   CurrentEnemyDeck: []

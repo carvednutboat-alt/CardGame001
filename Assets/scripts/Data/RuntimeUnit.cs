@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
+using XLua;
 
 [System.Serializable]
+[LuaCallCSharp]
 public class RuntimeUnit
 {
     // ==========================================

@@ -1,0 +1,30 @@
+-- c1002.lua: Heal Spell
+local cm = {}
+
+function cm.initial_effect(c)
+    local e1 = Effect()
+    e1:SetDescription("Heal a unit for 5.")
+    e1:SetCondition(cm.condition)
+    e1:SetTarget(cm.target)
+    e1:SetOperation(cm.operation)
+    c:register_effect(e1)
+end
+
+function cm.condition(e)
+    return true
+end
+
+function cm.target(e)
+    -- TargetType 2 = Ally
+    Duel.SelectTarget(e:GetHandler(), 2) 
+end
+
+function cm.operation(e)
+    local tc = Duel.GetFirstTarget()
+    if tc then
+        Duel.Log("Lua: Healing " .. tc.Name)
+        Duel.Recover(tc, 5)
+    end
+end
+
+return cm

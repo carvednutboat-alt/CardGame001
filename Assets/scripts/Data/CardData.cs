@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using XLua;
 
 public enum CardColor
 {
@@ -28,6 +29,7 @@ public enum CardTargetType
 }
 
 // 2. 新增枚举：卡牌标签 (Family Tag)
+[LuaCallCSharp]
 public enum CardTag
 {
     None,
@@ -72,9 +74,11 @@ public enum CardEffectType
 }
 
 [CreateAssetMenu(fileName = "NewCard", menuName = "Card Game/Card")]
+[LuaCallCSharp]
 public class CardData : ScriptableObject
 {
     [Header("Basic")]
+    public int id;        // Unique Card ID for Lua scripts (e.g. 1001)
     public int cost = 0;  // 卡牌费用
     public string cardName;
     public CardKind kind;

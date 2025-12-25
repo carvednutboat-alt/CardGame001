@@ -155,4 +155,18 @@ public class DeckManager : MonoBehaviour
             list[rnd] = temp;
         }
     }
+
+    public GameObject FindCardUI(RuntimeCard card)
+    {
+        if (HandPanel == null) return null;
+        foreach (Transform child in HandPanel)
+        {
+            CardUI ui = child.GetComponent<CardUI>();
+            if (ui != null && ui.RuntimeCard == card)
+            {
+                return ui.gameObject;
+            }
+        }
+        return null;
+    }
 }

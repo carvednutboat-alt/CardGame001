@@ -1,0 +1,5 @@
+-- c0.lua: Default / Empty
+local cm = {}
+function cm.initial_effect(c)
+end
+return cm

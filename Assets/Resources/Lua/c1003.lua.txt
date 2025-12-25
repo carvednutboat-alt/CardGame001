@@ -1,0 +1,22 @@
+-- c1003.lua: Draw Spell
+local cm = {}
+
+function cm.initial_effect(c)
+    local e1 = Effect()
+    e1:SetDescription("Draw 2 cards.")
+    e1:SetTarget(cm.target) -- Determine target (Player) or just activating
+    e1:SetOperation(cm.operation)
+    c:register_effect(e1)
+end
+
+function cm.target(e)
+    -- No targeting required for simple draw (Self/Player)
+    -- But we might want to verify deck size?
+end
+
+function cm.operation(e)
+    Duel.Log("Lua: Drawing 2 cards")
+    Duel.Draw(0, 2) -- 0 = Player
+end
+
+return cm
