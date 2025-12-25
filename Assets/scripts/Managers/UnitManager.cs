@@ -344,8 +344,13 @@ public class UnitManager : MonoBehaviour
 
     public void ProcessOverloadEndTurn()
     {
-        foreach (var unit in PlayerUnits)
+        // Snapshot to avoid InvalidOperationException if unit dies/is removed
+        var checkList = new List<RuntimeUnit>(PlayerUnits);
+
+        foreach (var unit in checkList)
         {
+            if (unit.IsDead) continue; // Skip if already dead during this loop
+
             // 0. Double Overload Side Effect: Lose HP
             if (unit.PendingOverloadSelfDamage > 0)
             {

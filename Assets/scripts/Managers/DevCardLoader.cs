@@ -74,6 +74,9 @@ public static class DevCardLoader
 
         // Limit Operation
         AddCard("极限运转", 3);
+
+        // New: Overload Release
+        AddCard("过载释放", 3);
     }
 
     private static void AddCard(string assetName, int count)

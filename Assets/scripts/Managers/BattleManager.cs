@@ -337,6 +337,7 @@ public class BattleManager : MonoBehaviour
             card.Data.effectType == CardEffectType.GrantOverload ||
             card.Data.effectType == CardEffectType.DoubleOverload ||
             card.Data.effectType == CardEffectType.LimitOperationEvolve ||
+            card.Data.effectType == CardEffectType.ReduceOverloadAndAOE || // New: Overload Release
             // === NEW: Linear Algebra Special Targeting ===
             card.Data.effectType == CardEffectType.LinearAlgebra_SwapColumns) // Row Ops needs target
         {

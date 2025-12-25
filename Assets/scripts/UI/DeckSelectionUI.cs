@@ -84,7 +84,7 @@ public class DeckSelectionUI : MonoBehaviour
         }
         else
         {
-            GUILayout.Label("- 蒸汽机器人·指挥官 (Commander 3/5 Overload)\n- 3x 蒸汽哨兵 (0/2 Taunt Aura)\n- 3x 蒸汽收割者 (2/1 OnKill Overload)\n- 3x 过载增幅器 (1/1 Aura Boost)\n- 3x 过载模式 (Spell)\n- 3x 二重过载 (Spell)\n- 3x 极限运转 (Spell)");
+            GUILayout.Label("- 蒸汽机器人·指挥官 (Commander 3/5 Overload)\n- 3x 蒸汽哨兵 (0/2 Taunt Aura)\n- 3x 蒸汽收割者 (2/1 OnKill Overload)\n- 3x 过载增幅器 (1/1 Aura Boost)\n- 3x 过载模式 (Spell)\n- 3x 二重过载 (Spell)\n- 3x 极限运转 (Spell)\n- 3x 过载释放 (Spell New!)");
         }
 
         GUILayout.Space(20);

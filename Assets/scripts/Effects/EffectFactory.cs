@@ -23,6 +23,7 @@ public static class EffectFactory
             case CardEffectType.LinearAlgebra_ScalarMult: return new ScalarMultEffect();
             case CardEffectType.LinearAlgebra_Transpose: return new TransposeEffect();
             case CardEffectType.LinearAlgebra_GramSchmidt: return new GramSchmidtEffect();
+            case CardEffectType.ReduceOverloadAndAOE: return new ReduceOverloadAndAOEEffect();
             default: return null;
         }
     }

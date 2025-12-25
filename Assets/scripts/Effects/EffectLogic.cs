@@ -427,3 +427,69 @@ public class RobotEffect : EffectBase
         }
     }
 }
+
+// 11. 减少过载并造成AOE (Robot Spell)
+public class ReduceOverloadAndAOEEffect : EffectBase
+{
+    public override void Execute(BattleManager bm, RuntimeCard card, RuntimeUnit targetUnit)
+    {
+        // 1. 目标单位判定 (Reduce Overload)
+        if (targetUnit != null)
+        {
+             // 减少 1 点过载
+            int reduceAmount = 1;
+            if (targetUnit.Overload > 0)
+            {
+                // ModifyOverload uses addition, so pass negative
+                bm.UnitManager.ModifyOverload(targetUnit, -reduceAmount);
+                bm.UIManager.Log($"{targetUnit.Name} 过载减少了 {reduceAmount} 点。");
+            }
+            else
+            {
+                bm.UIManager.Log($"{targetUnit.Name} 当前无过载。");
+            }
+        }
+        else
+        {
+            // Even if target is null (shouldn't happen if targetType=Ally), 
+            // we might still want to trigger AOE? 
+            // But usually spells fizzle if target is invalid.
+            // Let's assume if target was required and missing, we abort.
+            // But user said "Select to reduce... Deal AOE". 
+            // If target dies before cast, maybe AOE should still happen?
+            // Safer to just Log and continue to AOE.
+            bm.UIManager.Log("目标丢失/无效，跳过过载减少效果。");
+        }
+
+        // 2. 造成 AOE 伤害 (5点)
+        int aoeDmg = card.Data.value;
+        if (aoeDmg <= 0) aoeDmg = 5; // Default
+
+        // Use Snapshot to safely iterate while damaging (though ApplyDamage handles safety mostly, this is double safe)
+        if (bm.EnemyManager != null && bm.EnemyManager.ActiveEnemies != null)
+        {
+            var enemiesSnapshot = new List<EnemyManager.RuntimeEnemy>(bm.EnemyManager.ActiveEnemies);
+            if (enemiesSnapshot.Count > 0)
+            {
+                bm.UIManager.Log($"【过载释放】对所有敌人造成 {aoeDmg} 点伤害！");
+                foreach (var enemy in enemiesSnapshot)
+                {
+                    if (enemy != null && enemy.UnitData != null && !enemy.UnitData.IsDead)
+                    {
+                        bm.CombatManager.ApplyDamage(enemy.UnitData, aoeDmg);
+                    }
+                }
+            }
+            else
+            {
+                bm.UIManager.Log("场上没有敌人，无AOE伤害。");
+            }
+        }
+    }
+
+    public override bool CheckCondition(BattleManager bm, RuntimeCard sourceCard, RuntimeUnit targetUnit)
+    {
+        // Require a target? Yes, CardTargetType.Ally.
+        return true;
+    }
+}

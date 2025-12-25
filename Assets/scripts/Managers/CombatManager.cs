@@ -110,15 +110,25 @@ public class CombatManager : MonoBehaviour
 
             // === NEW: OnKill Trigger (Robot 2-1) ===
             // "Unit 2-1: When this unit destroys an enemy, gain Overload 1"
+            // Requirement Update: Also give Commander Overload +1
             if (source != null && !source.IsDead)
             {
-                // Check if source is the Robot 2-1
+                // Check if source is the Robot 2-1 (Steam Reaper)
+                // Conditions: Robot Tag, 2 Atk, 1 Hp (Base)
                 if (source.SourceCard != null && source.SourceCard.Data != null 
                     && source.SourceCard.Data.cardTag == CardTag.Robot 
                     && source.BaseAtk == 2 && source.BaseMaxHp == 1)
                 {
-                    _bm.UIManager.Log($"{source.Name} 击杀触发：获得过载 1");
+                    _bm.UIManager.Log($"{source.Name} 击杀触发：自身获得过载 1");
                     _bm.UnitManager.ModifyOverload(source, 1);
+
+                    // Find Commander and give Overload 1
+                    var commander = _bm.UnitManager.PlayerUnits.Find(u => u.SourceCard.Data.isCommander);
+                    if (commander != null && commander != source)
+                    {
+                         _bm.UIManager.Log($"{source.Name} 击杀触发：指挥官 {commander.Name} 获得过载 1");
+                         _bm.UnitManager.ModifyOverload(commander, 1);
+                    }
                 }
             }
 

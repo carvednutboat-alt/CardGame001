@@ -62,6 +62,9 @@ public enum CardEffectType
     LinearAlgebra_ScalarMult,  // 标量乘法
     LinearAlgebra_Transpose,   // 转置
     LinearAlgebra_GramSchmidt, // 施密特正交化
+    
+    // === NEW: Spell (Robot) ===
+    ReduceOverloadAndAOE, // 减少自己场上unit的一点过载 造成aoe伤害5
     // === Passive / Triggers (Handled in UnitManager logic usually, but defining here for clarity if needed) ===
     // Unit 0/2 Aura: Neighbor +1 HP (Implement in CombatManager stats check)
     // Unit 2/1 Trigger: On Kill -> Gain Overload (Implement in CombatManager/UnitManager)
