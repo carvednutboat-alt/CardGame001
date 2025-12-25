@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: Card_Spell_ScalarMult
   m_EditorClassIdentifier: 
   cost: 2
-  cardName: "Scalar Multiplication"
+  cardName: "标量乘法"
   kind: 1
   color: 2
-  description: "Identity Matrix and units near Linear Algebra cards double their ATK/HP this turn."
+  description: "使【单位矩阵】以及【线性代数】单位相邻的随从攻击力和生命值翻倍。"
   unitAttack: 0
   unitHealth: 0
   unitStartsFlying: 0

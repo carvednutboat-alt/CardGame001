@@ -13,11 +13,10 @@ MonoBehaviour:
   m_Name: Card_Unit_IdentityMatrix
   m_EditorClassIdentifier: 
   cost: 4
-  cardName: Identity Matrix
+  cardName: "单位矩阵"
   kind: 0
   color: 2
-  description: Commander. When summoned, add 3 Standard Basis to your deck. If you
-    control only this unit, draw a Standard Basis.
+  description: "指挥官。召唤时：将3张【标准基】洗入牌库。若场上只有此单位，检索一张【标准基】。"
   unitAttack: 3
   unitHealth: 3
   unitStartsFlying: 0
@@ -33,7 +32,7 @@ MonoBehaviour:
   EnemyMoves: []
   cardTag: 3
   targetType: 0
-  startsInDeck: 0
+  startsInDeck: 1
   isCommander: 1
   dieWithoutCommander: 0
   equipAttackBonus: 0

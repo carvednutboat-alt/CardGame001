@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: Card_Spell_Transpose
   m_EditorClassIdentifier: 
   cost: 2
-  cardName: "Transpose"
+  cardName: "转置"
   kind: 1
   color: 2
-  description: "Swap ATK and HP for all friendly units."
+  description: "交换所有己方随从的攻击力和生命值。"
   unitAttack: 0
   unitHealth: 0
   unitStartsFlying: 0

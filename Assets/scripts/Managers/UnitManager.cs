@@ -436,4 +436,85 @@ public class UnitManager : MonoBehaviour
             }
         }
     }
+
+    // === NEW: Flexible Row Operation Logic (List based) ===
+    public void ProcessRowOperation(List<RuntimeUnit> selectedUnits, int targetSlotIndex = -1)
+    {
+        // Logic:
+        // 1. If 2 units selected -> Swap them using internal Swap Logic.
+        // 2. If 1 unit selected + Valid Empty Slot -> Move unit to slot.
+        // 3. Otherwise -> Log Warning?
+
+        if (selectedUnits == null || selectedUnits.Count == 0) return;
+
+        // Case A: Swap Two Units
+        if (selectedUnits.Count == 2)
+        {
+            SwapUnitPositions(selectedUnits[0], selectedUnits[1]);
+        }
+        // Case B: Move One Unit to Empty Slot
+        else if (selectedUnits.Count == 1 && targetSlotIndex != -1)
+        {
+            MoveUnitToSlot(selectedUnits[0], targetSlotIndex);
+        }
+    }
+
+    // Internal Swap Logic
+    private void SwapUnitPositions(RuntimeUnit u1, RuntimeUnit u2)
+    {
+        int idx1 = -1;
+        int idx2 = -1;
+        for(int i=0; i<5; i++)
+        {
+            if (Slots[i] == u1) idx1 = i;
+            if (Slots[i] == u2) idx2 = i;
+        }
+
+        if (idx1 == -1 || idx2 == -1) return;
+
+        Slots[idx1] = u2;
+        Slots[idx2] = u1;
+
+        SyncListWithSlots();
+        ForceRefreshLayout();
+        
+        _bm.UIManager.Log($"交换了 {u1.Name} 和 {u2.Name} 的位置！");
+    }
+
+    // Internal Move Logic
+    private bool MoveUnitToSlot(RuntimeUnit unit, int targetSlotIndex)
+    {
+        if (targetSlotIndex < 0 || targetSlotIndex >= 5) return false;
+        if (Slots[targetSlotIndex] != null) return false; // Target occupied
+
+        int currentIdx = -1;
+        for(int i=0; i<5; i++)
+        {
+            if (Slots[i] == unit)
+            {
+                currentIdx = i;
+                break;
+            }
+        }
+
+        if (currentIdx == -1) return false;
+
+        Slots[currentIdx] = null;
+        Slots[targetSlotIndex] = unit;
+
+        SyncListWithSlots();
+        ForceRefreshLayout();
+        
+        _bm.UIManager.Log($"{unit.Name} 移动到了新的位置！");
+        return true;
+    }
+
+    private void SyncListWithSlots()
+    {
+        PlayerUnits.Clear();
+        for(int i=0; i<5; i++)
+        {
+            if (Slots[i] != null) PlayerUnits.Add(Slots[i]);
+        }
+    }
 }

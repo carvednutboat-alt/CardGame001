@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: Card_Spell_GramSchmidt
   m_EditorClassIdentifier: 
   cost: 3
-  cardName: "Gram-Schmidt"
+  cardName: "施密特正交化"
   kind: 1
   color: 2
-  description: "Evolve Standard Basis to Orthogonal Basis (+1 Rank). If Rank >= Commander Stats, Grant Immunity."
+  description: "将所有【标准基】进化为【正交基】。若Rank不低于指挥官属性，全员获得免疫。"
   unitAttack: 0
   unitHealth: 0
   unitStartsFlying: 0

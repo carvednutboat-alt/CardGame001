@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: Card_Unit_Eigenvector
   m_EditorClassIdentifier: 
   cost: 2
-  cardName: "Eigenvector"
+  cardName: "特征向量"
   kind: 0
   color: 2
-  description: "Double damage if affected by Row Operation (Perm Attack Buff)."
+  description: "若受到【初等行变换】(攻击力Buff) 影响，造成双倍伤害。"
   unitAttack: 3
   unitHealth: 1
   unitStartsFlying: 0

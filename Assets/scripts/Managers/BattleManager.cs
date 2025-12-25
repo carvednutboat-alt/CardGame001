@@ -267,10 +267,8 @@ public class BattleManager : MonoBehaviour
         }
     }
 
-    // ---------------------------------------------------------
     // 卡牌交互逻辑 - 修复：使用两参数签名
-    // ---------------------------------------------------------
-
+    
     public void OnCardClicked(CardUI ui, RuntimeCard card)
     {
         // === 添加空值检查 ===

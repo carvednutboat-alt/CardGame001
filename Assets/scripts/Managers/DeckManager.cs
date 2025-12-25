@@ -16,7 +16,7 @@ public class DeckManager : MonoBehaviour
 
     private BattleManager _bm;
 
-public void Init(BattleManager bm, List<CardData> startingData = null)
+    public void Init(BattleManager bm, List<CardData> startingData = null)
     {
         _bm = bm;
         DrawPile.Clear();
@@ -133,7 +133,7 @@ public void Init(BattleManager bm, List<CardData> startingData = null)
         DrawPile.AddRange(DiscardPile);
         DiscardPile.Clear();
         Shuffle(DrawPile);
-        _bm.UIManager.Log("���ƶ���ϴ���ƿ⡣");
+        _bm.UIManager.Log("弃牌堆已返回牌库");
     }
 
     public void ShuffleDeck()

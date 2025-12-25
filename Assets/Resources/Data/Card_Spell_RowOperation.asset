@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: Card_Spell_RowOperation
   m_EditorClassIdentifier: 
   cost: 1
-  cardName: "Row Operation"
+  cardName: "初等行变换"
   kind: 1
   color: 2
-  description: "Swap target unit with its neighbor and give both +1 Attack."
+  description: "选择两个单位交换位置（获得+1攻击），或将一个单位移动到空位。"
   unitAttack: 0
   unitHealth: 0
   unitStartsFlying: 0

@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: Card_Unit_ZeroVector
   m_EditorClassIdentifier: 
   cost: 1
-  cardName: "Zero Vector"
+  cardName: "零向量"
   kind: 0
   color: 2
-  description: "Taunt. Attacking unit's Attack becomes 0 until end of turn."
+  description: "嘲讽。攻击此单位的敌人攻击力变为0（本回合）。"
   unitAttack: 0
   unitHealth: 1
   unitStartsFlying: 0
