@@ -8,7 +8,8 @@ public static class DevCardLoader
     public enum DevDeckType
     {
         ThousandWeapons,
-        Robot
+        Robot,
+        LuaTest // New
     }
 
     public static void InjectDeck(DevDeckType type)
@@ -26,7 +27,61 @@ public static class DevCardLoader
             case DevDeckType.Robot:
                 InjectRobotDeck();
                 break;
+            case DevDeckType.LuaTest:
+                InjectLuaTestDeck();
+                break;
         }
+    }
+
+    public static List<CardData> GetLuaTestCards()
+    {
+        List<CardData> list = new List<CardData>();
+        
+        // 1. Damage Spell (c1001)
+        list.Add(CreateEphemeralCard(1001, "Lua Fireball", "Deal 5 damage to a target.", CardKind.Spell, CardColor.Red, CardTargetType.Enemy));
+
+        // 2. Heal Spell (c1002)
+        list.Add(CreateEphemeralCard(1002, "Lua Heal", "Heal a unit for 5.", CardKind.Spell, CardColor.Blue, CardTargetType.Ally));
+
+        // 3. Draw Spell (c1003)
+        list.Add(CreateEphemeralCard(1003, "Lua Greed", "Draw 2 cards.", CardKind.Spell, CardColor.Green, CardTargetType.None));
+        
+        // 4. Default Unit (Test)
+        list.Add(CreateEphemeralCard(1004, "Lua Soldier", "Vanilla Unit.", CardKind.Unit, CardColor.Colorless, CardTargetType.None, 2, 2));
+
+        return list;
+    }
+
+    private static void InjectLuaTestDeck()
+    {
+        Debug.Log("=== Injecting Deck (Lua Test) ===");
+        var cards = GetLuaTestCards();
+        foreach(var c in cards)
+        {
+             // Add to GameManager MasterDeck (3 copies)
+             for(int i=0; i<3; i++) GameManager.Instance.AddCardToDeck(c);
+        }
+    }
+    
+    private static CardData CreateEphemeralCard(int id, string name, string desc, CardKind kind, CardColor color, CardTargetType targetType, int atk=0, int hp=0)
+    {
+        CardData card = ScriptableObject.CreateInstance<CardData>();
+        card.name = name; // Asset name
+        card.id = id;
+        card.cardName = name;
+        card.description = desc;
+        card.kind = kind;
+        card.color = color;
+        card.targetType = targetType;
+        
+        if (kind == CardKind.Unit)
+        {
+            card.unitAttack = atk;
+            card.unitHealth = hp;
+        }
+        return card;
+        
+        // Removed GameManager dependency here to make it pure
     }
 
     private static void InjectThousandWeaponsDeck()

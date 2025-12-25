@@ -5,6 +5,20 @@ public class BattleManager : MonoBehaviour
 {
     public static BattleManager Instance;
 
+    [ContextMenu("Debug: Inject Lua Deck")]
+    public void DebugInjectLuaDeck()
+    {
+        if (DeckManager == null) return;
+        var cards = DevCardLoader.GetLuaTestCards();
+        foreach (var data in cards)
+        {
+            // Add to DrawPile
+            DeckManager.DrawPile.Add(new RuntimeCard(data));
+        }
+        DeckManager.ShuffleDeck();
+        UIManager.Log("Debug: Lua Test Cards injected into Draw Pile!");
+    }
+
     [Header("Managers")]
     public DeckManager DeckManager;
     public UnitManager UnitManager;
