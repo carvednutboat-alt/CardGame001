@@ -37,8 +37,20 @@ public static class DevCardLoader
     {
         List<CardData> list = new List<CardData>();
         
-        // 1. Damage Spell (c1001)
-        list.Add(CreateEphemeralCard(1001, "Lua Fireball", "Deal 5 damage to a target.", CardKind.Spell, CardColor.Red, CardTargetType.Enemy));
+        // 1. Damage Spell (c1001) - Try Loading Asset First
+        var fireAsset = Resources.Load<CardData>("Cards/LuaFireball");
+        if (fireAsset != null)
+        {
+             // Reset ID just in case (optional, but ensures binding works)
+             // fireAsset.id = 1001; 
+             list.Add(fireAsset);
+             Debug.Log("Loaded LuaFireball from Asset.");
+        }
+        else
+        {
+             list.Add(CreateEphemeralCard(1001, "Lua Fireball", "Deal 5 damage to a target.", CardKind.Spell, CardColor.Red, CardTargetType.Enemy));
+             Debug.Log("Created Ephemeral Lua Fireball.");
+        }
 
         // 2. Heal Spell (c1002)
         list.Add(CreateEphemeralCard(1002, "Lua Heal", "Heal a unit for 5.", CardKind.Spell, CardColor.Blue, CardTargetType.Ally));

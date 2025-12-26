@@ -59,6 +59,10 @@ public class DeckSelectionUI : MonoBehaviour
         {
             SelectDeck(DevCardLoader.DevDeckType.Robot);
         }
+        if (GUILayout.Button("Lua 测试卡组 (Lua Test)", GUILayout.Height(50)))
+        {
+            SelectDeck(DevCardLoader.DevDeckType.LuaTest);
+        }
         // [NEW] Custom Button
         if (GUILayout.Button("自定义 (Inspector)", GUILayout.Height(50)))
         {
@@ -81,6 +85,10 @@ public class DeckSelectionUI : MonoBehaviour
         else if (_selectedType == DevCardLoader.DevDeckType.ThousandWeapons)
         {
             GUILayout.Label("- 千具武·宗师 (Commander 4/4)\n- 3x 侍卫 (2/3 Deathrattle)\n- 3x 新兵 (0/1 Deathrattle)\n- 3x 突击者 (2/1 OnEquip)\n- 2x 试炼之剑");
+        }
+        else if (_selectedType == DevCardLoader.DevDeckType.LuaTest)
+        {
+             GUILayout.Label("Lua 脚本测试卡组:\n- 3x Lua Fireball (C1001)\n- 3x Lua Heal (C1002)\n- 3x Lua Greed (C1003)\n- 3x Lua Soldier (C1004)");
         }
         else
         {

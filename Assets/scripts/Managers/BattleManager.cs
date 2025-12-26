@@ -286,101 +286,124 @@ public class BattleManager : MonoBehaviour
 
     // 卡牌交互逻辑 - 修复：使用两参数签名
     
+    // 卡牌交互逻辑 - 纯脚本驱动 (C-C-T-O Pattern)
+    // 1. Condition (Check)
+    // 2. Cost (Pay)
+    // 3. Target (SelectTarget -> Targeting Mode)
+    // 4. Operation (Execute)
     public void OnCardClicked(CardUI ui, RuntimeCard card)
     {
         if (IsTargetingMode || IsSlotSelectionMode) return;
 
-        // 检查是否有注册 Lua 效果
+        // 检查颜色条件 (保留 C# 层的原子规则，也可以移到 Lua 的 Condition 中，但为了通用性先留着)
+        if (!CheckColorCondition(card)) return;
+
+        // === 1. Try to activate Ignition Effect ===
         if (card.Effects != null && card.Effects.Count > 0)
         {
             foreach (var e in card.Effects)
             {
-                // 如果是起动效果 (IGNITION)
+                // 只处理起动效果 (Ignition) - 玩家手动点击触发
                 if (e.EffectCode == Effect.TYPE_IGNITION) 
                 {
+                    // Step 1: Check Condition
                     if (e.CheckCondition(this, card))
                     {
-                        // 暂存上下文，进入 C-C-T-O 流程
+                        // 暂存上下文
                         _pendingEffect = e;
                         _pendingCard = card;
                         _pendingCardUIObj = ui.gameObject;
 
+                        // Step 2: Pay Cost
                         e.PayCost(this);
-                        e.ResolveTarget(this); // 如果 Lua 里调用了 SelectTarget，会开启瞄准模式
-
-                        if (!IsTargetingMode) // 如果不需要选目标，直接执行
+                        
+                        // Step 3: Resolve Target
+                        // Lua script calls Duel.SelectTarget -> BattleManager.InitiateEffectTargeting
+                        bool enteredTargeting = false;
+                        
+                        // We wrap this to detect if InitiateEffectTargeting was called
+                        // (Current IsTargetingMode is false). if e.ResolveTarget sets it true.
+                        e.ResolveTarget(this);
+                        
+                        if (IsTargetingMode)
                         {
+                            enteredTargeting = true;
+                        }
+
+                        // Step 4: Operation
+                        if (!enteredTargeting)
+                        {
+                            // No targets needed (Instant Effect)
                             e.ExecuteOperation(this);
                             FinishEffect(card, ui.gameObject);
                         }
-                        return; 
+                        
+                        return; // 效果已激活，中断后续逻辑
                     }
                 }
             }
         }
 
-        // 如果没有任何 Lua 效果，且是怪兽牌，才走默认召唤逻辑
+        // === 2. Unit Summon Logic (Default Rule) ===
+        // 如果没有触发任何 Ignition 效果，且是单位卡，则进入召唤流程
         if (card.Data.kind == CardKind.Unit)
         {
+             // 召唤限制检查
+            if (!card.Data.startsInDeck && HasSummonedThisTurn)
+            {
+                if (UIManager != null) UIManager.Log("<color=red>本回合已经召唤过单位了！</color>");
+                return;
+            }
             EnterSlotSelectionMode(card, ui.gameObject);
+        }
+        else
+        {
+            if (UIManager != null) UIManager.Log("此卡无法使用（无效果或不满足条件）。");
         }
     }
 
     private void FinishEffect(RuntimeCard card, GameObject uiObj)
     {
+        // Spells/Items usually go to grave after use
         if (card.Data.kind != CardKind.Unit && DeckManager != null)
         {
             DeckManager.DiscardCard(card, uiObj);
         }
+        // Cleanup refs
         _pendingEffect = null;
+        _pendingCard = null;
+        _pendingCardUIObj = null;
     }
 
+    // 处理场上单位点击 (作为目标)
     public void OnFieldUnitClicked(int unitId)
     {
         if (UnitManager == null) return;
         
-        // 1. Targerting Resolution
+        // 1. Targerting Resolution (Lua Strict)
         if (IsTargetingMode && _pendingEffect != null)
         {
-            // Resolve effect on this target
             RuntimeUnit target = UnitManager.GetUnitById(unitId);
             if (target != null)
             {
-                // We should validate target with the filter?
-                // Lua side does `Duel.SelectTarget(f)`. 
-                // We need to pass this target back to Lua or set it in a context.
-                
-                // For this implementation, we simply execute the Operation.
-                // Ideally, we should set `Duel.Target = target` before calling Op.
-                // We will add a temporary hack: `Duel.LastSelectedTarget = target;`
-                
-                // But wait, `Effect.ExecuteOperation` calls `Operation(e)`.
-                // Lua script does `local tc = Duel.GetFirstTarget()`.
-                
-                // Let's Add `Duel.SetCurrentTarget(target)` helper?
-                // Or just assume the `Operation` uses the target we pass (if we modify delegate).
-                
-                // Let's set it in a way `Duel.GetFirstTarget()` can retrieve.
+                // Pass selection to Lua
                 Duel.SetSelection(target);
 
+                 // Step 4: Operation (Delayed)
                 _pendingEffect.ExecuteOperation(this, target);
                 
-                if (DeckManager != null && _pendingCard != null && _pendingCard.Data.kind != CardKind.Unit)
-                {
-                    DeckManager.DiscardCard(_pendingCard, _pendingCardUIObj);
-                }
-
+                FinishEffect(_pendingCard, _pendingCardUIObj);
                 ExitTargetingMode();
             }
             return;
         }
         
-        // (Legacy targeting logic removed...)
-
-        // 2. Attack Selection Mode (Keep this)
+        // 2. Attack Selection Mode (Legacy/Core Game Rule)
         RuntimeUnit unit = UnitManager.GetUnitById(unitId);
         if (unit != null)
         {
+            if (IsTargetingMode) return; // Prevent mixing modes
+
             if (!CurrentTurnCanAttack) { if (UIManager != null) UIManager.Log("本回合无法进行攻击！"); return; }
             if (!unit.CanAttack) { if (UIManager != null) UIManager.Log($"{unit.Name} 无法攻击"); return; }
             if (unit.IsFatigued) { if (UIManager != null) UIManager.Log($"{unit.Name} 处于疲劳状态"); return; }
@@ -389,12 +412,13 @@ public class BattleManager : MonoBehaviour
             if (UIManager != null) UIManager.Log($"已选中 {unit.Name}，请选择敌人");
         }
     }
-    
+
     // Helper to start targeting
     public void InitiateEffectTargeting(RuntimeCard card, CardTargetType type)
     {
         // Called by Duel.SelectTarget
         IsTargetingMode = true;
+        
         // _pendingCard should already be set in OnCardClicked
         if (UIManager != null)
         {
@@ -403,65 +427,38 @@ public class BattleManager : MonoBehaviour
         }
     }
 
-    // 处理点击 EnemyUnitUI 的点击
-    // 处理点击 EnemyUnitUI 的点击
+    // 处理敌人点击 (作为目标)
     public void OnEnemyClicked(EnemyUnitUI enemyUI)
     {
-        if (enemyUI == null || enemyUI.MyUnit == null)
-        {
-            Debug.LogError("[BattleManager] EnemyUI 或 MyUnit 为空！");
-            return;
-        }
+        if (enemyUI == null || enemyUI.MyUnit == null) return;
 
-        // 1. === 如果正在【施法瞄准模式】 (Lua & Legacy) ===
-        if (IsTargetingMode)
+        // 1. Targeting Resolution (Lua Strict)
+        if (IsTargetingMode && _pendingEffect != null)
         {
-            // Resolve Lua Effect
-            if (_pendingEffect != null)
-            {
-                RuntimeUnit target = enemyUI.MyUnit;
-                // Lua side filter checks are assumed done or we could check here if Filter is passed.
-                
-                // Set selection for Duel.GetTargets()
-                Duel.SetSelection(target);
-                
-                _pendingEffect.ExecuteOperation(this, target);
-                
-                if (DeckManager != null && _pendingCard != null && _pendingCard.Data.kind != CardKind.Unit)
-                {
-                    DeckManager.DiscardCard(_pendingCard, _pendingCardUIObj);
-                }
-
-                ExitTargetingMode();
-                return;
-            }
+            RuntimeUnit target = enemyUI.MyUnit;
             
-            // Allow Legacy Fallback? 
-            // If _pendingEffect is null but _pendingCard is set, it might be Legacy Equipment or simple card...
-            // But we removed legacy logic in proper refactor. 
-            // In case we are mixing, keep minimal fallback if needed, but for "Refactor to Lua" strict mode:
-            // return;
+            // Pass selection to Lua
+            Duel.SetSelection(target);
+
+            // Step 4: Operation (Delayed)
+            _pendingEffect.ExecuteOperation(this, target);
+            
+            FinishEffect(_pendingCard, _pendingCardUIObj);
             ExitTargetingMode();
             return;
         }
 
-        // 2. 玩家随从攻击模式
+        // 2. Attack Execution
         if (_selectedAttacker != null)
         {
             RuntimeUnit target = enemyUI.MyUnit;
             if (UIManager != null) UIManager.Log($"触发攻击：{_selectedAttacker.Name} -> {target.Name}");
 
-            // === 修改：明确传入 consumeAction: true ===
             if (CombatManager != null)
             {
                 CombatManager.ProcessUnitAttack(_selectedAttacker, target, consumeAction: true);
             }
-
             _selectedAttacker = null;
-        }
-        else
-        {
-            if (UIManager != null) UIManager.Log($"请先选择己方随从，再点击 {enemyUI.MyUnit.Name}。");
         }
     }
 
