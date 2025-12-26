@@ -288,78 +288,51 @@ public class BattleManager : MonoBehaviour
     
     public void OnCardClicked(CardUI ui, RuntimeCard card)
     {
-        // === 添加空值检查 ===
-        if (ui == null || card == null || card.Data == null)
-        {
-            Debug.LogError("[BattleManager] OnCardClicked 参数为空！");
-            return;
-        }
+        if (IsTargetingMode || IsSlotSelectionMode) return;
 
-        if (IsTargetingMode || IsSlotSelectionMode)
-        {
-            CancelTargeting();
-            return;
-        }
-
-        // === COLOR CHECK ===
-        if (!CheckColorCondition(card)) return;
-
-        // === 1. Lua Effect System (Primary) ===
+        // 检查是否有注册 Lua 效果
         if (card.Effects != null && card.Effects.Count > 0)
         {
             foreach (var e in card.Effects)
             {
-                // Check Condition
-                if (e.CheckCondition(this, card))
+                // 如果是起动效果 (IGNITION)
+                if (e.EffectCode == Effect.TYPE_IGNITION) 
                 {
-                    // 1. Pay Cost
-                    e.PayCost(this);
-                    
-                    // 2. Resolve Target (might trigger Targeting Mode via Duel.SelectTarget)
-                    _pendingEffect = e; // Set pending just in case targeting is needed
-                    _pendingCard = card;
-                    _pendingCardUIObj = ui.gameObject;
-
-                    e.ResolveTarget(this);
-                    
-                    // 3. If NOT entered targeting mode (Instant Effect), execute Op immediately
-                    if (!IsTargetingMode)
+                    if (e.CheckCondition(this, card))
                     {
-                        e.ExecuteOperation(this);
-                        _pendingEffect = null;
-                        
-                        // Discard if Spell (Auto-discard logic)
-                        // Note: Some scripts might handle move_to_grave themselves, but usually system handles it.
-                        if (DeckManager != null && card.Data.kind != CardKind.Unit)
+                        // 暂存上下文，进入 C-C-T-O 流程
+                        _pendingEffect = e;
+                        _pendingCard = card;
+                        _pendingCardUIObj = ui.gameObject;
+
+                        e.PayCost(this);
+                        e.ResolveTarget(this); // 如果 Lua 里调用了 SelectTarget，会开启瞄准模式
+
+                        if (!IsTargetingMode) // 如果不需要选目标，直接执行
                         {
-                            DeckManager.DiscardCard(card, ui.gameObject);
+                            e.ExecuteOperation(this);
+                            FinishEffect(card, ui.gameObject);
                         }
+                        return; 
                     }
-                    
-                    return; // Handled by Lua
                 }
             }
-        }
-        
-        // === 2. Unit Summon Logic (Legacy/Hybrid Support) ===
-        // Units without specific effects might just be "Summonable".
-        if (card.Data.kind == CardKind.Unit && (card.Effects == null || card.Effects.Count == 0))
-        {
-             // === 修改：召唤限制 ===
-            if (!card.Data.startsInDeck)
-            {
-                if (HasSummonedThisTurn)
-                {
-                    if (UIManager != null) UIManager.Log("<color=red>本回合已经召唤过单位了！</color>");
-                    return;
-                }
-            }
-            EnterSlotSelectionMode(card, ui.gameObject);
-            return;
         }
 
-        // If no effect activated and not a unit, log info.
-        if (UIManager != null) UIManager.Log("此卡无法使用（不满足条件或无效果）。");
+        // 如果没有任何 Lua 效果，且是怪兽牌，才走默认召唤逻辑
+        if (card.Data.kind == CardKind.Unit)
+        {
+            EnterSlotSelectionMode(card, ui.gameObject);
+        }
+    }
+
+    private void FinishEffect(RuntimeCard card, GameObject uiObj)
+    {
+        if (card.Data.kind != CardKind.Unit && DeckManager != null)
+        {
+            DeckManager.DiscardCard(card, uiObj);
+        }
+        _pendingEffect = null;
     }
 
     public void OnFieldUnitClicked(int unitId)

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 07b54b35d8588e44d9baa982855cf548, type: 3}
   m_Name: LuaFireball
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  id: 0
+  id: 1001
   cost: 0
   cardName: 
   kind: 0
