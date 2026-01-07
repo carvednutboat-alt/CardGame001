@@ -10,5 +10,7 @@ public enum EventEffectType
     GainCard,   // 获得卡牌
     LoseCard,   // 失去卡牌
     MaxHPUp,    // 增加最大生命值
-    MaxHPDown   // 减少最大生命值
+    MaxHPDown,  // 减少最大生命值
+    GainRelic,      // [New] 获得随机遗物
+    OpenCardReward  // [New] 打开卡牌奖励 (三选一)
 }

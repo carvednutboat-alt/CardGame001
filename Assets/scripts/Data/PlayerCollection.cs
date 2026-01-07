@@ -17,6 +17,12 @@ public class PlayerCollection : MonoBehaviour
     [Header("当前卡组里选择使用的所有卡(Unit + Spell + Equip)")]
     public List<CardData> CurrentDeck = new List<CardData>();
 
+    [Header("玩家拥有的藏品")]
+    public List<CollectibleData> UnlockedCollectibles = new List<CollectibleData>();
+
+    [Header("玩家拥有的Relic")]
+    public List<RelicData> OwnedRelics = new List<RelicData>();
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -85,7 +91,7 @@ public class PlayerCollection : MonoBehaviour
             else
                 CurrentDeck.Add(card);
 
-            // 2. 核心修复：确保同步时，这些卡也必须存在于“拥有”池中
+            // 2. 核心修复：确保同步时，这些卡也必须存在于"拥有"池中
             // 否则左侧列表（拥有-当前）计算会出问题
             AddCardToCollection(card, false); // false = 如果已存在则不重复添加
         }
@@ -97,5 +103,78 @@ public class PlayerCollection : MonoBehaviour
     {
         CurrentUnits = new List<CardData>(units);
         CurrentDeck = new List<CardData>(deck);
+    }
+
+    // ==== 藏品系统方法 ====
+
+    /// <summary>
+    /// 解锁藏品
+    /// </summary>
+    public void UnlockCollectible(CollectibleData collectible)
+    {
+        if (collectible == null) return;
+        
+        if (!UnlockedCollectibles.Contains(collectible))
+        {
+            UnlockedCollectibles.Add(collectible);
+            Debug.Log($"[PlayerCollection] 解锁藏品: {collectible.collectibleName}");
+        }
+    }
+
+    /// <summary>
+    /// 检查藏品是否已解锁
+    /// </summary>
+    public bool IsCollectibleUnlocked(CollectibleData collectible)
+    {
+        if (collectible == null) return false;
+        return UnlockedCollectibles.Contains(collectible);
+    }
+
+    /// <summary>
+    /// 获取收集进度
+    /// </summary>
+    /// <param name="totalCollectibles">总藏品数量</param>
+    /// <returns>已解锁数量</returns>
+    public int GetCollectionProgress(int totalCollectibles)
+    {
+        return UnlockedCollectibles.Count;
+    }
+
+    // ==== Relic系统方法 ====
+
+    /// <summary>
+    /// 添加Relic到收藏
+    /// </summary>
+    public void AddRelic(RelicData relic)
+    {
+        if (relic == null) return;
+        
+        if (!OwnedRelics.Contains(relic))
+        {
+            OwnedRelics.Add(relic);
+            Debug.Log($"[PlayerCollection] 获得Relic: {relic.relicName}");
+        }
+        else
+        {
+            Debug.Log($"[PlayerCollection] 已拥有Relic: {relic.relicName}");
+        }
+    }
+
+    /// <summary>
+    /// 检查是否拥有某个Relic
+    /// </summary>
+    public bool HasRelic(RelicData relic)
+    {
+        if (relic == null) return false;
+        return OwnedRelics.Contains(relic);
+    }
+
+    /// <summary>
+    /// 根据ID查找Relic
+    /// </summary>
+    public RelicData GetRelicById(string relicId)
+    {
+        if (string.IsNullOrEmpty(relicId)) return null;
+        return OwnedRelics.Find(r => r != null && r.relicId == relicId);
     }
 }

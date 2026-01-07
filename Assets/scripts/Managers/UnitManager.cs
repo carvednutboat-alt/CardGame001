@@ -4,84 +4,161 @@ using UnityEngine;
 public class UnitManager : MonoBehaviour
 {
     public List<RuntimeUnit> PlayerUnits = new List<RuntimeUnit>();
-    // === ĞÂÔö£ºÄ¹µØÁĞ±í£¬´æ¿¨ÅÆÊı¾İ ===
-    public List<RuntimeCard> Graveyard = new List<RuntimeCard>();
+    // === æ–°å¢ï¼šFixed Slots ===
+    public RuntimeUnit[] Slots = new RuntimeUnit[5]; // 0-4
 
+    public List<RuntimeCard> Graveyard = new List<RuntimeCard>();
     public int MaxUnits = 5;
 
     [Header("UI Refs")]
-    public Transform FieldPanel;
+    // public Transform FieldPanel; // åºŸå¼ƒï¼Œæ”¹ç”¨ UIManager è·å– Slot Transform
     public FieldUnitUI FieldUnitPrefab;
 
     private BattleManager _bm;
     private int _nextId = 1;
 
-    // === ĞÂÔö£ºÓÃÓÚÑ¡Ä¿±êÊ±µÄ×´Ì¬±¸·İ ===
+    // === æ–°å¢ï¼šç”¨äºé€‰ç›®æ ‡æ—¶çš„çŠ¶æ€å¤‡ä»½ ===
     private Dictionary<int, bool> _attackStateBackup = new Dictionary<int, bool>();
 
     public void Init(BattleManager bm)
     {
         _bm = bm;
         PlayerUnits.Clear();
-        Graveyard.Clear(); // ³õÊ¼»¯Çå¿ÕÄ¹µØ
-        // Çå¿Õ UI
-        foreach (Transform child in FieldPanel) Destroy(child.gameObject);
+        Graveyard.Clear();
+        _attackStateBackup.Clear();
+
+        // é‡ç½®æ§½ä½æ•°æ®
+        for (int i = 0; i < 5; i++) Slots[i] = null;
     }
 
+    // æ—§æ–¹æ³•åºŸå¼ƒæˆ–é‡å®šå‘
     public bool TrySummonUnit(RuntimeCard card)
     {
-        if (PlayerUnits.Count >= MaxUnits)
+        // é»˜è®¤å¯»æ‰¾ç¬¬ä¸€ä¸ªç©ºä½
+        for (int i = 0; i < 5; i++)
         {
-            _bm.UIManager.Log("³¡ÉÏÎ»ÖÃÒÑÂú£¡");
+            if (Slots[i] == null)
+            {
+                return TrySummonUnitAt(i, card);
+            }
+        }
+        _bm.UIManager.Log("åœºä¸Šä½ç½®å·²æ»¡ï¼");
+        return false;
+    }
+
+    public bool TrySummonUnitAt(int slotIndex, RuntimeCard card)
+    {
+        if (slotIndex < 0 || slotIndex >= 5) return false;
+        if (Slots[slotIndex] != null)
+        {
+            _bm.UIManager.Log("è¯¥ä½ç½®å·²æœ‰å•ä½ï¼");
             return false;
         }
 
         RuntimeUnit unit = new RuntimeUnit(_nextId++, card);
         unit.CanAttack = _bm.CurrentTurnCanAttack;
+        
+        // æ•°æ®å­˜å…¥
         PlayerUnits.Add(unit);
+        Slots[slotIndex] = unit;
 
-        // ´´½¨ UI
-        FieldUnitUI ui = Instantiate(FieldUnitPrefab, FieldPanel);
-        // 1. °Ñ UI ¸³Öµ¸ø Unit£¬½¨Á¢Ë«ÏòÁ¬½Ó (·Ç³£ÖØÒª£¡)
+        // è·å–æ§½ä½ Transform
+        Transform slotTr = _bm.UIManager.GetPlayerSlotTransform(slotIndex);
+        if (slotTr == null)
+        {
+            Debug.LogError($"æ— æ³•è·å–ç©å®¶æ§½ä½ {slotIndex} çš„Transform");
+            return false;
+        }
+
+        // åˆ›å»º UI å¹¶æŒ‚è½½åˆ° Slot ä¸‹
+        FieldUnitUI ui = Instantiate(FieldUnitPrefab, slotTr);
+        
+        // â˜… ç»Ÿä¸€å¤§å°ï¼šå¼ºåˆ¶å¡«æ»¡ Slot (120x140)
+        RectTransform rt = ui.GetComponent<RectTransform>();
+        if (rt != null)
+        {
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            rt.localScale = Vector3.one;
+        }
+        else
+        {
+            ui.transform.localPosition = Vector3.zero;
+            ui.transform.localScale = Vector3.one;
+        }
+
+        // 1. æŠŠ UI èµ‹å€¼ç»™ Unit
         unit.UI = ui;
 
-        // 2. µ÷ÓÃĞÂ°æ Init
+        // 2. Init
         ui.Init(unit, _bm);
 
-        _bm.UIManager.Log($"ÕÙ»½ÁË {unit.Name}");
+        _bm.UIManager.Log($"åœ¨ {slotIndex + 1} å·ä½å¬å”¤äº† {unit.Name}");
+        
+        // 3. Refresh All (for Auras)
+        RefreshAllUnits();
+        
         return true;
     }
 
     public void KillUnit(RuntimeUnit unit)
     {
-        _bm.UIManager.Log($"{unit.Name} ÕóÍö¡£");
+        _bm.UIManager.Log($"{unit.Name} é˜µäº¡ã€‚");
 
-        // === ĞÂÔö£º´¦Àí×°±¸ÅÆ½øÆúÅÆ¶ÑÂß¼­ ===
+        // === æ–°å¢ï¼šå¤„ç†è£…å¤‡ç‰Œè¿›å¼ƒç‰Œå †é€»è¾‘ ===
         if (unit.Equips.Count > 0)
         {
             foreach (var equipData in unit.Equips)
             {
-                // 1. ÒòÎª RuntimeUnit ÀïÖ»´æÁË CardData£¬ÎÒÃÇĞèÒªÖØĞÂ°ÑËü°ü×°³É RuntimeCard
-                // ÕâÑùËü²ÅÄÜ½øÈë DeckManager µÄÆúÅÆ¶ÑÁĞ±í
                 RuntimeCard equipCard = new RuntimeCard(equipData);
-
-                // 2. ¼ÓÈëÆúÅÆ¶Ñ
                 _bm.DeckManager.DiscardPile.Add(equipCard);
-
-                // 3. ´òÓ¡ÈÕÖ¾
-                _bm.UIManager.Log($"×°±¸ÅÆ {equipData.cardName} ÒÑ½øÈëÆúÅÆ¶Ñ¡£");
+                _bm.UIManager.Log($"è£…å¤‡ç‰Œ {equipData.cardName} å·²è¿›å…¥å¼ƒç‰Œå †ã€‚");
             }
-
-            // Çå¿Õµ¥Î»ÉíÉÏµÄ×°±¸£¨ËäÈ»µ¥Î»ÂíÉÏÒªÃ»ÁË£¬µ«ÕâÊÇÒ»¸öºÃÏ°¹ß£©
             unit.Equips.Clear();
         }
-        // ======================================
 
-        // ¹ÖÊŞ±¾Ìå½øÈëÄ¹µØ
+        // === æ–°å¢ï¼šäº¡è¯­æ•ˆæœ (Deathrattle) ===
+        if (unit.SourceCard != null && unit.SourceCard.Data != null)
+        {
+            if (unit.SourceCard.Data.deathEffect != CardEffectType.None)
+            {
+                EffectBase effect = EffectFactory.GetEffect(unit.SourceCard.Data.deathEffect);
+                if (effect != null)
+                {
+                    _bm.UIManager.Log($"è§¦å‘äº¡è¯­ï¼š{unit.Name}");
+                    effect.Execute(_bm, unit.SourceCard, null);
+                }
+            }
+        }
+
+        // æ€ªå…½æœ¬ä½“è¿›å…¥å¢“åœ°
         Graveyard.Add(unit.SourceCard);
 
         if (unit.UI != null) Destroy(unit.UI.gameObject);
+        
+        // æ¸…ç†æ•°æ®å’Œæ§½ä½å¼•ç”¨
         PlayerUnits.Remove(unit);
+        for(int i=0; i<5; i++)
+        {
+            if(Slots[i] == unit) 
+            {
+                Slots[i] = null;
+                break;
+            }
+        }
+        
+        // Refresh All (for Auras update after death)
+        RefreshAllUnits();
+    }
+    
+    public void RefreshAllUnits()
+    {
+        foreach (var u in PlayerUnits)
+        {
+            RefreshUnitUI(u);
+        }
     }
 
     public RuntimeUnit GetUnitById(int id)
@@ -91,7 +168,7 @@ public class UnitManager : MonoBehaviour
 
     public RuntimeUnit GetTauntUnit()
     {
-        // ÓÅÏÈÕÒ³°·í£¬Ã»³°·í·µ»ØµÚÒ»¸ö£¬Ã»¹Ö·µ»Ønull
+        // ä¼˜å…ˆæ‰¾å˜²è®½ï¼Œæ²¡å˜²è®½è¿”å›ç¬¬ä¸€ä¸ªï¼Œæ²¡æ€ªè¿”å›null
         var taunt = PlayerUnits.Find(u => u.HasTaunt);
         if (taunt != null) return taunt;
         if (PlayerUnits.Count > 0) return PlayerUnits[0];
@@ -101,13 +178,13 @@ public class UnitManager : MonoBehaviour
     public void RefreshUnitUI(RuntimeUnit unit)
     {
         if (unit == null || unit.UI == null) return;
-        // ÖØĞÂ¼ÆËãÊıÖµºóÔÙË¢ĞÂ
+        // é‡æ–°è®¡ç®—æ•°å€¼åå†åˆ·æ–°
         _bm.CombatManager.RecalculateUnitStats(unit);
 
         unit.UI.UpdateState();
     }
 
-    // ÉèÖÃËùÓĞµ¥Î»ÄÜ·ñ¹¥»÷
+    // è®¾ç½®æ‰€æœ‰å•ä½èƒ½å¦æ”»å‡»
     public void SetAllAttackStatus(bool canAttack)
     {
         foreach (var u in PlayerUnits)
@@ -117,16 +194,16 @@ public class UnitManager : MonoBehaviour
         }
     }
 
-    // 1. ½øÈëÑ¡Ä¿±êÄ£Ê½£º±¸·İ×´Ì¬£¬¿ªÆô½»»¥
+    // 1. è¿›å…¥é€‰ç›®æ ‡æ¨¡å¼ï¼šå¤‡ä»½çŠ¶æ€ï¼Œå¼€å¯äº¤äº’
     public void EnableTargetingSelection()
     {
         _attackStateBackup.Clear();
         foreach (var unit in PlayerUnits)
         {
-            // ±¸·İµ±Ç°µÄ CanAttack
+            // å¤‡ä»½å½“å‰çš„ CanAttack
             _attackStateBackup[unit.Id] = unit.CanAttack;
 
-            // Ç¿ÖÆ¿ªÆô°´Å¥½»»¥£¬ÈÃÍæ¼Ò¿ÉÒÔµã»÷Ñ¡Ôñ
+            // å¼ºåˆ¶å¼€å¯æŒ‰é’®äº¤äº’ï¼Œè®©ç©å®¶å¯ä»¥ç‚¹å‡»é€‰æ‹©
             if (unit.UI != null)
             {
                 unit.UI.SetButtonInteractable(true);
@@ -134,23 +211,156 @@ public class UnitManager : MonoBehaviour
         }
     }
 
-    // 2. ÍË³öÑ¡Ä¿±êÄ£Ê½£º»Ö¸´×´Ì¬
+    // 2. é€€å‡ºé€‰ç›®æ ‡æ¨¡å¼ï¼šæ¢å¤çŠ¶æ€
     public void RestoreStateAfterTargeting()
     {
         foreach (var unit in PlayerUnits)
         {
-            // »Ö¸´±¸·İµÄ×´Ì¬
+            // æ¢å¤å¤‡ä»½çš„çŠ¶æ€
             if (_attackStateBackup.ContainsKey(unit.Id))
             {
                 unit.CanAttack = _attackStateBackup[unit.Id];
             }
 
-            // Ë¢ĞÂ°´Å¥½»»¥×´Ì¬
+            // åˆ·æ–°æŒ‰é’®äº¤äº’çŠ¶æ€
             if (unit.UI != null)
             {
                 unit.UI.SetButtonInteractable(unit.CanAttack);
             }
         }
         _attackStateBackup.Clear();
+    }
+
+    // === é‡ç½®ä¸´æ—¶å±æ€§ ===
+    public void ResetTempStats()
+    {
+        foreach (var unit in PlayerUnits)
+        {
+            if (unit.TempAttackModifier != 0)
+            {
+                unit.TempAttackModifier = 0;
+                // å¿…é¡»é‡æ–°è®¡ç®—å¹¶åˆ·æ–°UI
+                if (_bm != null && _bm.CombatManager != null)
+                {
+                    _bm.CombatManager.RecalculateUnitStats(unit);
+                }
+            }
+        }
+    }
+
+    // === Overload System ===
+    public void ModifyOverload(RuntimeUnit unit, int amount)
+    {
+        if (unit == null || amount == 0) return;
+
+        // Passive: 1/1 Unit (Robot) - If ally gains Overload, +1 to gain
+        // "When any friendly unit gains Overload -> increase that gain by +1"
+        // Note: Check if we have the 1/1 unit on field. (Assuming Tag or ID, but card details said "1/1 exists on field")
+        // Implementation: Iterate units, check for specific card (Robot 1/1). 
+        // For efficiency, we might need a flag or just check Stats/Data.
+        // Let's check for specific Card Effect property or ID if possible. 
+        // Since we don't have IDs, let's look for "Robot" and Stats 1/1 or check 'value' if we use it for ID?
+        // Or better: Add a trait to RuntimeUnit/CardData "AuraOverloadBooster"
+        
+        // Check for Booster (Unit 1/1)
+        int boost = 0;
+        foreach (var u in PlayerUnits)
+        {
+            if (u.SourceCard != null && u.SourceCard.Data != null)
+            {
+                // Assuming we will mark the 1/1 unit with a specific effect type or Name check
+                // "3 xå¼ unit 1/1 ... å½“è‡ªå·±åœºä¸Šçš„unitè·å¾—è¿‡è½½æ—¶ ä½¿å…¶è¿‡è½½çš„æ•°å­—+1"
+                // Let's use a Name check for now as we haven't defined a specific Enum for this aura.
+                // Or best practice: defined generic Effect Logic elsewhere?
+                // For now, hardcode check for "Robot 1/1" behavior or check a new field.
+                // Let's add a specialized check.
+                // Fix: Use Name check "è¿‡è½½å¢å¹…å™¨"
+                if (u.SourceCard.Data.cardName == "è¿‡è½½å¢å¹…å™¨" || 
+                    (u.SourceCard.Data.cardName.Contains("1/1") && u.SourceCard.Data.cardTag == CardTag.Robot))
+                {
+                   boost++;
+                }
+            }
+        }
+
+        if (amount > 0)
+        {
+            amount += boost;
+            _bm.UIManager.Log($"{unit.Name} è·å¾—è¿‡è½½ {amount} (å«åŠ æˆ {boost})");
+        }
+
+        unit.Overload += amount;
+        if (unit.Overload < 0) unit.Overload = 0;
+
+        RefreshUnitUI(unit);
+    }
+
+    public void ProcessOverloadEndTurn()
+    {
+        foreach (var unit in PlayerUnits)
+        {
+            // 0. Double Overload Side Effect: Lose HP
+            if (unit.PendingOverloadSelfDamage > 0)
+            {
+                _bm.UIManager.Log($"{unit.Name} æ‰¿å—è¿‡è½½åå™¬ä¼¤å®³: -{unit.PendingOverloadSelfDamage}");
+                _bm.CombatManager.ApplyDamage(unit, unit.PendingOverloadSelfDamage);
+                unit.PendingOverloadSelfDamage = 0;
+                
+                if (unit.IsDead) continue; // Dead units don't decay/fatigue
+            }
+
+            // 1. Fatigue Logic: Clear previous fatigue
+            if (unit.IsFatigued)
+            {
+                unit.IsFatigued = false;
+                _bm.UIManager.Log($"{unit.Name} ä»ç–²åŠ³ä¸­æ¢å¤ã€‚");
+            }
+
+            // 2. Overload Decay
+            if (unit.Overload > 0)
+            {
+                unit.Overload--;
+                _bm.UIManager.Log($"{unit.Name} è¿‡è½½ -1 (å‰©ä½™ {unit.Overload})");
+
+                // 3. Trigger Fatigue if dropped to 0
+                if (unit.Overload == 0)
+                {
+                    unit.IsFatigued = true; // Will affect next turn
+                    _bm.UIManager.Log($"{unit.Name} è¿‡è½½è€—å°½ï¼Œè¿›å…¥ç–²åŠ³çŠ¶æ€ï¼(ä¸‹å›åˆæ— æ³•æ”»å‡»/æ— æ³•å“åº”é¢œè‰²)");
+                }
+                
+                RefreshUnitUI(unit);
+            }
+        }
+    }
+
+    // === æŒ‡æŒ¥å®˜æ£€æŸ¥ (EndTurnè°ƒç”¨) ===
+    public void CheckCommanderStatus()
+    {
+        // 1. æ£€æŸ¥åœºä¸Šæ˜¯å¦æœ‰æŒ‡æŒ¥å®˜
+        bool commanderPresent = false;
+        foreach (var u in PlayerUnits)
+        {
+            if (u.SourceCard != null && u.SourceCard.Data != null && u.SourceCard.Data.isCommander)
+            {
+                commanderPresent = true;
+                break;
+            }
+        }
+
+        // 2. å¦‚æœæŒ‡æŒ¥å®˜ä¸åœ¨ï¼Œæ‘§æ¯æ‰€æœ‰ä¾èµ–æŒ‡æŒ¥å®˜çš„å•ä½
+        if (!commanderPresent)
+        {
+            // å€’åºéå†ä»¥å®‰å…¨åˆ é™¤
+            for (int i = PlayerUnits.Count - 1; i >= 0; i--)
+            {
+                var u = PlayerUnits[i];
+                if (u.SourceCard != null && u.SourceCard.Data != null && u.SourceCard.Data.dieWithoutCommander)
+                {
+                    _bm.UIManager.Log($"{u.Name} å› å¤±å»æŒ‡æŒ¥å®˜è€Œæ’¤é€€ï¼ˆè‡ªæ¯ï¼‰ã€‚");
+                    KillUnit(u);
+                }
+            }
+        }
     }
 }

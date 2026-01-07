@@ -62,6 +62,7 @@ public class FieldUnitUI : MonoBehaviour
             if (_unitData.IsEvolved) parts.Add("<color=yellow>进化</color>");
             if (_unitData.IsFlying) parts.Add("起飞");
             if (_unitData.HasTaunt) parts.Add("嘲讽");
+            if (_unitData.Overload > 0) parts.Add($"过载:{_unitData.Overload}"); // Added Overload display
             // 如果有装备
             if (_unitData.Equips != null && _unitData.Equips.Count > 0)
                 parts.Add($"装备:{_unitData.Equips.Count}");
