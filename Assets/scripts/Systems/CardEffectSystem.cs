@@ -214,6 +214,29 @@ public class CardEffectSystem : MonoBehaviour
                 return false;
         }
     }
+
+
+/// <summary>
+    /// 计算过载增幅数值
+    /// </summary>
+    public int CalculateOverloadBoost(RuntimeUnit targetUnit, int baseAmount)
+    {
+        int boost = 0;
+        
+        if (_battleManager?.UnitManager == null) return boost;
+        
+        foreach (var unit in _battleManager.UnitManager.PlayerUnits)
+        {
+            if (unit == null || unit == targetUnit) continue;
+            
+            if (CheckUnitMatchesEffect(unit, "TinyRobot_OverloadBooster"))
+            {
+                boost++;
+            }
+        }
+        
+        return boost;
+    }
 }
 
 /// <summary>

@@ -1,116 +1,321 @@
 using System;
+using System.Collections.Generic;
 using XLua;
+using UnityEngine;
 
 /// <summary>
-/// Represents a card effect defined in Lua.
-/// Follows the C-C-T-O pattern (Condition, Cost, Target, Operation).
+/// 卡牌效果类 - 参考YGOPro-core结构
+/// 完整的C-C-T-O模式（Condition, Cost, Target, Operation）
 /// </summary>
 [LuaCallCSharp]
 public class Effect
 {
-    // Constants
-    public const int TYPE_IGNITION = 1; // Activate manually
-    public const int TYPE_TRIGGER  = 2; // Deathrattle etc.
-    public const int TYPE_EQUIP    = 3; // Equipment
-
-    // The card that owns this effect
+    // ============================================
+    // 核心标识
+    // ============================================
+    public int EffectCode;        // 效果代码 (EFFECT_UPDATE_ATTACK等)
+    public int EffectType;        // 效果类型 (IGNITION, TRIGGER等)
+    public int EffectFlag;        // 效果标志 (SINGLE_RANGE, BOTH_SIDE等)
+    public int Range;             // 生效范围 (LOCATION_MZONE等)
+    public int TargetRange;       // 目标范围 (我方场/对方场)
+    public int TargetRangePlayer;  // 目标范围玩家 (0=自己, 1=对手)
+    
+    // ============================================
+    // 持有者和关联
+    // ============================================
     public RuntimeCard OwnerCard;
-
-    // Delegate types for Lua functions
+    public RuntimeUnit OwnerUnit; // 如果效果来自场上单位
+    
+    // ============================================
+    // 效果值和标签
+    // ============================================
+    public int Value;             // 数值效果（如ATK+500）
+    public string Label;          // 效果标签
+    public string Description;    // 效果描述
+    
+    // ============================================
+    // C-C-T-O 委托
+    // ============================================
     [CSharpCallLua]
-    public delegate bool ConditionDelegate(Effect e, int output_log_level);
-
+    public delegate bool ConditionDelegate(Effect e, int tp, object eg, int ep, int ev, Effect re, int r, int rp, int chk);
+    
     [CSharpCallLua]
-    public delegate void CostDelegate(Effect e, int output_log_level);
-
+    public delegate bool CostDelegate(Effect e, int tp, object eg, int ep, int ev, Effect re, int r, int rp, int chk);
+    
     [CSharpCallLua]
-    public delegate void TargetDelegate(Effect e, RuntimeCard target, int output_log_level);
-
+    public delegate bool TargetDelegate(Effect e, int tp, object eg, int ep, int ev, Effect re, int r, int rp, int chk);
+    
     [CSharpCallLua]
-    public delegate void OperationDelegate(Effect e, int output_log_level);
-
-    // Lua function references
+    public delegate void OperationDelegate(Effect e, int tp, object eg, int ep, int ev, Effect re, int r, int rp);
+    
     public ConditionDelegate Condition;
     public CostDelegate Cost;
     public TargetDelegate Target;
     public OperationDelegate Operation;
-
-    // Optional metadata
-    public int EffectCode;
-    public string Description;
-
-    // Setters for Lua to call
-    public void SetCondition(ConditionDelegate func) { Condition = func; }
-    public void SetCost(CostDelegate func) { Cost = func; }
-    public void SetTarget(TargetDelegate func) { Target = func; }
-    public void SetOperation(OperationDelegate func) { Operation = func; }
     
-    public void SetDescription(string desc) { Description = desc; }
-
-    // Helper to check condition
-    public bool CheckCondition(BattleManager bm, RuntimeCard card)
+    // ============================================
+    // 效果状态
+    // ============================================
+    public bool IsActivated;      // 是否已激活
+    public bool IsDisabled;       // 是否被无效化
+    public int ResetCount;        // 重置计数
+    public int ResetFlag;         // 重置标志
+    
+    // ============================================
+    // 目标追踪
+    // ============================================
+    private List<RuntimeCard> _targets = new List<RuntimeCard>();
+    private List<RuntimeUnit> _unitTargets = new List<RuntimeUnit>();
+    
+    // ============================================
+    // Setter方法（供Lua调用）
+    // ============================================
+    public void SetCode(int code)
     {
-        if (Condition != null)
+        EffectCode = code;
+    }
+    
+    public void SetType(int type)
+    {
+        EffectType = type;
+    }
+    
+    public void SetRange(int range)
+    {
+        Range = range;
+    }
+    
+    public void SetTargetRange(int s, int o)
+    {
+        TargetRange = s;
+        TargetRangePlayer = o;
+    }
+    
+    public void SetValue(int value)
+    {
+        Value = value;
+    }
+    
+    public void SetLabel(string label)
+    {
+        Label = label;
+    }
+    
+    public void SetDescription(string desc)
+    {
+        Description = desc;
+    }
+    
+    public void SetCondition(ConditionDelegate func)
+    {
+        Condition = func;
+    }
+    
+    public void SetCost(CostDelegate func)
+    {
+        Cost = func;
+    }
+    
+    public void SetTarget(TargetDelegate func)
+    {
+        Target = func;
+    }
+    
+    public void SetOperation(OperationDelegate func)
+    {
+        Operation = func;
+    }
+    
+    // ============================================
+    // 效果可用性检查
+    // ============================================
+    public bool IsAvailable()
+    {
+        if (IsDisabled) return false;
+        if (OwnerCard == null) return false;
+        
+        // 检查位置范围
+        if (!CheckRange())
         {
-            try
-            {
-                // Passing 0 for log level or context if needed, currently just placeholder
-                return Condition(this, 0);
-            }
-            catch (Exception ex)
-            {
-                UnityEngine.Debug.LogError($"[Effect] Condition Error: {ex.Message}");
-                return false;
-            }
+            return false;
         }
+        
         return true;
     }
-
-    // Helper getters/setters for Lua
+    
+    private bool CheckRange()
+    {
+        if (OwnerCard == null) return false;
+        
+        // 检查卡牌当前位置是否在效果生效范围内
+        int currentLoc = OwnerCard.CurrentLocation;
+        return (currentLoc & Range) != 0;
+    }
+    
+    // ============================================
+    // 效果执行
+    // ============================================
+    public bool CheckCondition(int tp, object eg, int ep, int ev, Effect re, int r, int rp)
+    {
+        if (Condition == null) return true;
+        
+        try
+        {
+            return Condition(this, tp, eg, ep, ev, re, r, rp, 0);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[Effect] Condition Error: {ex.Message}");
+            return false;
+        }
+    }
+    
+    public bool CheckCost(int tp, object eg, int ep, int ev, Effect re, int r, int rp)
+    {
+        if (Cost == null) return true;
+        
+        try
+        {
+            return Cost(this, tp, eg, ep, ev, re, r, rp, 0);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[Effect] Cost Error: {ex.Message}");
+            return false;
+        }
+    }
+    
+    public bool CheckTarget(int tp, object eg, int ep, int ev, Effect re, int r, int rp)
+    {
+        if (Target == null) return true;
+        
+        try
+        {
+            return Target(this, tp, eg, ep, ev, re, r, rp, 0);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[Effect] Target Error: {ex.Message}");
+            return false;
+        }
+    }
+    
+    public void ExecuteOperation(int tp, object eg, int ep, int ev, Effect re, int r, int rp)
+    {
+        if (Operation == null) return;
+        
+        try
+        {
+            Operation(this, tp, eg, ep, ev, re, r, rp);
+            IsActivated = true;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[Effect] Operation Error: {ex.Message}");
+        }
+    }
+    
+    // ============================================
+    // 目标管理
+    // ============================================
+    public void AddTarget(RuntimeCard card)
+    {
+        if (!_targets.Contains(card))
+        {
+            _targets.Add(card);
+        }
+    }
+    
+    public void AddTarget(RuntimeUnit unit)
+    {
+        if (!_unitTargets.Contains(unit))
+        {
+            _unitTargets.Add(unit);
+        }
+    }
+    
+    public List<RuntimeCard> GetTargets()
+    {
+        return new List<RuntimeCard>(_targets);
+    }
+    
+    public List<RuntimeUnit> GetUnitTargets()
+    {
+        return new List<RuntimeUnit>(_unitTargets);
+    }
+    
+    public void ClearTargets()
+    {
+        _targets.Clear();
+        _unitTargets.Clear();
+    }
+    
+    // ============================================
+    // Getter方法（供Lua调用）
+    // ============================================
     public RuntimeCard GetHandler()
     {
         return OwnerCard;
     }
-
-    // === Helpers to Invoke Delegates ===
-
-    public void PayCost(BattleManager bm)
+    
+    public RuntimeUnit GetHandlerUnit()
     {
-        if (Cost != null)
-        {
-            try { Cost(this, 0); }
-            catch (Exception ex) { UnityEngine.Debug.LogError($"[Effect] Cost Error: {ex.Message}"); }
-        }
+        return OwnerUnit;
     }
-
-    public void ResolveTarget(BattleManager bm)
+    
+    public int GetCode()
     {
-        if (Target != null)
-        {
-            try { Target(this, null, 0); }  // target param might be null during selection phase
-            catch (Exception ex) { UnityEngine.Debug.LogError($"[Effect] Target Error: {ex.Message}"); }
-        }
+        return EffectCode;
     }
-
-    public void ExecuteOperation(BattleManager bm, RuntimeUnit target = null)
+    
+    public int GetType()
     {
-        if (Operation != null)
+        return EffectType;
+    }
+    
+    public int GetValue()
+    {
+        return Value;
+    }
+    
+    public bool IsHasType(int type)
+    {
+        return (EffectType & type) != 0;
+    }
+    
+    // ============================================
+    // 效果复制
+    // ============================================
+    public Effect Clone()
+    {
+        var copy = new Effect
         {
-            try 
-            {
-                // We might want to pass the specific target to Lua if it was a single-target selection
-                // But typically Lua gets targets via Duel.GetTargets().
-                // However, for verify simplicity, we can pass it if we update the delegate signature?
-                // The delegate is (Effect e, int log).
-                // Let's rely on Duel.GetChainInfo or similar mechanism (Card.GetTargetCards).
-                // But for this refactor, let's keep it simple.
-                // If we want to pass target, we need to change OperationDelegate signature or rely on state.
-                // Let's Assume Lua uses a "GetTargets" API or we pass it conceptually.
-                // Re-checking the Delegate: public delegate void OperationDelegate(Effect e, int output_log_level);
-                
-                Operation(this, 0); 
-            }
-            catch (Exception ex) { UnityEngine.Debug.LogError($"[Effect] Operation Error: {ex.Message}"); }
-        }
+            EffectCode = this.EffectCode,
+            EffectType = this.EffectType,
+            EffectFlag = this.EffectFlag,
+            Range = this.Range,
+            TargetRange = this.TargetRange,
+            TargetRangePlayer = this.TargetRangePlayer,
+            Value = this.Value,
+            Label = this.Label,
+            Description = this.Description,
+            Condition = this.Condition,
+            Cost = this.Cost,
+            Target = this.Target,
+            Operation = this.Operation
+        };
+        return copy;
+    }
+    
+    // ============================================
+    // 静态工厂方法（供Lua调用）
+    // ============================================
+    public static Effect CreateEffect(RuntimeCard c)
+    {
+        var effect = new Effect
+        {
+            OwnerCard = c
+        };
+        return effect;
     }
 }

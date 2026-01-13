@@ -101,14 +101,17 @@ public class UnitManager : MonoBehaviour
 
         _bm.UIManager.Log($"在 {slotIndex + 1} 号位召唤了 {unit.Name}");
 
-        // === 使用新的效果系统触发召唤效果 ===
-        if (CardEffectSystem.Instance != null)
+        // === 更新卡牌位置 ===
+        if (unit.SourceCard != null)
         {
-            if (CardEffectSystem.Instance.CheckUnitMatchesEffect(unit, "IdentityMatrix_OnSummon"))
-            {
-                var ctx = new EffectContext { SourceUnit = unit };
-                CardEffectSystem.Instance.TriggerEffect("IdentityMatrix_OnSummon", ctx);
-            }
+            unit.SourceCard.UpdateLocation(Location.MZONE, slotIndex);
+        }
+
+        // === 使用事件系统触发召唤事件 ===
+        if (EventSystem.Instance != null)
+        {
+            EventSystem.Instance.RaiseUnitEvent(EventCode.SUMMON_SUCCESS, unit);
+            EventSystem.Instance.ProcessEvents();
         }
         
         // 3. Refresh All (for Auras)
@@ -117,11 +120,11 @@ public class UnitManager : MonoBehaviour
         return true;
     }
 
-    public void KillUnit(RuntimeUnit unit)
+public void KillUnit(RuntimeUnit unit)
     {
         _bm.UIManager.Log($"{unit.Name} 阵亡。");
 
-        // === 新增：处理装备牌进弃牌堆逻辑 ===
+        // === 处理装备牌进弃牌堆逻辑 ===
         if (unit.Equips.Count > 0)
         {
             foreach (var equipData in unit.Equips)
@@ -133,18 +136,17 @@ public class UnitManager : MonoBehaviour
             unit.Equips.Clear();
         }
 
-        // === 新增：亡语效果 (Deathrattle) ===
-        if (unit.SourceCard != null && unit.SourceCard.Effects != null)
+        // === 更新卡牌位置 ===
+        if (unit.SourceCard != null)
         {
-            foreach(var e in unit.SourceCard.Effects) 
-            {
-               // Trigger Deathrattle (TYPE_TRIGGER = 2)
-               if (e.EffectCode == Effect.TYPE_TRIGGER) 
-               {
-                   _bm.UIManager.Log($"触发亡语：{unit.Name}");
-                   e.ExecuteOperation(_bm);
-               }
-            }
+            unit.SourceCard.UpdateLocation(Location.GRAVE, 0);
+        }
+
+        // === 使用事件系统触发死亡事件 ===
+        if (EventSystem.Instance != null)
+        {
+            EventSystem.Instance.RaiseUnitEvent(EventCode.DESTROYED, unit, 0, Reason.BATTLE | Reason.EFFECT);
+            EventSystem.Instance.ProcessEvents();
         }
 
         // 怪兽本体进入墓地
@@ -263,42 +265,20 @@ public class UnitManager : MonoBehaviour
     }
 
     // === Overload System ===
-    public void ModifyOverload(RuntimeUnit unit, int amount)
+public void ModifyOverload(RuntimeUnit unit, int amount)
     {
         if (unit == null || amount == 0) return;
 
-        // Passive: 1/1 Unit (Robot) - If ally gains Overload, +1 to gain
-        // "When any friendly unit gains Overload -> increase that gain by +1"
-        // Note: Check if we have the 1/1 unit on field. (Assuming Tag or ID, but card details said "1/1 exists on field")
-        // Implementation: Iterate units, check for specific card (Robot 1/1). 
-        // For efficiency, we might need a flag or just check Stats/Data.
-        // Let's check for specific Card Effect property or ID if possible. 
-        // Since we don't have IDs, let's look for "Robot" and Stats 1/1 or check 'value' if we use it for ID?
-        // Or better: Add a trait to RuntimeUnit/CardData "AuraOverloadBooster"
-        
-        // Check for Booster (Unit 1/1)
+        // === 使用CardEffectSystem计算过载增幅 ===
         int boost = 0;
-        foreach (var u in PlayerUnits)
+        if (amount > 0 && CardEffectSystem.Instance != null)
         {
-            if (u.SourceCard != null && u.SourceCard.Data != null)
-            {
-                // Assuming we will mark the 1/1 unit with a specific effect type or Name check
-                // "3 x张unit 1/1 ... 当自己场上的unit获得过载时 使其过载的数字+1"
-                // Let's use a Name check for now as we haven't defined a specific Enum for this aura.
-                // Or best practice: defined generic Effect Logic elsewhere?
-                // For now, hardcode check for "Robot 1/1" behavior or check a new field.
-                // Let's add a specialized check.
-                if (u.SourceCard.Data.cardName.Contains("1/1") || (u.BaseAtk == 1 && u.BaseMaxHp == 1 && u.SourceCard.Data.cardTag == CardTag.Robot))
-                {
-                   boost++;
-                }
-            }
-        }
-
-        if (amount > 0)
-        {
+            boost = CardEffectSystem.Instance.CalculateOverloadBoost(unit, amount);
             amount += boost;
-            _bm.UIManager.Log($"{unit.Name} 获得过载 {amount} (含加成 {boost})");
+            if (boost > 0)
+            {
+                _bm.UIManager.Log($"{unit.Name} 获得过载 {amount} (含加成 {boost})");
+            }
         }
 
         unit.Overload += amount;

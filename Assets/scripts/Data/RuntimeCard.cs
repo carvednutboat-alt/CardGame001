@@ -8,14 +8,30 @@ using XLua;
 [LuaCallCSharp]
 public class RuntimeCard
 {
-    public string UniqueId { get; private set; } // 唯一ID
-    public CardData Data { get; private set; }   // 原始配置
+    public string UniqueId { get; private set; }
+    public CardData Data { get; private set; }
+    
+    // === 位置追踪（参考YGO） ===
+    public int CurrentLocation;  // LOCATION_HAND, MZONE等
+    public int CurrentSequence;  // 在该区域的序号（0-4）
+    public int Owner;            // 0=玩家, 1=敌人
+    public int Controller;       // 当前控制者
+    public int PreviousLocation; // 上一个位置（用于效果判定）
+    public int PreviousSequence;   // 原始配置
 
-    public RuntimeCard(CardData data)
+public RuntimeCard(CardData data)
     {
         Data = data;
-        UniqueId = Guid.NewGuid().ToString(); // 赋予唯一身份
+        UniqueId = Guid.NewGuid().ToString();
         Effects = new List<Effect>();
+        
+        // 初始化位置（默认在牌库）
+        CurrentLocation = Location.DECK;
+        CurrentSequence = 0;
+        Owner = 0; // 默认玩家
+        Controller = 0;
+        PreviousLocation = 0;
+        PreviousSequence = 0;
         
         LoadScript();
     }
@@ -69,5 +85,33 @@ public class RuntimeCard
     {
         e.OwnerCard = this;
         Effects.Add(e);
+    }
+
+
+/// <summary>
+    /// 更新卡牌位置
+    /// </summary>
+    public void UpdateLocation(int newLocation, int newSequence)
+    {
+        PreviousLocation = CurrentLocation;
+        PreviousSequence = CurrentSequence;
+        CurrentLocation = newLocation;
+        CurrentSequence = newSequence;
+    }
+    
+    /// <summary>
+    /// 检查卡牌是否在指定位置
+    /// </summary>
+    public bool IsLocation(int location)
+    {
+        return (CurrentLocation & location) != 0;
+    }
+    
+    /// <summary>
+    /// 检查卡牌是否在场上
+    /// </summary>
+    public bool IsOnField()
+    {
+        return IsLocation(Location.MZONE) || IsLocation(Location.SZONE);
     }
 }

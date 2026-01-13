@@ -26,6 +26,7 @@ public class BattleManager : MonoBehaviour
     public CombatManager CombatManager;
     public BattleUIManager UIManager;
     public CardEffectSystem EffectSystem;
+    public EventSystem EventSystem;
 
     [Header("Entities")]
     public Unit PlayerUnit;
@@ -98,6 +99,15 @@ public class BattleManager : MonoBehaviour
             EffectSystem = go.AddComponent<CardEffectSystem>();
         }
         EffectSystem.Init(this);
+        
+        // === 初始化事件系统 ===
+        if (EventSystem == null)
+        {
+            var eventGo = new GameObject("EventSystem");
+            eventGo.transform.SetParent(transform);
+            EventSystem = eventGo.AddComponent<EventSystem>();
+        }
+        EventSystem.Init(this);
 
         // --- 修改：从全局 GameManager 获取卡组 ---
         List<CardData> spellsForHand = new List<CardData>();
@@ -301,11 +311,10 @@ public class BattleManager : MonoBehaviour
     // 2. Cost (Pay)
     // 3. Target (SelectTarget -> Targeting Mode)
     // 4. Operation (Execute)
-    public void OnCardClicked(CardUI ui, RuntimeCard card)
+public void OnCardClicked(CardUI ui, RuntimeCard card)
     {
         if (IsTargetingMode || IsSlotSelectionMode) return;
 
-        // 检查颜色条件 (保留 C# 层的原子规则，也可以移到 Lua 的 Condition 中，但为了通用性先留着)
         if (!CheckColorCondition(card)) return;
 
         // === 1. Try to activate Ignition Effect ===
@@ -313,52 +322,39 @@ public class BattleManager : MonoBehaviour
         {
             foreach (var e in card.Effects)
             {
-                // 只处理起动效果 (Ignition) - 玩家手动点击触发
-                if (e.EffectCode == Effect.TYPE_IGNITION) 
+                if (e.IsHasType(EffectType.IGNITION)) 
                 {
-                    // Step 1: Check Condition
-                    if (e.CheckCondition(this, card))
+                    if (e.CheckCondition(0, null, 0, 0, null, 0, 0))
                     {
-                        // 暂存上下文
                         _pendingEffect = e;
                         _pendingCard = card;
                         _pendingCardUIObj = ui.gameObject;
 
-                        // Step 2: Pay Cost
-                        e.PayCost(this);
+                        e.CheckCost(0, null, 0, 0, null, 0, 0);
                         
-                        // Step 3: Resolve Target
-                        // Lua script calls Duel.SelectTarget -> BattleManager.InitiateEffectTargeting
                         bool enteredTargeting = false;
-                        
-                        // We wrap this to detect if InitiateEffectTargeting was called
-                        // (Current IsTargetingMode is false). if e.ResolveTarget sets it true.
-                        e.ResolveTarget(this);
+                        e.CheckTarget(0, null, 0, 0, null, 0, 0);
                         
                         if (IsTargetingMode)
                         {
                             enteredTargeting = true;
                         }
 
-                        // Step 4: Operation
                         if (!enteredTargeting)
                         {
-                            // No targets needed (Instant Effect)
-                            e.ExecuteOperation(this);
+                            e.ExecuteOperation(0, null, 0, 0, null, 0, 0);
                             FinishEffect(card, ui.gameObject);
                         }
                         
-                        return; // 效果已激活，中断后续逻辑
+                        return;
                     }
                 }
             }
         }
 
-        // === 2. Unit Summon Logic (Default Rule) ===
-        // 如果没有触发任何 Ignition 效果，且是单位卡，则进入召唤流程
+        // === 2. Unit Summon Logic ===
         if (card.Data.kind == CardKind.Unit)
         {
-             // 召唤限制检查
             if (!card.Data.startsInDeck && HasSummonedThisTurn)
             {
                 if (UIManager != null) UIManager.Log("<color=red>本回合已经召唤过单位了！</color>");
@@ -400,7 +396,7 @@ public class BattleManager : MonoBehaviour
                 Duel.SetSelection(target);
 
                  // Step 4: Operation (Delayed)
-                _pendingEffect.ExecuteOperation(this, target);
+                _pendingEffect.ExecuteOperation(0, null, 0, 0, null, 0, 0);
                 
                 FinishEffect(_pendingCard, _pendingCardUIObj);
                 ExitTargetingMode();
@@ -438,20 +434,18 @@ public class BattleManager : MonoBehaviour
     }
 
     // 处理敌人点击 (作为目标)
-    public void OnEnemyClicked(EnemyUnitUI enemyUI)
+public void OnEnemyClicked(EnemyUnitUI enemyUI)
     {
         if (enemyUI == null || enemyUI.MyUnit == null) return;
 
-        // 1. Targeting Resolution (Lua Strict)
+        // 1. Targeting Resolution
         if (IsTargetingMode && _pendingEffect != null)
         {
             RuntimeUnit target = enemyUI.MyUnit;
             
-            // Pass selection to Lua
             Duel.SetSelection(target);
 
-            // Step 4: Operation (Delayed)
-            _pendingEffect.ExecuteOperation(this, target);
+            _pendingEffect.ExecuteOperation(0, null, 0, 0, null, 0, 0);
             
             FinishEffect(_pendingCard, _pendingCardUIObj);
             ExitTargetingMode();
