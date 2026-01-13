@@ -32,8 +32,11 @@ public RuntimeCard(CardData data)
         Controller = 0;
         PreviousLocation = 0;
         PreviousSequence = 0;
-        
-        LoadScript();
+        // === 新增：如果卡片有ID，就加载对应的Lua脚本 ===
+        if (Data != null && Data.id > 0)
+        {
+            LoadScript();
+        }
     }
 
     // === Lua Integration ===

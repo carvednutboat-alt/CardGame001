@@ -38,14 +38,14 @@ public class CardEffectSystem : MonoBehaviour
     /// </summary>
     private void RegisterBuiltInEffects()
     {
-        // 单位矩阵召唤效果
-        RegisterEffect("IdentityMatrix_OnSummon", OnIdentityMatrixSummon);
+        // // 单位矩阵召唤效果
+        // RegisterEffect("IdentityMatrix_OnSummon", OnIdentityMatrixSummon);
         
-        // 特征向量攻击效果
-        RegisterEffect("Eigenvector_AttackModifier", OnEigenvectorAttack);
+        // // 特征向量攻击效果
+        // RegisterEffect("Eigenvector_AttackModifier", OnEigenvectorAttack);
         
-        // 零向量亡语效果
-        RegisterEffect("ZeroVector_Deathrattle", OnZeroVectorDeath);
+        // // 零向量亡语效果
+        // RegisterEffect("ZeroVector_Deathrattle", OnZeroVectorDeath);
         
         // 蒸汽收割者击杀效果
         RegisterEffect("SteamReaper_OnKill", OnSteamReaperKill);
@@ -84,65 +84,65 @@ public class CardEffectSystem : MonoBehaviour
     
     // ==================== 内置效果实现 ====================
     
-    private void OnIdentityMatrixSummon(EffectContext ctx)
-    {
-        if (ctx.SourceUnit == null) return;
+    // private void OnIdentityMatrixSummon(EffectContext ctx)
+    // {
+    //     if (ctx.SourceUnit == null) return;
         
-        // 添加3张标准基到牌库
-        CardData basisData = Resources.Load<CardData>("Data/Card_Unit_StandardBasis");
-        if (basisData != null)
-        {
-            for (int i = 0; i < 3; i++)
-            {
-                RuntimeCard newCard = new RuntimeCard(basisData);
-                _battleManager.DeckManager.DrawPile.Add(newCard);
-            }
-            _battleManager.UIManager.Log("【单位矩阵】效果触发：3张标准基已加入牌库。");
-            _battleManager.DeckManager.ShuffleDeck();
+    //     // 添加3张标准基到牌库
+    //     CardData basisData = Resources.Load<CardData>("Data/Card_Unit_StandardBasis");
+    //     if (basisData != null)
+    //     {
+    //         for (int i = 0; i < 3; i++)
+    //         {
+    //             RuntimeCard newCard = new RuntimeCard(basisData);
+    //             _battleManager.DeckManager.DrawPile.Add(newCard);
+    //         }
+    //         _battleManager.UIManager.Log("【单位矩阵】效果触发：3张标准基已加入牌库。");
+    //         _battleManager.DeckManager.ShuffleDeck();
             
-            // 如果只有这一个单位，检索一张到手牌
-            int unitCount = 0;
-            foreach (var s in _battleManager.UnitManager.Slots)
-            {
-                if (s != null) unitCount++;
-            }
+    //         // 如果只有这一个单位，检索一张到手牌
+    //         int unitCount = 0;
+    //         foreach (var s in _battleManager.UnitManager.Slots)
+    //         {
+    //             if (s != null) unitCount++;
+    //         }
             
-            if (unitCount == 1)
-            {
-                RuntimeCard target = _battleManager.DeckManager.DrawPile.Find(
-                    c => c.Data.cardName.Contains("Standard Basis")
-                );
-                if (target != null)
-                {
-                    _battleManager.DeckManager.DrawPile.Remove(target);
-                    _battleManager.DeckManager.AddCardToHand(target);
-                    _battleManager.UIManager.Log("场上仅有单位矩阵，检索一张标准基入手！");
-                }
-            }
-        }
-    }
+    //         if (unitCount == 1)
+    //         {
+    //             RuntimeCard target = _battleManager.DeckManager.DrawPile.Find(
+    //                 c => c.Data.cardName.Contains("Standard Basis")
+    //             );
+    //             if (target != null)
+    //             {
+    //                 _battleManager.DeckManager.DrawPile.Remove(target);
+    //                 _battleManager.DeckManager.AddCardToHand(target);
+    //                 _battleManager.UIManager.Log("场上仅有单位矩阵，检索一张标准基入手！");
+    //             }
+    //         }
+    //     }
+    // }
     
-    private void OnEigenvectorAttack(EffectContext ctx)
-    {
-        if (ctx.SourceUnit == null) return;
+    // private void OnEigenvectorAttack(EffectContext ctx)
+    // {
+    //     if (ctx.SourceUnit == null) return;
         
-        // 如果受到变换影响（有永久攻击加成），伤害翻倍
-        if (ctx.SourceUnit.PermAttackModifier > 0)
-        {
-            ctx.Damage *= 2;
-            _battleManager.UIManager.Log($"【特征向量】受变换影响，伤害翻倍！({ctx.Damage})");
-        }
-    }
+    //     // 如果受到变换影响（有永久攻击加成），伤害翻倍
+    //     if (ctx.SourceUnit.PermAttackModifier > 0)
+    //     {
+    //         ctx.Damage *= 2;
+    //         _battleManager.UIManager.Log($"【特征向量】受变换影响，伤害翻倍！({ctx.Damage})");
+    //     }
+    // }
     
-    private void OnZeroVectorDeath(EffectContext ctx)
-    {
-        if (ctx.TargetUnit == null || ctx.SourceUnit == null) return;
+    // private void OnZeroVectorDeath(EffectContext ctx)
+    // {
+    //     if (ctx.TargetUnit == null || ctx.SourceUnit == null) return;
         
-        // 攻击者攻击力归零（本回合）
-        _battleManager.UIManager.Log($"【零向量】效果触发！{ctx.SourceUnit.Name} 攻击力归零 (本回合)。");
-        ctx.SourceUnit.TempAttackModifier -= ctx.SourceUnit.CurrentAtk;
-        _battleManager.CombatManager.RecalculateUnitStats(ctx.SourceUnit);
-    }
+    //     // 攻击者攻击力归零（本回合）
+    //     _battleManager.UIManager.Log($"【零向量】效果触发！{ctx.SourceUnit.Name} 攻击力归零 (本回合)。");
+    //     ctx.SourceUnit.TempAttackModifier -= ctx.SourceUnit.CurrentAtk;
+    //     _battleManager.CombatManager.RecalculateUnitStats(ctx.SourceUnit);
+    // }
     
     private void OnSteamReaperKill(EffectContext ctx)
     {

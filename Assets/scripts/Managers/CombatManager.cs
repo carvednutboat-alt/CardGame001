@@ -16,6 +16,8 @@ public class CombatManager : MonoBehaviour
         // 1. 造成伤害
         int damage = attacker.CurrentAtk;
         
+        Duel.SetLastAttacker(attacker);
+
         // === 使用效果系统处理攻击修正 ===
         if (CardEffectSystem.Instance != null)
         {

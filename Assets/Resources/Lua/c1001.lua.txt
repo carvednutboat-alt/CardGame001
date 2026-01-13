@@ -1,48 +1,47 @@
--- c1001.lua: Damage Spell
-local cm = {}
+-- ==========================================
+-- 单位矩阵 (Identity Matrix)
+-- ID: 1001
+-- 效果：
+-- 1. 召唤成功时：添加3张"标准基"到牌库并洗切
+-- 2. 如果场上只有此卡，检索1张"标准基"到手牌
+-- ==========================================
 
-function cm.initial_effect(c)
-    -- Register Activate Effect
-    local e1 = Effect()
-    e1:SetDescription("Deal 5 damage to a target.")
-    -- Type: Activate on Click (Ignition-like)
-    -- Code: EFFECT_TYPE_ACTIVATE (We haven't defined codes yet, but conceptually)
+function c1001.initial_effect(c)
+    -- 召唤触发效果
+    local e1=Effect.CreateEffect(c)
+    e1:SetType(EffectType.TRIGGER)
+    e1:SetCode(EventCode.SUMMON_SUCCESS)
+    e1:SetRange(Location.MZONE)
+    e1:SetOperation(c1001.summon_op)
+    c:RegisterEffect(e1)
+end
+
+-- 召唤时的操作
+function c1001.summon_op(e, tp, eg, ep, ev, re, r, rp)
+    local c=e:GetHandler()
     
-    -- Condition: Can be activated? (Chk=0)
-    e1:SetCondition(cm.condition)
+    -- 1. 添加3张标准基到牌库（ID: 1002）
+    Duel.Log("【单位矩阵】效果触发：添加3张标准基到牌库")
+    for i=1,3 do
+        local token = Duel.CreateToken(tp, 1002)
+        if token then
+            Duel.SendtoDeck(token, tp, 2, Reason.EFFECT)
+        end
+    end
     
-    -- Cost: None (or Mana)
-    -- e1:SetCost(cm.cost)
-
-    -- Target: Select 1 Enemy
-    e1:SetTarget(cm.target)
-
-    -- Operation: Deal Damage
-    e1:SetOperation(cm.operation)
-
-    c:register_effect(e1)
-end
-
-function cm.condition(e, tp, eg, ep, ev, re, r, rp)
-    -- Check if there are valid targets (simplified)
-    -- In full YGO, we check Duel.IsExistingTarget(...)
-    return true
-end
-
-function cm.target(e, tp, eg, ep, ev, re, r, rp, chk)
-    -- Calling Duel.SelectTarget initiates the Targeting Mode in C#
-    -- Arguments: Card, TargetType
-    -- 1 = Enemy, 2 = Ally, 3 = All (Simple Enum mapping)
-    Duel.SelectTarget(e:GetHandler(), 1) 
-end
-
-function cm.operation(e, tp, eg, ep, ev, re, r, rp)
-    -- Get the selected target
-    local tc = Duel.GetFirstTarget()
-    if tc then
-        Duel.Log("Lua: Dealing damage to " .. tc.Name)
-        Duel.Damage(tc, 5)
+    -- 2. 洗切牌库
+    Duel.ShuffleDeck(tp)
+    
+    -- 3. 检查是否只有这一个单位
+    local count = Duel.GetFieldUnitCount(tp, Location.MZONE, 0)
+    if count == 1 then
+        -- 从牌库检索1张标准基到手牌
+        local found = Duel.SearchDeckAndAddToHand(function(card)
+            return card.Data.cardName:find("Standard Basis") or card.Data.cardName:find("标准基")
+        end)
+        
+        if found then
+            Duel.Log("场上仅有单位矩阵，检索一张标准基入手！")
+        end
     end
 end
-
-return cm
