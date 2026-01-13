@@ -1,9 +1,9 @@
 -- ==========================================
--- 行操作 / 初等行变换 (Row Operation / Swap Columns)
+-- 行操作 (Row Operation)
 -- ID: 2001
--- 效果：
--- 选择一个己方单位，将其与相邻单位交换位置，双方攻击力+1
 -- ==========================================
+
+local c2001 = {}
 
 function c2001.initial_effect(c)
     -- 起动效果（需要选择目标）
@@ -66,3 +66,5 @@ function c2001.operation(e, tp, eg, ep, ev, re, r, rp)
         Duel.Log("旁边没有可以交换的单位。")
     end
 end
+
+return c2001

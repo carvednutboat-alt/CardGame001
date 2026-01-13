@@ -1,9 +1,9 @@
 -- ==========================================
 -- 转置 (Transpose)
 -- ID: 2003
--- 效果：
--- 全场单位的攻击力和生命值互换
 -- ==========================================
+
+local c2003 = {}
 
 function c2003.initial_effect(c)
     -- 起动效果（全场效果）
@@ -30,7 +30,6 @@ function c2003.operation(e, tp, eg, ep, ev, re, r, rp)
         Duel.ModifyATK(u, atkDiff, true)  -- true=永久
         
         -- 修改基础生命值
-        -- 新的MaxHp应该等于oldAtk
         local hpBonus = u.MaxHp - u.BaseMaxHp
         local newBaseMaxHp = math.max(1, oldAtk - hpBonus)
         
@@ -42,3 +41,5 @@ function c2003.operation(e, tp, eg, ep, ev, re, r, rp)
         Duel.Log(u.Name .. " 转置了！(" .. oldAtk .. "/" .. oldHp .. " -> " .. u.Attack .. "/" .. u.CurrentHp .. ")")
     end
 end
+
+return c2003
