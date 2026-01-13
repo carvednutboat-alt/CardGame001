@@ -12,11 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 07b54b35d8588e44d9baa982855cf548, type: 3}
   m_Name: Card_Unit_ZeroVector
   m_EditorClassIdentifier: 
+  id: 1004
   cost: 1
-  cardName: "零向量"
+  cardName: "\u96F6\u5411\u91CF"
   kind: 0
   color: 2
-  description: "嘲讽。攻击此单位的敌人攻击力变为0（本回合）。"
+  description: "\u5632\u8BBD\u3002\u653B\u51FB\u6B64\u5355\u4F4D\u7684\u654C\u4EBA\u653B\u51FB\u529B\u53D8\u4E3A0\uFF08\u672C\u56DE\u5408\uFF09\u3002"
   unitAttack: 0
   unitHealth: 1
   unitStartsFlying: 0

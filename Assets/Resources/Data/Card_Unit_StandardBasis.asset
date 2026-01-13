@@ -12,11 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 07b54b35d8588e44d9baa982855cf548, type: 3}
   m_Name: Card_Unit_StandardBasis
   m_EditorClassIdentifier: 
+  id: 1002
   cost: 1
-  cardName: "标准基"
+  cardName: "\u6807\u51C6\u57FA"
   kind: 0
   color: 2
-  description: "线性空间的基础。"
+  description: "\u7EBF\u6027\u7A7A\u95F4\u7684\u57FA\u7840\u3002"
   unitAttack: 3
   unitHealth: 1
   unitStartsFlying: 0

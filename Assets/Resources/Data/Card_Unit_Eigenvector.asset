@@ -12,11 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 07b54b35d8588e44d9baa982855cf548, type: 3}
   m_Name: Card_Unit_Eigenvector
   m_EditorClassIdentifier: 
+  id: 1003
   cost: 2
-  cardName: "特征向量"
+  cardName: "\u7279\u5F81\u5411\u91CF"
   kind: 0
   color: 2
-  description: "若受到【初等行变换】(攻击力Buff) 影响，造成双倍伤害。"
+  description: "\u82E5\u53D7\u5230\u3010\u521D\u7B49\u884C\u53D8\u6362\u3011(\u653B\u51FB\u529BBuff)
+    \u5F71\u54CD\uFF0C\u9020\u6210\u53CC\u500D\u4F24\u5BB3\u3002"
   unitAttack: 3
   unitHealth: 1
   unitStartsFlying: 0

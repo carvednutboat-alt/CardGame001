@@ -24,26 +24,51 @@ public class LuaManager : MonoBehaviour
     {
         GlobalEnv = new LuaEnv();
         
-        // Add a custom loader to load .lua files from Resources
+        // 注册自定义加载器，用于从 Resources 文件夹加载 .lua.txt 文件
         GlobalEnv.AddLoader(CustomLoader);
-
-        // Load initialization scripts if needed (e.g. requires, enums)
-        // GlobalEnv.DoString("require 'c_base'"); 
-        Debug.Log("[LuaManager] LuaEnv Initialized.");
+        
+        // 直接将 C# 常量类映射到 Lua 全局变量 (无需 CS. 前缀)
+        // 使用 DoString 进行别名映射，确保 Lua 中能像访问静态类一样访问这些 Enum
+        GlobalEnv.DoString(@"
+            EffectType = CS.EffectType
+            Location = CS.Location
+            EffectCode = CS.EffectCode
+            EventCode = CS.EventCode
+            EffectFlag = CS.EffectFlag
+            Reason = CS.Reason
+            Phase = CS.Phase
+            Position = CS.Position
+            Player = CS.Player
+            CardTag = CS.CardTag
+            
+            -- Map Core System Classes
+            Duel = CS.Duel
+            Effect = CS.Effect
+            Card = CS.RuntimeCard -- Optional alias if needed
+        ");
+        
+        Debug.Log("[LuaManager] LuaEnv Initialized. C# Constants mapped.");
     }
 
     private byte[] CustomLoader(ref string filepath)
     {
-        // Redirect "require 'xxx'" to load "Assets/Resources/Lua/xxx.lua.txt"
-        // Unity Resources.Load works with "Lua/xxx" if the file is "Assets/Resources/Lua/xxx.lua.txt"
-        // Note: xLua usually requires adding a .txt extension to .lua files in Resources.
-        
+        // 1. Try standard path: "Lua/c1001"
         string scriptPath = "Lua/" + filepath.Replace('.', '/');
         TextAsset file = Resources.Load<TextAsset>(scriptPath);
+        
+        if (file == null)
+        {
+            // 2. Try with .lua suffix: "Lua/c1001.lua" (Common for .lua.txt files in Unity)
+            file = Resources.Load<TextAsset>(scriptPath + ".lua");
+        }
+
         if (file != null)
         {
+            Debug.Log($"[LuaManager] Loaded script: {filepath}");
             return file.bytes;
         }
+        
+        Debug.LogError($"[LuaManager] Failed to load script: {filepath}. Searched paths: {scriptPath}, {scriptPath}.lua");
         return null;
     }
 

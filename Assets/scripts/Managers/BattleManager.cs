@@ -74,6 +74,14 @@ public class BattleManager : MonoBehaviour
     public void Awake()
     {
         Instance = this;
+
+        // Fallback: 如果直接运行 BattleScene，GameManager 可能没创建 LuaManager
+        if (LuaManager.Instance == null)
+        {
+             var obj = new GameObject("LuaManager");
+             obj.AddComponent<LuaManager>();
+             Debug.Log("[BattleManager] Auto-created LuaManager (Fallback)");
+        }
     }
 
     private void Start()
@@ -322,6 +330,7 @@ public void OnCardClicked(CardUI ui, RuntimeCard card)
         {
             foreach (var e in card.Effects)
             {
+                Debug.Log($"[BattleManager] Checking Effect: Type={e.EffectType}, Code={e.EffectCode}");
                 if (e.IsHasType(EffectType.IGNITION)) 
                 {
                     if (e.CheckCondition(0, null, 0, 0, null, 0, 0))

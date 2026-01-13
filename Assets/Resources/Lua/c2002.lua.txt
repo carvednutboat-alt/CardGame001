@@ -19,7 +19,11 @@ function c2002.operation(e, tp, eg, ep, ev, re, r, rp)
     local units = Duel.GetFieldUnits(tp, Location.MZONE)
     local toBuff = {}
     
-    for i, u in ipairs(units) do
+    -- C# List 在 Lua 中索引从 0 开始，长度用 Count 属性
+    local count = units.Count
+    
+    for i = 0, count - 1 do
+        local u = units[i]
         local shouldBuff = false
         
         -- 条件1：是单位矩阵
@@ -30,12 +34,12 @@ function c2002.operation(e, tp, eg, ep, ev, re, r, rp)
             local hasLinearNeighbor = false
             
             -- 检查左边
-            if i > 1 and units[i-1].SourceCard.Data.cardTag == CardTag.LinearAlgebra then
+            if i > 0 and units[i-1].SourceCard.Data.cardTag == CardTag.LinearAlgebra then
                 hasLinearNeighbor = true
             end
             
             -- 检查右边
-            if i < #units and units[i+1].SourceCard.Data.cardTag == CardTag.LinearAlgebra then
+            if i < count - 1 and units[i+1].SourceCard.Data.cardTag == CardTag.LinearAlgebra then
                 hasLinearNeighbor = true
             end
             

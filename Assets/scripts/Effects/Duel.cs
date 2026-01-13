@@ -21,8 +21,23 @@ public static class Duel
 
     public static RuntimeCard CreateToken(int player, int cardId)
     {
+        // 尝试通过文件名加载（快速路径）
         CardData data = Resources.Load<CardData>($"Data/Card_{cardId}");
         if (data == null) data = Resources.Load<CardData>($"Cards/Card_{cardId}");
+        
+        // 如果找不到，搜索所有 CardData 资源
+        if (data == null)
+        {
+            CardData[] allCards = Resources.LoadAll<CardData>("Data");
+            foreach (var cardData in allCards)
+            {
+                if (cardData.id == cardId)
+                {
+                    data = cardData;
+                    break;
+                }
+            }
+        }
         
         if (data == null)
         {

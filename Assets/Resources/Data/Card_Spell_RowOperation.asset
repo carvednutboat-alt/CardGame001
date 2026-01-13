@@ -12,18 +12,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 07b54b35d8588e44d9baa982855cf548, type: 3}
   m_Name: Card_Spell_RowOperation
   m_EditorClassIdentifier: 
+  id: 2001
   cost: 1
-  cardName: "初等行变换"
+  cardName: "\u521D\u7B49\u884C\u53D8\u6362"
   kind: 1
   color: 2
-  description: "选择两个单位交换位置（获得+1攻击），或将一个单位移动到空位。"
+  description: "\u9009\u62E9\u4E24\u4E2A\u5355\u4F4D\u4EA4\u6362\u4F4D\u7F6E\uFF08\u83B7\u5F97+1\u653B\u51FB\uFF09\uFF0C\u6216\u5C06\u4E00\u4E2A\u5355\u4F4D\u79FB\u52A8\u5230\u7A7A\u4F4D\u3002"
   unitAttack: 0
   unitHealth: 0
   unitStartsFlying: 0
   unitHasTaunt: 0
   buffGrantFlying: 0
   buffFreeAttackNow: 0
-  effectType: 16
+  effectType: 0
   deathEffect: 0
   onReceiveEquipEffect: 0
   value: 0

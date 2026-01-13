@@ -114,18 +114,23 @@ public class EventSystem : MonoBehaviour
     {
         _triggerEffects.Clear();
         
+        Debug.Log($"[EventSystem] Collecting effects for event {evt.Code}");
+        
         // 遍历所有玩家单位的效果
         if (_battleManager?.UnitManager != null)
         {
+            Debug.Log($"[EventSystem] Checking {_battleManager.UnitManager.PlayerUnits.Count} player units");
             foreach (var unit in _battleManager.UnitManager.PlayerUnits)
             {
                 if (unit?.SourceCard == null) continue;
                 
+                Debug.Log($"[EventSystem] Unit {unit.Name} has {unit.SourceCard.Effects.Count} effects");
                 foreach (var effect in unit.SourceCard.Effects)
                 {
                     if (CheckEffectTrigger(effect, evt))
                     {
                         _triggerEffects.Add(effect);
+                        Debug.Log($"[EventSystem] ✓ Added effect Code={effect.EffectCode} from {unit.Name}");
                     }
                 }
             }
@@ -157,18 +162,21 @@ public class EventSystem : MonoBehaviour
         // 检查效果类型是否为触发效果
         if (!effect.IsHasType(EffectType.TRIGGER))
         {
+            Debug.Log($"[EventSystem] Effect Type={effect.EffectType} is not TRIGGER (need {EffectType.TRIGGER})");
             return false;
         }
         
         // 检查效果代码是否匹配事件
         if (effect.EffectCode != evt.Code && effect.EffectCode != EventCode.FREE_CHAIN)
         {
+            Debug.Log($"[EventSystem] Effect Code={effect.EffectCode} doesn't match Event Code={evt.Code}");
             return false;
         }
         
         // 检查效果是否可用
         if (!effect.IsAvailable())
         {
+            Debug.Log($"[EventSystem] Effect {effect.EffectCode} unavailable. Range Check: {effect.IsAvailable()}");
             return false;
         }
         

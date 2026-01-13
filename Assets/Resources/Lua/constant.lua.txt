@@ -1,0 +1,117 @@
+-- Constant Definitions for Lua
+
+-- Effect Types
+EffectType = {
+    SINGLE = 1,
+    FIELD = 2,
+    IGNITION = 4,
+    TRIGGER = 8,
+    QUICK = 16,
+    CONTINUOUS = 32,
+    EQUIP = 64
+}
+
+-- Locations
+Location = {
+    HAND = 0x01,
+    MZONE = 0x02,
+    SZONE = 0x04,
+    GRAVE = 0x08,
+    REMOVED = 0x10,
+    DECK = 0x20,
+    EXTRA = 0x40,
+    OVERLAY = 0x80,
+    ONFIELD = 0x06, -- MZONE | SZONE
+    ALL = 0xFF
+}
+
+-- Effect Flags
+EffectFlag = {
+    SINGLE_RANGE = 0x01,
+    BOTH_SIDE = 0x02,
+    CANNOT_DISABLE = 0x04,
+    IMMEDIATELY_APPLY = 0x08,
+    COPY_INHERIT = 0x10,
+    OWNER_RELATE = 0x20,
+    PLAYER_TARGET = 0x40,
+    CARD_TARGET = 0x80,
+    DELAY = 0x100,
+    INITIAL = 0x200
+}
+
+-- Event Codes
+EventCode = {
+    SUMMON = 100,
+    FLIP_SUMMON = 101,
+    SPECIAL_SUMMON = 102,
+    SUMMON_SUCCESS = 103,
+    
+    DESTROYED = 200,
+    BATTLE_DESTROYED = 201,
+    DESTROYED_BY_EFFECT = 202,
+    
+    BATTLE_START = 300,
+    BATTLE_END = 301,
+    ATTACK_ANNOUNCE = 302,
+    BE_BATTLE_TARGET = 303,
+    DAMAGE_STEP_START = 304,
+    DAMAGE_CALCULATING = 305,
+    DAMAGE_STEP_END = 306,
+    
+    TO_HAND = 400,
+    TO_DECK = 401,
+    TO_GRAVE = 402,
+    REMOVE = 403,
+    
+    DRAW = 500,
+    DAMAGE = 600,
+    RECOVER = 601,
+    
+    PHASE_START = 700,
+    PHASE_END = 701,
+    TURN_END = 702,
+    
+    CHAIN_SOLVING = 800,
+    CHAIN_SOLVED = 801,
+    CHAIN_END = 802,
+    
+    EQUIP = 900,
+    EQUIPPED = 901,
+    LEAVE_FIELD = 902,
+    
+    FREE_CHAIN = 1000
+}
+
+-- Reasons
+Reason = {
+    DESTROY = 0x01,
+    RELEASE = 0x02,
+    TEMPORARY = 0x04,
+    MATERIAL = 0x08,
+    SUMMON = 0x10,
+    BATTLE = 0x20,
+    EFFECT = 0x40,
+    COST = 0x80,
+    ADJUST = 0x100,
+    LOST_TARGET = 0x200,
+    RULE = 0x400,
+    SPSUMMON = 0x800,
+    RETURN = 0x1000,
+    FUSION = 0x2000,
+    SYNCHRO = 0x4000,
+    RITUAL = 0x8000,
+    XYZ = 0x10000,
+    REPLACE = 0x20000,
+    DRAW = 0x40000,
+    REDIRECT = 0x80000
+}
+
+-- Helper for CardTargetType enum in C# (if needed) but usually handled by SetTarget logic
+CardTargetType = {
+	None = 0,
+	Self = 1,
+	SingleEnemy = 2,
+    AllEnemies = 3,
+	SinglePlayerUnit = 4,
+	AllPlayerUnits = 5
+}

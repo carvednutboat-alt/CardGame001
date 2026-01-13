@@ -18,7 +18,11 @@ end
 function c2003.operation(e, tp, eg, ep, ev, re, r, rp)
     local units = Duel.GetFieldUnits(tp, Location.MZONE)
     
-    for _, u in ipairs(units) do
+    -- C# List 在 Lua 中索引从 0 开始
+    local count = units.Count
+    
+    for i = 0, count - 1 do
+        local u = units[i]
         local oldAtk = u.Attack
         local oldHp = u.CurrentHp
         

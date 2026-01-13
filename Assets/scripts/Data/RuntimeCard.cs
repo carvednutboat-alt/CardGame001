@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 using XLua;
 
 // 代表“手中的一张牌”，它是 CardData 的运行时包装
@@ -32,10 +33,12 @@ public RuntimeCard(CardData data)
         Controller = 0;
         PreviousLocation = 0;
         PreviousSequence = 0;
+
         // === 新增：如果卡片有ID，就加载对应的Lua脚本 ===
         if (Data != null && Data.id > 0)
         {
             LoadScript();
+            Debug.Log($"[RuntimeCard] Constructor complete for {Data.cardName}, Effects.Count = {Effects.Count}");
         }
     }
 
@@ -46,41 +49,67 @@ public RuntimeCard(CardData data)
 
     public void LoadScript()
     {
-        if (LuaManager.Instance == null) return;
-        
-        // 假设脚本名为 c{id}，例如 c1001
-        // 如果 Data.id 不存在或为 0，可以使用 Data.cardName 的 Hash 或其他方式
+        if (Data == null) 
+        {
+            Debug.LogError("[RuntimeCard] Data is null, cannot load script.");
+            return;
+        }
+
         int scriptId = Data.id;
-        if (scriptId <= 0) return; 
+        if (scriptId <= 0) 
+        {
+            return; 
+        }
+
+        if (LuaManager.Instance == null) 
+        {
+            Debug.LogError($"[RuntimeCard] LuaManager.Instance is null! Cannot load script for {Data.cardName} (ID: {scriptId}).");
+            return;
+        }
 
         string scriptName = "c" + scriptId;
+        Debug.Log($"[RuntimeCard] Attempting to load script: {scriptName} for card {Data.cardName}");
 
-        // 1. 创建该卡实例的 Lua 表
-        Script = LuaManager.Instance.NewTable();
-        
-        // 2. 注入 'c' (self) 和 api
-        Script.Set("c", this);
-        
-        // 3. 注入 RegisterEffect 方法供 Lua 调用
-        Script.Set("register_effect", (Action<Effect>)RegisterEffect);
-
-        // 4. 加载并执行脚本
-        // 假设 Lua 脚本结构是: 
-        // local c1001 = {}
-        // function c1001.initial_effect(c) ... end
-        // return c1001
-        
-        object[] results = LuaManager.Instance.DoString($"return require '{scriptName}'");
-        
-        if (results != null && results.Length > 0 && results[0] is XLua.LuaTable meta)
+        try
         {
-            var init = meta.Get<Action<XLua.LuaTable>>("initial_effect");
-            if (init != null)
+            // 1. 创建该卡实例的 Lua 表
+            Script = LuaManager.Instance.NewTable();
+            
+            // 2. 注入 'c' (self) 和 api
+            Script.Set("c", this);
+            
+            // 3. 注入 RegisterEffect 方法供 Lua 调用
+            Script.Set("register_effect", (Action<Effect>)RegisterEffect);
+
+            // 4. 加载并执行脚本
+            object[] results = LuaManager.Instance.DoString($"return require '{scriptName}'");
+            
+            if (results == null || results.Length == 0)
             {
-                // 调用 initial_effect(c)
-                // 这里我们传 Script (即 'c' 表) 进去，虽然 Lua 侧可以用 c:register_effect()
-                init(Script); 
+                Debug.LogError($"[RuntimeCard] Lua require returned null/empty for {scriptName}");
+                return;
             }
+            
+            if (!(results[0] is XLua.LuaTable meta))
+            {
+                Debug.LogError($"[RuntimeCard] Lua require didn't return a table for {scriptName}, got: {results[0]?.GetType()}");
+                return;
+            }
+            
+            var init = meta.Get<Action<RuntimeCard>>("initial_effect");
+            if (init == null)
+            {
+                Debug.LogWarning($"[RuntimeCard] No initial_effect function found in {scriptName}");
+                return;
+            }
+            
+            Debug.Log($"[RuntimeCard] Invoking initial_effect for {Data.cardName}");
+            init(this);
+            Debug.Log($"[RuntimeCard] initial_effect completed for {Data.cardName}");
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"[RuntimeCard] Exception loading script {scriptName}: {ex.Message}\n{ex.StackTrace}");
         }
     }
 
@@ -88,10 +117,11 @@ public RuntimeCard(CardData data)
     {
         e.OwnerCard = this;
         Effects.Add(e);
+        UnityEngine.Debug.Log($"[RuntimeCard] Registered Effect: Code={e.EffectCode}, Type={e.EffectType} for {Data?.cardName}");
     }
 
 
-/// <summary>
+    /// <summary>
     /// 更新卡牌位置
     /// </summary>
     public void UpdateLocation(int newLocation, int newSequence)

@@ -400,6 +400,14 @@ public void ReturnToTitle()
                 obj.AddComponent<RelicManager>();
                 Debug.Log("[GameManager] Auto-created RelicManager");
             }
+
+            // === 核心修复：自动创建 LuaManager ===
+            if (LuaManager.Instance == null)
+            {
+                var obj = new GameObject("LuaManager");
+                obj.AddComponent<LuaManager>();
+                Debug.Log("[GameManager] Auto-created LuaManager");
+            }
         }
         else
         {

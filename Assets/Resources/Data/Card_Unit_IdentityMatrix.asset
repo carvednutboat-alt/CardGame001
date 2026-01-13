@@ -12,18 +12,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 07b54b35d8588e44d9baa982855cf548, type: 3}
   m_Name: Card_Unit_IdentityMatrix
   m_EditorClassIdentifier: 
+  id: 1001
   cost: 4
-  cardName: "单位矩阵"
+  cardName: "\u5355\u4F4D\u77E9\u9635"
   kind: 0
   color: 2
-  description: "指挥官。召唤时：将3张【标准基】洗入牌库。若场上只有此单位，检索一张【标准基】。"
+  description: "\u6307\u6325\u5B98\u3002\u53EC\u5524\u65F6\uFF1A\u5C063\u5F20\u3010\u6807\u51C6\u57FA\u3011\u6D17\u5165\u724C\u5E93\u3002\u82E5\u573A\u4E0A\u53EA\u6709\u6B64\u5355\u4F4D\uFF0C\u68C0\u7D22\u4E00\u5F20\u3010\u6807\u51C6\u57FA\u3011\u3002"
   unitAttack: 3
   unitHealth: 3
   unitStartsFlying: 0
   unitHasTaunt: 0
   buffGrantFlying: 0
   buffFreeAttackNow: 0
-  effectType: 46
+  effectType: 0
   deathEffect: 0
   onReceiveEquipEffect: 0
   value: 0

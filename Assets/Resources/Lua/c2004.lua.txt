@@ -20,8 +20,12 @@ function c2004.operation(e, tp, eg, ep, ev, re, r, rp)
     local rank = 0
     local commanderThreshold = 0
     
+    -- C# List 在 Lua 中索引从 0 开始
+    local count = units.Count
+    
     -- 1. 进化标准基为正交基，统计Rank
-    for _, u in ipairs(units) do
+    for i = 0, count - 1 do
+        local u = units[i]
         -- 检查是否是标准基
         if u.Name:find("标准基") or u.Name:find("Standard Basis") then
             -- 进化为正交基
