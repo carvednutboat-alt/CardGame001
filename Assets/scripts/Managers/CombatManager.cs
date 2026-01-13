@@ -22,23 +22,15 @@ public class CombatManager : MonoBehaviour
         // 1. 造成伤害
         int damage = attacker.CurrentAtk;
         
-        // === NEW: Eigenvector Effect (Double Damage if specific condition) ===
-        // "Unit 3/1 Feature Vector: Double Damage if affected by Transformation"
-        // "Affected by Transformation" -> Hard to track "Transformation" specifically without status system.
-        // Interpretation: If "Secondary Effect" is active? Or "Transformation" card played this turn?
-        // Simpler: If attacker has "LinearAlgebra" Tag and ... ?
-        // User said: "当它受到变换字段卡影响时".
-        // Let's assume there's a buff flag or we check for a "Transformation" card in play history?
-        // Better: Use `PermAttackModifier > 0` or `TempAttackModifier > 0` as proxy for "Enhanced"?
-        // Or check `TempAttackModifier` specifically from "Row Operation" (Swap Columns gives +1).
-        // Let's assume: If (Name == "特征向量") and (Has moved/swapped this turn?)
-        // Or simplification: If (Name == "特征向量") -> Double Damage (Always? No, too strong).
-        // Let's check for specific Buffer Effect: "Row Operation" gave +1 Permanent.
-        // So if PermAttackModifier > 0?
-        if ((attacker.Name.Contains("特征向量") || attacker.Name.Contains("Eigenvector")) && attacker.PermAttackModifier > 0)
+        // === 使用效果系统处理政击修正 ===
+        if (CardEffectSystem.Instance != null)
         {
-             damage *= 2;
-             _bm.UIManager.Log($"【特征向量】受变换影响，伤害翻倍！({damage})");
+            if (CardEffectSystem.Instance.CheckUnitMatchesEffect(attacker, "Eigenvector_AttackModifier"))
+            {
+                var ctx = new EffectContext { SourceUnit = attacker, Damage = damage };
+                CardEffectSystem.Instance.TriggerEffect("Eigenvector_AttackModifier", ctx);
+                damage = ctx.Damage; // 获取修改后的伤害
+            }
         }
 
         _bm.UIManager.Log($"{attacker.Name} 攻击了 {target.Name}！");

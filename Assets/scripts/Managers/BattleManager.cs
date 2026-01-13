@@ -25,6 +25,7 @@ public class BattleManager : MonoBehaviour
     public EnemyManager EnemyManager;
     public CombatManager CombatManager;
     public BattleUIManager UIManager;
+    public CardEffectSystem EffectSystem;
 
     [Header("Entities")]
     public Unit PlayerUnit;
@@ -88,6 +89,15 @@ public class BattleManager : MonoBehaviour
         CombatManager.Init(this);
         EnemyManager.Init(this);
         UnitManager.Init(this);
+        
+        // === 初始化效果系统 ===
+        if (EffectSystem == null)
+        {
+            var go = new GameObject("CardEffectSystem");
+            go.transform.SetParent(transform);
+            EffectSystem = go.AddComponent<CardEffectSystem>();
+        }
+        EffectSystem.Init(this);
 
         // --- 修改：从全局 GameManager 获取卡组 ---
         List<CardData> spellsForHand = new List<CardData>();
