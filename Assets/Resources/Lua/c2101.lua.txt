@@ -1,0 +1,43 @@
+-- ==========================================
+-- 火球术 (Fire Ball)
+-- ID: 2101
+-- ==========================================
+
+local c2101 = {}
+
+function c2101.initial_effect(c)
+    -- 启动效果，需要取对象
+    local e1=Effect.CreateEffect(c)
+    e1:SetType(EffectType.IGNITION)
+    e1:SetRange(Location.HAND)
+    e1:SetTarget(c2101.target)
+    e1:SetOperation(c2101.operation)
+    c:RegisterEffect(e1)
+end
+
+-- 目标函数：选择一个敌方单位
+function c2101.target(e, tp, eg, ep, ev, re, r, rp, chk)
+    if chk==0 then
+        -- 检查是否至少有1个敌方单位
+        local count = Duel.GetUnitCount(false)
+        return count >= 1
+    end
+    -- chk != 0 时，进入选择目标模式
+    Duel.Log("请选择一个敌方单位")
+    Duel.SelectTarget(tp, Location.MZONE, 1, 1)
+end
+
+function c2101.operation(e, tp, eg, ep, ev, re, r, rp)
+    -- 从 C# 获取刚刚在 Target 阶段选中的目标
+    local target = Duel.GetFirstTarget()
+    
+    if target then
+        Duel.Log("火球术命中了 " .. target.Name)
+        -- 调用 Duel 里的伤害 API
+        Duel.Damage(target, 5)
+    else
+        Duel.Log("火球术落空了（没有目标）")
+    end
+end
+
+return c2101

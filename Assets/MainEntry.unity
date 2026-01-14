@@ -1067,6 +1067,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: c1a59a8b2e9ff8e4c837473174f7092f, type: 2}
   - {fileID: 11400000, guid: 082f9e677bb01ca4185e3bd53b5f50e2, type: 2}
   - {fileID: 11400000, guid: 082f9e677bb01ca4185e3bd53b5f50e2, type: 2}
+  - {fileID: 11400000, guid: 1900081f3ab78394983a0317c4b1b6a0, type: 2}
+  - {fileID: 11400000, guid: 1900081f3ab78394983a0317c4b1b6a0, type: 2}
+  - {fileID: 11400000, guid: 1900081f3ab78394983a0317c4b1b6a0, type: 2}
+  - {fileID: 11400000, guid: 1900081f3ab78394983a0317c4b1b6a0, type: 2}
   CurrentEnemyUnits: []
   CurrentEnemyDeck: []
   AllEvents:

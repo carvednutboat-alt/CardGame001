@@ -330,23 +330,29 @@ public void OnCardClicked(CardUI ui, RuntimeCard card)
         {
             foreach (var e in card.Effects)
             {
-                Debug.Log($"[BattleManager] Checking Effect: Type={e.EffectType}, Code={e.EffectCode}");
                 if (e.IsHasType(EffectType.IGNITION)) 
                 {
-                    if (e.CheckCondition(0, null, 0, 0, null, 0, 0))
+                    if (e.CheckCondition(0, null, 0, 0, null, 0, 0, 0))
                     {
                         _pendingEffect = e;
                         _pendingCard = card;
                         _pendingCardUIObj = ui.gameObject;
 
-                        e.CheckCost(0, null, 0, 0, null, 0, 0);
+                        e.CheckCost(0, null, 0, 0, null, 0, 0, 0);
                         
                         bool enteredTargeting = false;
-                        e.CheckTarget(0, null, 0, 0, null, 0, 0);
+                        // First call: chk=0 to check if target is available
+                        bool hasTarget = e.CheckTarget(0, null, 0, 0, null, 0, 0, 0);
                         
-                        if (IsTargetingMode)
+                        if (hasTarget)
                         {
-                            enteredTargeting = true;
+                            // Second call: chk=1 to actually select target
+                            e.CheckTarget(0, null, 0, 0, null, 0, 0, 1);
+                            
+                            if (IsTargetingMode)
+                            {
+                                enteredTargeting = true;
+                            }
                         }
 
                         if (!enteredTargeting)

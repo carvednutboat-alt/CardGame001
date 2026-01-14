@@ -155,13 +155,13 @@ public class Effect
     // ============================================
     // 效果执行
     // ============================================
-    public bool CheckCondition(int tp, object eg, int ep, int ev, Effect re, int r, int rp)
+    public bool CheckCondition(int tp, object eg, int ep, int ev, Effect re, int r, int rp, int chk = 0)
     {
         if (Condition == null) return true;
         
         try
         {
-            return Condition(this, tp, eg, ep, ev, re, r, rp, 0);
+            return Condition(this, tp, eg, ep, ev, re, r, rp, chk);
         }
         catch (Exception ex)
         {
@@ -170,13 +170,13 @@ public class Effect
         }
     }
     
-    public bool CheckCost(int tp, object eg, int ep, int ev, Effect re, int r, int rp)
+    public bool CheckCost(int tp, object eg, int ep, int ev, Effect re, int r, int rp, int chk = 0)
     {
         if (Cost == null) return true;
         
         try
         {
-            return Cost(this, tp, eg, ep, ev, re, r, rp, 0);
+            return Cost(this, tp, eg, ep, ev, re, r, rp, chk);
         }
         catch (Exception ex)
         {
@@ -185,13 +185,13 @@ public class Effect
         }
     }
     
-    public bool CheckTarget(int tp, object eg, int ep, int ev, Effect re, int r, int rp)
+    public bool CheckTarget(int tp, object eg, int ep, int ev, Effect re, int r, int rp, int chk = 0)
     {
         if (Target == null) return true;
         
         try
         {
-            return Target(this, tp, eg, ep, ev, re, r, rp, 0);
+            return Target(this, tp, eg, ep, ev, re, r, rp, chk);
         }
         catch (Exception ex)
         {
