@@ -1,0 +1,39 @@
+-- ==========================================
+-- 零向量 (Zero Vector)
+-- ID: 1004
+-- ==========================================
+
+local c1004 = {}
+
+function c1004.initial_effect(c)
+    -- 亡语效果
+    local e1=Effect.CreateEffect(c)
+    e1:SetType(EffectType.TRIGGER)
+    e1:SetCode(EventCode.DESTROYED)
+    e1:SetRange(Location.MZONE)
+    e1:SetCondition(c1004.death_con)
+    e1:SetOperation(c1004.death_op)
+    c:RegisterEffect(e1)
+end
+
+-- 条件：被战斗破坏
+function c1004.death_con(e, tp, eg, ep, ev, re, r, rp)
+    -- 检查是否被战斗破坏
+    return bit.band(r, Reason.BATTLE) ~= 0
+end
+
+-- 亡语操作
+function c1004.death_op(e, tp, eg, ep, ev, re, r, rp)
+    -- 获取攻击者（从事件系统中）
+    local attacker = Duel.GetLastAttacker()
+    
+    if attacker ~= nil then
+        -- 使攻击者攻击力归零（临时，本回合）
+        local currentAtk = attacker.CurrentAtk
+        Duel.ModifyATK(attacker, -currentAtk, false)  -- false=临时修正
+        
+        Duel.Log("【零向量】效果触发！攻击者攻击力归零 (本回合)。")
+    end
+end
+
+return c1004

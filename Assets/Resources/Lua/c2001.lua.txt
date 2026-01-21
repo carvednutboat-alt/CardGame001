@@ -1,0 +1,70 @@
+-- ==========================================
+-- 行操作 (Row Operation)
+-- ID: 2001
+-- ==========================================
+
+local c2001 = {}
+
+function c2001.initial_effect(c)
+    -- 起动效果（需要选择目标）
+    local e1=Effect.CreateEffect(c)
+    e1:SetType(EffectType.IGNITION)
+    e1:SetRange(Location.HAND)
+    e1:SetTarget(c2001.target)
+    e1:SetOperation(c2001.operation)
+    c:RegisterEffect(e1)
+end
+
+-- 目标函数：选择一个己方单位
+function c2001.target(e, tp, eg, ep, ev, re, r, rp, chk)
+    if chk==0 then
+        -- 检查是否至少有2个己方单位
+        local count = Duel.GetFieldUnitCount(tp, Location.MZONE, 0)
+        return count >= 2
+    end
+    -- 选择1个己方单位
+    Duel.SelectTarget(tp, Location.MZONE, 1, 1)
+end
+
+-- 操作函数：交换位置+增加攻击
+function c2001.operation(e, tp, eg, ep, ev, re, r, rp)
+    local target = Duel.GetFirstTarget()
+    if target == nil then return end
+    
+    -- 查找相邻单位
+    local units = Duel.GetFieldUnits(tp, Location.MZONE)
+    local idx = -1
+    for i, u in ipairs(units) do
+        if u.Id == target.Id then
+            idx = i
+            break
+        end
+    end
+    
+    if idx == -1 then return end
+    
+    local otherUnit = nil
+    
+    -- 优先找右边
+    if idx + 1 <= #units then
+        otherUnit = units[idx + 1]
+    -- 否则找左边
+    elseif idx - 1 >= 1 then
+        otherUnit = units[idx - 1]
+    end
+    
+    if otherUnit ~= nil then
+        -- 交换位置
+        Duel.SwapUnitPositions(target, otherUnit)
+        
+        -- 双方攻击力+1（永久）
+        Duel.ModifyATK(target, 1, true)     -- true=永久修正
+        Duel.ModifyATK(otherUnit, 1, true)
+        
+        Duel.Log("【初等行变换】交换了 " .. target.Name .. " 和 " .. otherUnit.Name .. " 的位置！(攻击力+1)")
+    else
+        Duel.Log("旁边没有可以交换的单位。")
+    end
+end
+
+return c2001

@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07b54b35d8588e44d9baa982855cf548, type: 3}
+  m_Name: Card_Spell_Transpose
+  m_EditorClassIdentifier: 
+  id: 2003
+  cost: 2
+  cardName: "\u8F6C\u7F6E"
+  kind: 1
+  color: 2
+  description: "\u4EA4\u6362\u6240\u6709\u5DF1\u65B9\u968F\u4ECE\u7684\u653B\u51FB\u529B\u548C\u751F\u547D\u503C\u3002"
+  unitAttack: 0
+  unitHealth: 0
+  unitStartsFlying: 0
+  unitHasTaunt: 0
+  buffGrantFlying: 0
+  buffFreeAttackNow: 0
+  effectType: 0
+  deathEffect: 0
+  onReceiveEquipEffect: 0
+  value: 0
+  isEquipment: 0
+  isFieldEquipment: 0
+  EnemyMoves: []
+  cardTag: 3
+  targetType: 0
+  startsInDeck: 0
+  isCommander: 0
+  dieWithoutCommander: 0
+  equipAttackBonus: 0
+  equipHealthBonus: 0
+  shieldEffectDamage: 0
+  shieldEffectDestroy: 0
+  shieldBattleDestroy: 0
+  extraAttackOnFailedKill: 0

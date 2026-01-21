@@ -1,0 +1,49 @@
+-- ==========================================
+-- 转置 (Transpose)
+-- ID: 2003
+-- ==========================================
+
+local c2003 = {}
+
+function c2003.initial_effect(c)
+    -- 起动效果（全场效果）
+    local e1=Effect.CreateEffect(c)
+    e1:SetType(EffectType.IGNITION)
+    e1:SetRange(Location.HAND)
+    e1:SetOperation(c2003.operation)
+    c:RegisterEffect(e1)
+end
+
+-- 操作函数：互换所有单位的攻击和生命
+function c2003.operation(e, tp, eg, ep, ev, re, r, rp)
+    local units = Duel.GetFieldUnits(tp, Location.MZONE)
+    
+    -- C# List 在 Lua 中索引从 0 开始
+    local count = units.Count
+    
+    for i = 0, count - 1 do
+        local u = units[i]
+        local oldAtk = u.Attack
+        local oldHp = u.CurrentHp
+        
+        -- 合并临时修正到永久修正
+        Duel.ConsolidateTempATK(u)
+        
+        -- 计算攻击力差值
+        local atkDiff = oldHp - oldAtk
+        Duel.ModifyATK(u, atkDiff, true)  -- true=永久
+        
+        -- 修改基础生命值
+        local hpBonus = u.MaxHp - u.BaseMaxHp
+        local newBaseMaxHp = math.max(1, oldAtk - hpBonus)
+        
+        Duel.SetBaseMaxHP(u, newBaseMaxHp)
+        
+        -- 设置当前生命值
+        Duel.SetCurrentHP(u, oldAtk)
+        
+        Duel.Log(u.Name .. " 转置了！(" .. oldAtk .. "/" .. oldHp .. " -> " .. u.Attack .. "/" .. u.CurrentHp .. ")")
+    end
+end
+
+return c2003

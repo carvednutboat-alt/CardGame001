@@ -1,0 +1,33 @@
+-- ==========================================
+-- 特征向量 (Eigenvector)
+-- ID: 1003
+-- ==========================================
+
+local c1003 = {}
+
+function c1003.initial_effect(c)
+    -- 战斗伤害修正效果
+    local e1=Effect.CreateEffect(c)
+    e1:SetType(EffectType.CONTINUOUS)
+    e1:SetCode(EventCode.DAMAGE_CALCULATING)
+    e1:SetRange(Location.MZONE)
+    e1:SetOperation(c1003.damage_op)
+    c:RegisterEffect(e1)
+end
+
+-- 伤害计算时检查
+function c1003.damage_op(e, tp, eg, ep, ev, re, r, rp)
+    local c=e:GetHandler()
+    local unit=e:GetHandlerUnit()
+    
+    if unit == nil then return end
+    
+    -- 检查是否受到变换影响（有永久攻击加成）
+    if unit.PermAttackModifier > 0 then
+        -- 伤害翻倍（在Duel API中实现）
+        Duel.DoubleBattleDamage(unit)
+        Duel.Log("【特征向量】受变换影响，伤害翻倍！")
+    end
+end
+
+return c1003

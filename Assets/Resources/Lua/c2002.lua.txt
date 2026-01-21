@@ -1,0 +1,75 @@
+-- ==========================================
+-- 标量乘法 (Scalar Multiplication)
+-- ID: 2002
+-- ==========================================
+
+local c2002 = {}
+
+function c2002.initial_effect(c)
+    -- 起动效果（全场效果，不需要目标）
+    local e1=Effect.CreateEffect(c)
+    e1:SetType(EffectType.IGNITION)
+    e1:SetRange(Location.HAND)
+    e1:SetOperation(c2002.operation)
+    c:RegisterEffect(e1)
+end
+
+-- 操作函数：翻倍单位矩阵和邻接线性代数单位的攻击/生命
+function c2002.operation(e, tp, eg, ep, ev, re, r, rp)
+    local units = Duel.GetFieldUnits(tp, Location.MZONE)
+    local toBuff = {}
+    
+    -- C# List 在 Lua 中索引从 0 开始，长度用 Count 属性
+    local count = units.Count
+    
+    for i = 0, count - 1 do
+        local u = units[i]
+        local shouldBuff = false
+        
+        -- 条件1：是单位矩阵
+        if u.Name:find("单位矩阵") or u.Name:find("Identity Matrix") then
+            shouldBuff = true
+        else
+            -- 条件2：邻接格子有线性代数单位
+            local hasLinearNeighbor = false
+            
+            -- 检查左边
+            if i > 0 and units[i-1].SourceCard.Data.cardTag == CardTag.LinearAlgebra then
+                hasLinearNeighbor = true
+            end
+            
+            -- 检查右边
+            if i < count - 1 and units[i+1].SourceCard.Data.cardTag == CardTag.LinearAlgebra then
+                hasLinearNeighbor = true
+            end
+            
+            if hasLinearNeighbor then
+                shouldBuff = true
+            end
+        end
+        
+        if shouldBuff then
+            table.insert(toBuff, u)
+        end
+    end
+    
+    -- 对所有满足条件的单位应用效果
+    for _, u in ipairs(toBuff) do
+        -- 攻击力翻倍（临时，本回合）
+        local currentAtk = u.Attack
+        Duel.ModifyATK(u, currentAtk, false)  -- false=临时
+        
+        -- 生命值翻倍（治疗到当前值的2倍，不超过最大值）
+        local currentHp = u.CurrentHp
+        local targetHp = math.min(currentHp * 2, u.MaxHp * 2)
+        local healAmount = targetHp - currentHp
+        
+        if healAmount > 0 then
+            Duel.Heal(u, healAmount)
+        end
+        
+        Duel.Log(u.Name .. " 进行了标量乘法！(攻击翻倍)")
+    end
+end
+
+return c2002

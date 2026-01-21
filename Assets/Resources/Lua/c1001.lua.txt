@@ -1,0 +1,48 @@
+-- ==========================================
+-- 单位矩阵 (Identity Matrix)
+-- ID: 1001
+-- ==========================================
+
+local c1001 = {}
+
+function c1001.initial_effect(c)
+    -- 召唤触发效果
+    local e1=Effect.CreateEffect(c)
+    e1:SetType(EffectType.TRIGGER)
+    e1:SetCode(EventCode.SUMMON_SUCCESS)
+    e1:SetRange(Location.MZONE)
+    e1:SetOperation(c1001.summon_op)
+    c:RegisterEffect(e1)
+end
+
+-- 召唤时的操作
+function c1001.summon_op(e, tp, eg, ep, ev, re, r, rp)
+    local c=e:GetHandler()
+    
+    -- 1. 添加3张标准基到牌库（ID: 1002）
+    Duel.Log("【单位矩阵】效果触发：添加3张标准基到牌库")
+    for i=1,3 do
+        local token = Duel.CreateToken(tp, 1002)
+        if token then
+            Duel.SendtoDeck(token, tp, 2, Reason.EFFECT)
+        end
+    end
+    
+    -- 2. 洗切牌库
+    Duel.ShuffleDeck(tp)
+    
+    -- 3. 检查是否只有这一个单位
+    local count = Duel.GetFieldUnitCount(tp, Location.MZONE, 0)
+    if count == 1 then
+        -- 从牌库检索1张标准基到手牌
+        local found = Duel.SearchDeckAndAddToHand(function(card)
+            return card.Data.cardName:find("Standard Basis") or card.Data.cardName:find("标准基")
+        end)
+        
+        if found then
+            Duel.Log("场上仅有单位矩阵，检索一张标准基入手！")
+        end
+    end
+end
+
+return c1001

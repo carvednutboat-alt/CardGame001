@@ -5,12 +5,28 @@ public class BattleManager : MonoBehaviour
 {
     public static BattleManager Instance;
 
+    [ContextMenu("Debug: Inject Lua Deck")]
+    public void DebugInjectLuaDeck()
+    {
+        if (DeckManager == null) return;
+        var cards = DevCardLoader.GetLuaTestCards();
+        foreach (var data in cards)
+        {
+            // Add to DrawPile
+            DeckManager.DrawPile.Add(new RuntimeCard(data));
+        }
+        DeckManager.ShuffleDeck();
+        UIManager.Log("Debug: Lua Test Cards injected into Draw Pile!");
+    }
+
     [Header("Managers")]
     public DeckManager DeckManager;
     public UnitManager UnitManager;
     public EnemyManager EnemyManager;
     public CombatManager CombatManager;
     public BattleUIManager UIManager;
+    public CardEffectSystem EffectSystem;
+    public EventSystem EventSystem;
 
     [Header("Entities")]
     public Unit PlayerUnit;
@@ -33,12 +49,17 @@ public class BattleManager : MonoBehaviour
 
     // === 内部状态 ===
     public bool IsTargetingMode = false;
+    public bool IsSlotSelectionMode = false; // 新增：选槽位模式
+
     private RuntimeCard _pendingCard;
     private GameObject _pendingCardUIObj;
 
     private RuntimeCard _pendingCard2;
     private GameObject _pendingCardUIObj2;
     private bool _battleEnded = false;
+
+    // === Lua Effect Integration ===
+    private Effect _pendingEffect; // The effect currently gathering targets
 
     // 控制当前回合是否允许攻击 (先后手机制)
     public bool CurrentTurnCanAttack { get; private set; } = true;
@@ -53,6 +74,14 @@ public class BattleManager : MonoBehaviour
     public void Awake()
     {
         Instance = this;
+
+        // Fallback: 如果直接运行 BattleScene，GameManager 可能没创建 LuaManager
+        if (LuaManager.Instance == null)
+        {
+             var obj = new GameObject("LuaManager");
+             obj.AddComponent<LuaManager>();
+             Debug.Log("[BattleManager] Auto-created LuaManager (Fallback)");
+        }
     }
 
     private void Start()
@@ -69,6 +98,24 @@ public class BattleManager : MonoBehaviour
         CombatManager.Init(this);
         EnemyManager.Init(this);
         UnitManager.Init(this);
+        
+        // === 初始化效果系统 ===
+        if (EffectSystem == null)
+        {
+            var go = new GameObject("CardEffectSystem");
+            go.transform.SetParent(transform);
+            EffectSystem = go.AddComponent<CardEffectSystem>();
+        }
+        EffectSystem.Init(this);
+        
+        // === 初始化事件系统 ===
+        if (EventSystem == null)
+        {
+            var eventGo = new GameObject("EventSystem");
+            eventGo.transform.SetParent(transform);
+            EventSystem = eventGo.AddComponent<EventSystem>();
+        }
+        EventSystem.Init(this);
 
         // --- 修改：从全局 GameManager 获取卡组 ---
         List<CardData> spellsForHand = new List<CardData>();
@@ -82,7 +129,15 @@ public class BattleManager : MonoBehaviour
             {
                 if (card.kind == CardKind.Unit)
                 {
-                    unitsForBench.Add(card);
+                    // === 修改：如果单位标记为 startsInDeck，则放入手牌/抽牌堆 ===
+                    if (card.startsInDeck)
+                    {
+                        spellsForHand.Add(card);
+                    }
+                    else
+                    {
+                        unitsForBench.Add(card);
+                    }
                 }
                 else
                 {
@@ -170,7 +225,22 @@ public class BattleManager : MonoBehaviour
 
         if (drawCard && DeckManager != null)
         {
-            DeckManager.DrawCards(1);
+            int baseDraw = 1;
+            int extraDraw = 0;
+            
+            // 检查Relic额外抽牌效果
+            if (RelicManager.Instance != null)
+            {
+                extraDraw = RelicManager.Instance.GetExtraDrawCount();
+            }
+            
+            int totalDraw = baseDraw + extraDraw;
+            DeckManager.DrawCards(totalDraw);
+            
+            if (extraDraw > 0 && UIManager != null)
+            {
+                UIManager.Log($"额外抽牌数: +{extraDraw}");
+            }
         }
         else if (UIManager != null)
         {
@@ -191,7 +261,7 @@ public class BattleManager : MonoBehaviour
 
     public void OnEndTurnButton()
     {
-        if (IsTargetingMode) return;
+        if (IsTargetingMode || IsSlotSelectionMode) return;
         
         // === 添加空值检查 ===
         if (EnemyManager == null)
@@ -205,6 +275,19 @@ public class BattleManager : MonoBehaviour
         if (UnitManager != null)
         {
             UnitManager.SetAllAttackStatus(false);
+            // 重置本回合临时属性 (如突袭加攻)
+            UnitManager.ResetTempStats();
+            // === NEW: Check Commander ===
+            UnitManager.CheckCommanderStatus();
+            // === NEW: Overload Processing ===
+            UnitManager.ProcessOverloadEndTurn();
+        }
+        
+        
+        // 触发Relic回合结束效果
+        if (RelicManager.Instance != null)
+        {
+            RelicManager.Instance.TriggerEndTurnEffects(this);
         }
         
         EnemyTurn(canAttack: true);
@@ -229,258 +312,214 @@ public class BattleManager : MonoBehaviour
         }
     }
 
-    // ---------------------------------------------------------
     // 卡牌交互逻辑 - 修复：使用两参数签名
-    // ---------------------------------------------------------
-
-    public void OnCardClicked(CardUI ui, RuntimeCard card)
+    
+    // 卡牌交互逻辑 - 纯脚本驱动 (C-C-T-O Pattern)
+    // 1. Condition (Check)
+    // 2. Cost (Pay)
+    // 3. Target (SelectTarget -> Targeting Mode)
+    // 4. Operation (Execute)
+public void OnCardClicked(CardUI ui, RuntimeCard card)
     {
-        // === 添加空值检查 ===
-        if (ui == null || card == null || card.Data == null)
+        if (IsTargetingMode || IsSlotSelectionMode) return;
+
+        if (!CheckColorCondition(card)) return;
+
+        // === 1. Try to activate Ignition Effect ===
+        if (card.Effects != null && card.Effects.Count > 0)
         {
-            Debug.LogError("[BattleManager] OnCardClicked 参数为空！");
-            return;
+            foreach (var e in card.Effects)
+            {
+                if (e.IsHasType(EffectType.IGNITION)) 
+                {
+                    if (e.CheckCondition(0, null, 0, 0, null, 0, 0, 0))
+                    {
+                        _pendingEffect = e;
+                        _pendingCard = card;
+                        _pendingCardUIObj = ui.gameObject;
+
+                        e.CheckCost(0, null, 0, 0, null, 0, 0, 0);
+                        
+                        bool enteredTargeting = false;
+                        // First call: chk=0 to check if target is available
+                        bool hasTarget = e.CheckTarget(0, null, 0, 0, null, 0, 0, 0);
+                        
+                        if (hasTarget)
+                        {
+                            // Second call: chk=1 to actually select target
+                            e.CheckTarget(0, null, 0, 0, null, 0, 0, 1);
+                            
+                            if (IsTargetingMode)
+                            {
+                                enteredTargeting = true;
+                            }
+                        }
+
+                        if (!enteredTargeting)
+                        {
+                            e.ExecuteOperation(0, null, 0, 0, null, 0, 0);
+                            FinishEffect(card, ui.gameObject);
+                        }
+                        
+                        return;
+                    }
+                }
+            }
         }
 
-        if (IsTargetingMode)
-        {
-            CancelTargeting();
-            return;
-        }
-
-        // 如果正在选择攻击目标时点了卡牌，取消攻击选择
-        if (_selectedAttacker != null)
-        {
-            if (UIManager != null) UIManager.Log("取消攻击选择");
-            _selectedAttacker = null;
-        }
-
-        // 1. 单位牌 (增加召唤限制)
+        // === 2. Unit Summon Logic ===
         if (card.Data.kind == CardKind.Unit)
         {
-            // === 修改：召唤限制 ===
-            if (HasSummonedThisTurn)
+            if (!card.Data.startsInDeck && HasSummonedThisTurn)
             {
                 if (UIManager != null) UIManager.Log("<color=red>本回合已经召唤过单位了！</color>");
                 return;
             }
-
-            if (UnitManager != null && UnitManager.TrySummonUnit(card))
-            {
-                HasSummonedThisTurn = true; // 标记召唤
-                Destroy(ui.gameObject);
-            }
-            return;
-        }
-
-        // 2. 装备牌 (修改：进入瞄准)
-        if (card.Data.isEquipment)
-        {
-            if (UnitManager == null || UnitManager.PlayerUnits.Count == 0)
-            {
-                if (UIManager != null) UIManager.Log("场上没有随从，无法装备！");
-                return;
-            }
-            EnterTargetingMode(card, ui.gameObject);
-            return;
-        }
-
-        // 3. 需选目标的法术 (Heal / Buff / Evolve)
-        // 这些需要先进入瞄准模式，再点击触发效果
-        if (card.Data.effectType == CardEffectType.HealUnit ||
-            card.Data.effectType == CardEffectType.UnitBuff ||
-            card.Data.effectType == CardEffectType.FieldEvolve ||
-            card.Data.effectType == CardEffectType.DamageEnemy)
-        {
-            EnterTargetingMode(card, ui.gameObject);
-            return;
-        }
-
-        // === 复活修改：单独处理 ===
-        if (card.Data.effectType == CardEffectType.ReviveUnit)
-        {
-            // 1. 判断墓地是否为空
-            if (UnitManager == null || UnitManager.Graveyard.Count == 0)
-            {
-                if (UIManager != null) UIManager.Log("墓地是空的，无法使用。");
-                return;
-            }
-
-            // 2. 暂存卡牌 (因为弹窗没有效果回调，需要暂存)
-            _pendingCard2 = card;
-            _pendingCardUIObj2 = ui.gameObject;
-
-            // 3. 让墓地选择弹窗，并传入回调方法
-            if (UIManager != null)
-            {
-                UIManager.ShowGraveyardSelection(UnitManager.Graveyard, OnGraveyardCardSelected);
-                UIManager.Log("从墓地选择要复活的随从...");
-            }
-            return; // 返回成功（后续在回调执行）
-        }
-
-        // 4. 不需要选目标的法术 (Revive / Draw / AOE)
-        EffectBase effect = EffectFactory.GetEffect(card.Data.effectType);
-        if (effect != null)
-        {
-            // 检查条件（如果墓地为空）CheckCondition 内部会报Log并返回 false
-            if (!effect.CheckCondition(this, card, null)) return;
-
-            effect.Execute(this, card, null);
-            if (DeckManager != null)
-            {
-                DeckManager.DiscardCard(card, ui.gameObject);
-            }
+            EnterSlotSelectionMode(card, ui.gameObject);
         }
         else
         {
-            if (UIManager != null) UIManager.Log($"未实现效果: {card.Data.effectType}");
+            if (UIManager != null) UIManager.Log("此卡无法使用（无效果或不满足条件）。");
         }
     }
 
+    private void FinishEffect(RuntimeCard card, GameObject uiObj)
+    {
+        // Spells/Items usually go to grave after use
+        if (card.Data.kind != CardKind.Unit && DeckManager != null)
+        {
+            DeckManager.DiscardCard(card, uiObj);
+        }
+        // Cleanup refs
+        _pendingEffect = null;
+        _pendingCard = null;
+        _pendingCardUIObj = null;
+    }
+
+    // 处理场上单位点击 (作为目标)
     public void OnFieldUnitClicked(int unitId)
     {
-        if (UnitManager == null)
+        if (UnitManager == null) return;
+        
+        // 1. Targerting Resolution (Lua Strict)
+        if (IsTargetingMode && _pendingEffect != null)
         {
-            Debug.LogError("[BattleManager] UnitManager 为空！");
-            return;
-        }
-
-        // 1. 施法模式
-        if (IsTargetingMode)
-        {
-            // 检测：卡牌如果限制【敌人】或【已经死亡的单位】等
-            if (_pendingCard == null || _pendingCard.Data == null)
-            {
-                ExitTargetingMode();
-                return;
-            }
-
-            if (_pendingCard.Data.targetType != CardTargetType.Ally &&
-                _pendingCard.Data.targetType != CardTargetType.All)
-            {
-                if (UIManager != null) UIManager.Log("<color=red>这张卡只能对己方随从使用！</color>");
-                return; // 返回，不退出模式，继续选择
-            }
             RuntimeUnit target = UnitManager.GetUnitById(unitId);
-            if (target == null) return;
-
-            // 2. === 如果是装备卡，执行装备逻辑 ===
-            if (_pendingCard.Data.isEquipment)
+            if (target != null)
             {
-                ApplyEquipment(_pendingCard, target); // 传参：卡、目标随从
+                // Pass selection to Lua
+                Duel.SetSelection(target);
 
-                // 装备直接从手牌移除，不进入墓地 (因为附在随从上)
-                if (DeckManager != null)
-                {
-                    DeckManager.RemoveCardFromHand(_pendingCard, _pendingCardUIObj);
-                }
-
+                 // Step 4: Operation (Delayed)
+                _pendingEffect.ExecuteOperation(0, null, 0, 0, null, 0, 0);
+                
+                FinishEffect(_pendingCard, _pendingCardUIObj);
                 ExitTargetingMode();
-                return;
             }
-            // =======================================
-
-            EffectBase effect = EffectFactory.GetEffect(_pendingCard.Data.effectType);
-            if (effect != null)
-            {
-                if (!effect.CheckCondition(this, _pendingCard, target)) { ExitTargetingMode(); return; }
-                effect.Execute(this, _pendingCard, target);
-                if (DeckManager != null)
-                {
-                    DeckManager.DiscardCard(_pendingCard, _pendingCardUIObj);
-                }
-            }
-            ExitTargetingMode();
             return;
         }
-
-        // 2. 攻击选择模式 (新逻辑)
+        
+        // 2. Attack Selection Mode (Legacy/Core Game Rule)
         RuntimeUnit unit = UnitManager.GetUnitById(unitId);
         if (unit != null)
         {
-            // 检测是否能攻击
-            if (!CurrentTurnCanAttack)
-            {
-                if (UIManager != null) UIManager.Log("本回合无法进行攻击！");
-                return;
-            }
-            if (!unit.CanAttack)
-            {
-                if (UIManager != null) UIManager.Log($"{unit.Name} 本回合已经攻击过或无法进行攻击");
-                return;
-            }
+            if (IsTargetingMode) return; // Prevent mixing modes
 
-            // 选中这个单位作为攻击者
+            if (!CurrentTurnCanAttack) { if (UIManager != null) UIManager.Log("本回合无法进行攻击！"); return; }
+            if (!unit.CanAttack) { if (UIManager != null) UIManager.Log($"{unit.Name} 无法攻击"); return; }
+            if (unit.IsFatigued) { if (UIManager != null) UIManager.Log($"{unit.Name} 处于疲劳状态"); return; }
+
             _selectedAttacker = unit;
-            if (UIManager != null) UIManager.Log($"已选中 {unit.Name}，<color=yellow>请点击敌人进行攻击</color>");
+            if (UIManager != null) UIManager.Log($"已选中 {unit.Name}，请选择敌人");
         }
     }
 
-    // 处理点击 EnemyUnitUI 的点击
-    public void OnEnemyClicked(EnemyUnitUI enemyUI)
+    // Helper to start targeting
+    public void InitiateEffectTargeting(RuntimeCard card, CardTargetType type)
     {
-        if (enemyUI == null || enemyUI.MyUnit == null)
+        // Called by Duel.SelectTarget
+        IsTargetingMode = true;
+        
+        // _pendingCard should already be set in OnCardClicked
+        if (UIManager != null)
         {
-            Debug.LogError("[BattleManager] EnemyUI 或 MyUnit 为空！");
-            return;
+            UIManager.Log($"请为 {card.Data.cardName} 选择目标...");
+            UnitManager.EnableTargetingSelection();
         }
+    }
 
-        // 1. === 如果正在【施法瞄准模式】 ===
-        if (IsTargetingMode)
+    // 处理敌人点击 (作为目标)
+public void OnEnemyClicked(EnemyUnitUI enemyUI)
+    {
+        if (enemyUI == null || enemyUI.MyUnit == null) return;
+
+        // 1. Targeting Resolution
+        if (IsTargetingMode && _pendingEffect != null)
         {
-            if (_pendingCard == null || _pendingCard.Data == null)
-            {
-                ExitTargetingMode();
-                return;
-            }
-
-            // 检测：卡牌如果限制【友军】或【所有】等
-            if (_pendingCard.Data.targetType != CardTargetType.Enemy &&
-                _pendingCard.Data.targetType != CardTargetType.All)
-            {
-                if (UIManager != null) UIManager.Log("<color=red>这张卡只能对己方使用！</color>");
-                return; // 返回，
-            }
             RuntimeUnit target = enemyUI.MyUnit;
-            if (target == null) return;
+            
+            Duel.SetSelection(target);
 
-            // 获取卡牌对应的法术效果
-            EffectBase effect = EffectFactory.GetEffect(_pendingCard.Data.effectType);
-            if (effect != null)
-            {
-                // 执行效果 (例如伤害, 选中的敌人为目标)
-                effect.Execute(this, _pendingCard, target);
-
-                // 消耗卡牌（弃牌）
-                if (DeckManager != null)
-                {
-                    DeckManager.DiscardCard(_pendingCard, _pendingCardUIObj);
-                }
-            }
-
-            // 退出瞄准模式
+            _pendingEffect.ExecuteOperation(0, null, 0, 0, null, 0, 0);
+            
+            FinishEffect(_pendingCard, _pendingCardUIObj);
             ExitTargetingMode();
             return;
         }
 
-        // 2. 玩家随从攻击模式
+        // 2. Attack Execution
         if (_selectedAttacker != null)
         {
             RuntimeUnit target = enemyUI.MyUnit;
             if (UIManager != null) UIManager.Log($"触发攻击：{_selectedAttacker.Name} -> {target.Name}");
 
-            // === 修改：明确传入 consumeAction: true ===
             if (CombatManager != null)
             {
                 CombatManager.ProcessUnitAttack(_selectedAttacker, target, consumeAction: true);
             }
-
             _selectedAttacker = null;
         }
-        else
+    }
+
+    // === 新增：槽位点击处理 ===
+    public void OnBattleSlotClicked(int index, bool isPlayerSide)
+    {
+        // 只有在选槽位模式且点击的是己方槽位才有效
+        if (!IsSlotSelectionMode || !isPlayerSide) return;
+        if (_pendingCard == null || UnitManager == null) return;
+
+        // 尝试召唤
+        if (UnitManager.TrySummonUnitAt(index, _pendingCard))
         {
-            if (UIManager != null) UIManager.Log($"请先选择己方随从，再点击 {enemyUI.MyUnit.Name}。");
+            // === 修改：只有非 Deck Unit 才消耗召唤次数 ===
+            if (!_pendingCard.Data.startsInDeck)
+            {
+                HasSummonedThisTurn = true;
+            }
+            
+            // 消耗卡牌
+            if (DeckManager != null)
+            {
+                // 单位召唤后，卡牌离开手牌但 *不* 进墓地（除非它死了）
+                DeckManager.RemoveCardFromHand(_pendingCard, _pendingCardUIObj);
+            }
+            
+            // 退出模式
+            ExitTargetingMode(); // 复用退出逻辑
+        }
+    }
+
+    private void EnterSlotSelectionMode(RuntimeCard card, GameObject uiObj)
+    {
+        IsSlotSelectionMode = true;
+        _pendingCard = card;
+        _pendingCardUIObj = uiObj;
+        _selectedAttacker = null;
+
+        if (UIManager != null)
+        {
+            UIManager.Log("请选择召唤位置...");
+            UIManager.HighlightPlayerSlots(true);
         }
     }
 
@@ -500,6 +539,20 @@ public class BattleManager : MonoBehaviour
         if (UIManager != null)
         {
             UIManager.Log($"{target.Name} 装备了 {card.Data.cardName}");
+        }
+
+        // === 新增：被装备时触发本家检索 ===
+        if (target.SourceCard != null && target.SourceCard.Data != null)
+        {
+            if (target.SourceCard.Data.onReceiveEquipEffect != CardEffectType.None)
+            {
+                EffectBase effect = EffectFactory.GetEffect(target.SourceCard.Data.onReceiveEquipEffect);
+                if (effect != null)
+                {
+                    // 参数：sourceCard 为【被装备的怪兽卡本身】
+                    effect.Execute(this, target.SourceCard, target);
+                }
+            }
         }
     }
 
@@ -545,22 +598,29 @@ public class BattleManager : MonoBehaviour
             UnitManager.EnableTargetingSelection();
         }
     }
+    
+
 
     private void ExitTargetingMode()
     {
         IsTargetingMode = false;
+        IsSlotSelectionMode = false; // 同时重置这个
+        
+        _pendingEffect = null; // Clear pending effect
         _pendingCard = null;
         _pendingCardUIObj = null;
         if (UnitManager != null)
         {
             UnitManager.RestoreStateAfterTargeting();
         }
+        // 取消高亮
+        if (UIManager != null) UIManager.HighlightPlayerSlots(false);
     }
 
     private void CancelTargeting()
     {
-        if (!IsTargetingMode) return;
-        if (UIManager != null) UIManager.Log("已取消施法！");
+        if (!IsTargetingMode && !IsSlotSelectionMode) return;
+        if (UIManager != null) UIManager.Log("已取消操作！");
         ExitTargetingMode();
     }
 
@@ -673,5 +733,51 @@ public class BattleManager : MonoBehaviour
         {
             GameManager.Instance.OnRunFailed();
         }
+    }
+
+    // === Color Mechanism ===
+    private bool CheckColorCondition(RuntimeCard card)
+    {
+        // 1. Colorless cards are always free
+        if (card.Data.color == CardColor.Colorless) return true;
+
+        // 2. Units are exempt (to allow bootstrapping)
+        if (card.Data.kind == CardKind.Unit) return true;
+
+        // 3. Check if we have a unit of the same color
+        if (UnitManager != null)
+        {
+            foreach (var unit in UnitManager.PlayerUnits)
+            {
+                // === NEW: 疲劳状态的单位无法提供颜色响应 ===
+                if (unit.IsFatigued) continue;
+
+                // Assuming RuntimeUnit references original CardData or we store color on Unit
+                // RuntimeUnit usually has 'Data' or 'Template' which is CardData
+                if (unit.SourceCard != null && unit.SourceCard.Data != null && unit.SourceCard.Data.color == card.Data.color)
+                {
+                    return true;
+                }
+            }
+        }
+
+        // 4. Failed
+        if (UIManager != null)
+        {
+            string colorName = card.Data.color.ToString();
+            UIManager.Log($"<color=red>需场上有 {colorName} 单位才能使用此卡！</color>");
+        }
+        return false;
+    }
+    // Called by Duel.SelectTarget
+    public void InitiateEffectTargeting(Effect e)
+    {
+        if (e == null) return;
+        _pendingEffect = e;
+        
+        // Find UI Object if possible?
+        // Maybe we don't need UI Obj immediately, only for Discard animation.
+        // We set _pendingCard
+        EnterTargetingMode(e.OwnerCard, null); // OwnerCard is known. UI Obj might be null initially.
     }
 }

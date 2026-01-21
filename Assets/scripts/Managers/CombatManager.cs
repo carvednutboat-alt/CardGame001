@@ -1,5 +1,4 @@
 using UnityEngine;
-using static UnityEngine.GraphicsBuffer;
 
 public class CombatManager : MonoBehaviour
 {
@@ -10,137 +9,194 @@ public class CombatManager : MonoBehaviour
         _bm = bm;
     }
 
-    // ==========================================
-    // 1. ´¦Àí¹ÖÊŞÆÕ¹¥ (ProcessUnitAttack)
-    //    ²ÎÊıĞŞ¸ÄÎª£º¹¥»÷Õß, Ä¿±ê
-    // ==========================================
-    // Ôö¼Ó²ÎÊı£ºconsumeAction (ÊÇ·ñÏûºÄĞĞ¶¯´ÎÊı)£¬Ä¬ÈÏ true
     public void ProcessUnitAttack(RuntimeUnit attacker, RuntimeUnit target, bool consumeAction = true)
     {
         if (attacker == null || target == null) return;
 
-        // 1. Ôì³ÉÉËº¦
+        // 1. é€ æˆä¼¤å®³
         int damage = attacker.CurrentAtk;
-        _bm.UIManager.Log($"{attacker.Name} ¹¥»÷ÁË {target.Name}£¡");
-        ApplyDamage(target, damage);
+        
+        Duel.SetLastAttacker(attacker);
 
-        // 2. === ĞŞ¸´ºËĞÄ£º¿Û³ıĞĞ¶¯´ÎÊı ===
+        // === ä½¿ç”¨æ•ˆæœç³»ç»Ÿå¤„ç†æ”»å‡»ä¿®æ­£ ===
+        if (CardEffectSystem.Instance != null)
+        {
+            if (CardEffectSystem.Instance.CheckUnitMatchesEffect(attacker, "Eigenvector_AttackModifier"))
+            {
+                var ctx = new EffectContext { SourceUnit = attacker, Damage = damage };
+                CardEffectSystem.Instance.TriggerEffect("Eigenvector_AttackModifier", ctx);
+                damage = ctx.Damage;
+            }
+        }
+
+        _bm.UIManager.Log($"{attacker.Name} æ”»å‡»äº† {target.Name}ï¼");
+        ApplyDamage(target, damage, attacker);
+
         if (consumeAction)
         {
             attacker.CanAttack = false;
-
-            // Ë¢ĞÂ¹¥»÷ÕßµÄ UI (°´Å¥±ä»Ò)
             if (attacker.UI != null)
             {
-                attacker.UI.UpdateState(); // Ò²¾ÍÊÇ UpdateStats
+                attacker.UI.UpdateState();
             }
         }
     }
 
-    // ==========================================
-    // 2. ´¦ÀíÍ¨ÓÃÉËº¦ (ApplyDamage) - ¡¾Õâ¾ÍÊÇÄãÈ±Ê§µÄ·½·¨£¡¡¿
-    //    ÓÃÓÚ·¨Êõ¡¢Ğ§¹û¡¢AOEµÈÖ±½Ó¿ÛÑªµÄÇé¿ö
-    // ==========================================
-    public void ApplyDamage(RuntimeUnit target, int damage)
+    public void ApplyHeal(RuntimeUnit target, int amount)
+    {
+        if (target == null) return;
+        
+        target.CurrentHp += amount;
+        if (target.CurrentHp > target.MaxHp) target.CurrentHp = target.MaxHp;
+        
+        if (target.UI != null) target.UI.UpdateState();
+        else if (target.EnemyUI != null) target.EnemyUI.UpdateHP();
+        
+        _bm.UIManager.Log($"{target.Name} æ¢å¤äº† {amount} ç‚¹ç”Ÿå‘½ã€‚");
+    }
+
+    public void ApplyDamage(RuntimeUnit target, int damage, RuntimeUnit source = null)
     {
         if (target == null) return;
 
-        // 1. ¿ÛÑªÂß¼­
         target.CurrentHp -= damage;
         if (target.CurrentHp < 0) target.CurrentHp = 0;
 
-        // 2. Ë¢ĞÂ UI
-        // Èç¹ûÊÇÍæ¼Òµ¥Î»
         if (target.UI != null)
         {
             target.UI.UpdateState();
         }
-        // Èç¹ûÊÇµĞÈËµ¥Î»
         else if (target.EnemyUI != null)
         {
             target.EnemyUI.UpdateHP();
             target.EnemyUI.UpdateAttack();
         }
 
-        // 3. ËÀÍöÅĞ¶¨
         if (target.IsDead)
         {
-            _bm.UIManager.Log($"{target.Name} ±»»÷°ÜÁË£¡");
+            _bm.UIManager.Log($"{target.Name} è¢«å‡»è´¥äº†ï¼");
 
-            // Çø·ÖÊÇµĞÈË»¹ÊÇÍæ¼ÒËæ´Ó
-            // Í¨³£µĞÈËÃ»ÓĞ SourceCard »òÕß ID Îª -1 (È¡¾öÓÚÄãµÄ¹¹Ôìº¯Êı)
+            // === ä½¿ç”¨æ•ˆæœç³»ç»Ÿå¤„ç†äº¡è¯­æ•ˆæœ ===
+            if (CardEffectSystem.Instance != null)
+            {
+                if (CardEffectSystem.Instance.CheckUnitMatchesEffect(target, "ZeroVector_Deathrattle"))
+                {
+                    var ctx = new EffectContext { TargetUnit = target, SourceUnit = source };
+                    CardEffectSystem.Instance.TriggerEffect("ZeroVector_Deathrattle", ctx);
+                }
+            }
+
+            // === ä½¿ç”¨æ•ˆæœç³»ç»Ÿå¤„ç†å‡»æ€è§¦å‘ ===
+            if (source != null && !source.IsDead && CardEffectSystem.Instance != null)
+            {
+                if (CardEffectSystem.Instance.CheckUnitMatchesEffect(source, "SteamReaper_OnKill"))
+                {
+                    var ctx = new EffectContext { SourceUnit = source, TargetUnit = target };
+                    CardEffectSystem.Instance.TriggerEffect("SteamReaper_OnKill", ctx);
+                }
+            }
+
             if (target.SourceCard == null || target.Id == -1)
             {
-                // Í¨Öª EnemyManager µĞÈËËÀÁË
                 _bm.EnemyManager.OnEnemyDie(target);
             }
             else
             {
-                // Í¨Öª UnitManager Ëæ´ÓËÀÁË
                 _bm.UnitManager.KillUnit(target);
             }
         }
     }
 
-    // ==========================================
-    // 3. ÖØĞÂ¼ÆËãÊıÖµ (RecalculateUnitStats)
-    //    ±» EffectLogic.cs ÖĞµÄ FieldEvolveEffect µ÷ÓÃ
-    // ==========================================
-    // ==========================================
-    // ÖØĞÂ¼ÆËãÊıÖµ (ºËĞÄÂß¼­)
-    // ==========================================
     public void RecalculateUnitStats(RuntimeUnit unit)
     {
         if (unit == null) return;
 
-        // 1. ¼ÇÂ¼¾ÉµÄÉÏÏŞ£¬ÓÃÀ´¼ÆËãÑªÁ¿²îÖµ
         int oldMaxHp = unit.MaxHp;
 
-        // 2. ÖØÖÃÎªÂãÌåÊıÖµ
         int finalAtk = unit.BaseAtk;
         int finalMaxHp = unit.BaseMaxHp;
 
-        // 3. ¼ÆËã×°±¸´øÀ´µÄ¼Ó³É
-        // ¹æÔò£ºÃ¿¼ş×°±¸±¾ÉíÌá¹© +1/+1 (½ø»¯ºó +2/+2)
         int statsPerEquip = unit.IsEvolved ? 2 : 1;
 
-        // ÀÛ¼ÓËùÓĞ×°±¸
         foreach (var equipData in unit.Equips)
         {
-            // A. »úÖÆ¼Ó³É (Ã¿ÕÅ¿¨¶¼ÓĞ)
             finalAtk += statsPerEquip;
             finalMaxHp += statsPerEquip;
-
-            // B. ¿¨ÅÆ×ÔÉíÊôĞÔ¼Ó³É (Èç¹û CardData ÀïÌîÁË value)
-            finalMaxHp += equipData.equipHealthBonus; // Èç¹û¿¨ÅÆ»¹ÄÜ¶îÍâ¼ÓÑª£¬ÔÚÕâÀï¼Ó
+            finalMaxHp += equipData.equipHealthBonus;
             finalAtk += equipData.equipAttackBonus;
         }
 
-        // 4. Ó¦ÓÃ¹¥»÷Á¦
-        unit.CurrentAtk = finalAtk;
+        // === ä½¿ç”¨æ•ˆæœç³»ç»Ÿå¤„ç†è¿‡è½½åŠ æˆ ===
+        if (unit.Overload > 0 && CardEffectSystem.Instance != null)
+        {
+            if (unit.SourceCard != null && unit.SourceCard.Data != null 
+                && unit.SourceCard.Data.isCommander 
+                && unit.SourceCard.Data.cardTag == CardTag.Robot)
+            {
+                if (unit.RobotEvolved)
+                {
+                    finalAtk += (unit.Overload * 2);
+                    _bm.UIManager.Log($"{unit.Name} æé™è¿è½¬: +{unit.Overload * 2} æ”»å‡»");
+                }
+                else
+                {
+                    finalAtk += 2;
+                }
+            }
+        }
 
-        // 5. Ó¦ÓÃÑªÁ¿ (¹Ø¼üËã·¨£ºÉÏÏŞ¼ÓÁË¶àÉÙ£¬µ±Ç°Ñª¾Í»Ø¶àÉÙ)
+        // === ä½¿ç”¨æ•ˆæœç³»ç»Ÿå¤„ç†å…‰ç¯æ•ˆæœ ===
+        if (_bm != null && _bm.UnitManager != null && CardEffectSystem.Instance != null)
+        {
+            int myIndex = -1;
+            for(int i=0; i<5; i++)
+            {
+                if (_bm.UnitManager.Slots[i] == unit)
+                {
+                    myIndex = i;
+                    break;
+                }
+            }
+
+            if (myIndex != -1)
+            {
+                if (CheckNeighborAura(_bm.UnitManager.Slots, myIndex - 1)) finalMaxHp += 1;
+                if (CheckNeighborAura(_bm.UnitManager.Slots, myIndex + 1)) finalMaxHp += 1;
+            }
+        }
+
+        finalAtk += unit.TempAttackModifier;
+        finalAtk += unit.PermAttackModifier;
+
+        unit.CurrentAtk = finalAtk;
         unit.MaxHp = finalMaxHp;
 
         int diff = finalMaxHp - oldMaxHp;
         if (diff != 0)
         {
             unit.CurrentHp += diff;
-
-            // ĞŞÕı±ß½ç
             if (unit.CurrentHp > unit.MaxHp) unit.CurrentHp = unit.MaxHp;
-            if (unit.CurrentHp < 1) unit.CurrentHp = 1; // ×°±¸±ä¸üÍ¨³£²»ÖÂËÀ
+            if (unit.CurrentHp < 1) unit.CurrentHp = 1;
         }
 
-        // 6. Ë¢ĞÂ UI
         if (unit.UI != null) unit.UI.UpdateState();
         else if (unit.EnemyUI != null)
         { 
             unit.EnemyUI.UpdateHP();
             unit.EnemyUI.UpdateAttack();
         }
-
     }
 
-    // Èç¹û»¹ÓĞ ApplyBattleDamage ÕâÖÖ¾É·½·¨£¬½¨ÒéÉ¾³ı»òÖØ¶¨Ïòµ½ ApplyDamage
+    private bool CheckNeighborAura(RuntimeUnit[] slots, int index)
+    {
+        if (index < 0 || index >= slots.Length) return false;
+        var u = slots[index];
+        if (u == null || u.IsDead) return false;
+        
+        if (CardEffectSystem.Instance != null)
+        {
+            return CardEffectSystem.Instance.CheckUnitMatchesEffect(u, "RobotDefender_Aura");
+        }
+        return false;
+    }
 }

@@ -16,7 +16,7 @@ public class DeckManager : MonoBehaviour
 
     private BattleManager _bm;
 
-public void Init(BattleManager bm, List<CardData> startingData = null)
+    public void Init(BattleManager bm, List<CardData> startingData = null)
     {
         _bm = bm;
         DrawPile.Clear();
@@ -94,16 +94,38 @@ public void Init(BattleManager bm, List<CardData> startingData = null)
         if (Hand.Contains(card))
         {
             Hand.Remove(card);
-            Destroy(uiObj);
-            // ע�⣺����û�� DiscardPile.Add
         }
+        else
+        {
+            Debug.LogWarning($"[DeckManager] RemoveCardFromHand: Card {card?.Data?.cardName} not found in Hand list.");
+        }
+
+        // 无论是否在列表中，只要传递了 UI 对象且确认消耗，都销毁
+        if (uiObj != null)
+        {
+            Destroy(uiObj);
+        }
+    }
+
+    // === 新增：直接添加卡牌到手牌 (用于检索效果) ===
+    public bool AddCardToHand(RuntimeCard card)
+    {
+        if (Hand.Count >= MaxHandSize)
+        {
+            _bm.UIManager.Log($"手牌已满，{card.Data.cardName} 被挤掉了。");
+            DiscardPile.Add(card);
+            return false;
+        }
+
+        Hand.Add(card);
+        CreateCardUI(card);
+        return true;
     }
 
     private void CreateCardUI(RuntimeCard card)
     {
         CardUI ui = Instantiate(CardPrefab, HandPanel);
-        // CardUI ��Ҫ���� RuntimeCard�����������һ���ش��޸� CardUI.Init
-        ui.Init(card, _bm); // ��ʱ�� Data�������ع� CardUI ���� RuntimeCard
+        ui.Init(card, _bm); 
     }
 
     private void ReshuffleDiscardToDraw()
@@ -111,7 +133,16 @@ public void Init(BattleManager bm, List<CardData> startingData = null)
         DrawPile.AddRange(DiscardPile);
         DiscardPile.Clear();
         Shuffle(DrawPile);
-        _bm.UIManager.Log("���ƶ���ϴ���ƿ⡣");
+        _bm.UIManager.Log("弃牌堆已返回牌库");
+    }
+
+    public void ShuffleDeck()
+    {
+        Shuffle(DrawPile);
+        if (_bm != null && _bm.UIManager != null)
+        {
+            _bm.UIManager.Log("牌库已洗切。");
+        }
     }
 
     private void Shuffle(List<RuntimeCard> list)
@@ -123,5 +154,19 @@ public void Init(BattleManager bm, List<CardData> startingData = null)
             list[i] = list[rnd];
             list[rnd] = temp;
         }
+    }
+
+    public GameObject FindCardUI(RuntimeCard card)
+    {
+        if (HandPanel == null) return null;
+        foreach (Transform child in HandPanel)
+        {
+            CardUI ui = child.GetComponent<CardUI>();
+            if (ui != null && ui.RuntimeCard == card)
+            {
+                return ui.gameObject;
+            }
+        }
+        return null;
     }
 }

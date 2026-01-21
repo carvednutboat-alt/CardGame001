@@ -1,0 +1,57 @@
+-- ==========================================
+-- 施密特正交化 (Gram-Schmidt)
+-- ID: 2004
+-- ==========================================
+
+local c2004 = {}
+
+function c2004.initial_effect(c)
+    -- 起动效果（全场效果）
+    local e1=Effect.CreateEffect(c)
+    e1:SetType(EffectType.IGNITION)
+    e1:SetRange(Location.HAND)
+    e1:SetOperation(c2004.operation)
+    c:RegisterEffect(e1)
+end
+
+-- 操作函数：正交化+Rank检查
+function c2004.operation(e, tp, eg, ep, ev, re, r, rp)
+    local units = Duel.GetFieldUnits(tp, Location.MZONE)
+    local rank = 0
+    local commanderThreshold = 0
+    
+    -- C# List 在 Lua 中索引从 0 开始
+    local count = units.Count
+    
+    -- 1. 进化标准基为正交基，统计Rank
+    for i = 0, count - 1 do
+        local u = units[i]
+        -- 检查是否是标准基
+        if u.Name:find("标准基") or u.Name:find("Standard Basis") then
+            -- 进化为正交基
+            Duel.EvolveUnit(u, "正交基", "Orthogonal Basis")
+            rank = rank + 1
+            Duel.Log(u.Name .. " 正交化为 正交基！")
+        -- 检查是否已经是正交基
+        elseif u.Name:find("正交基") or u.Name:find("Orthogonal Basis") then
+            rank = rank + 1
+        end
+        
+        -- 查找指挥官（单位矩阵也算）
+        if u.SourceCard.Data.isCommander or u.Name:find("单位矩阵") or u.Name:find("Identity Matrix") then
+            commanderThreshold = math.min(u.Attack, u.CurrentHp)
+        end
+    end
+    
+    -- 2. 输出Rank信息
+    Duel.Log("当前 Rank: " .. rank .. ", 指挥官阈值: " .. commanderThreshold)
+    
+    -- 3. 检查Rank条件
+    if rank >= commanderThreshold and commanderThreshold > 0 then
+        -- 授予全场效果免疫
+        Duel.GrantPlayerImmuneToEffects(tp, true)
+        Duel.Log("Rank 足够高！我方单位获得【效果免疫】(持续至对方回合结束)")
+    end
+end
+
+return c2004
