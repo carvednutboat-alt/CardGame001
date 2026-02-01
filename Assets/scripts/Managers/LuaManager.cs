@@ -23,12 +23,9 @@ public class LuaManager : MonoBehaviour
     private void InitLuaEnv()
     {
         GlobalEnv = new LuaEnv();
-        
-        // 注册自定义加载器，用于从 Resources 文件夹加载 .lua.txt 文件
+
         GlobalEnv.AddLoader(CustomLoader);
         
-        // 直接将 C# 常量类映射到 Lua 全局变量 (无需 CS. 前缀)
-        // 使用 DoString 进行别名映射，确保 Lua 中能像访问静态类一样访问这些 Enum
         GlobalEnv.DoString(@"
             EffectType = CS.EffectType
             Location = CS.Location
@@ -40,6 +37,9 @@ public class LuaManager : MonoBehaviour
             Position = CS.Position
             Player = CS.Player
             CardTag = CS.CardTag
+            CardTargetType = CS.CardTargetType
+            CardKind = CS.CardKind
+            CardColor = CS.CardColor
             
             -- Map Core System Classes
             Duel = CS.Duel

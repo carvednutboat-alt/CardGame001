@@ -37,8 +37,8 @@ namespace XLua
 				translator.RegisterPushAndGetAndUpdate<XLuaTest.Pedding>(translator.PushXLuaTestPedding, translator.Get, translator.UpdateXLuaTestPedding);
 				translator.RegisterPushAndGetAndUpdate<XLuaTest.MyStruct>(translator.PushXLuaTestMyStruct, translator.Get, translator.UpdateXLuaTestMyStruct);
 				translator.RegisterPushAndGetAndUpdate<XLuaTest.PushAsTableStruct>(translator.PushXLuaTestPushAsTableStruct, translator.Get, translator.UpdateXLuaTestPushAsTableStruct);
-				translator.RegisterPushAndGetAndUpdate<CardTag>(translator.PushCardTag, translator.Get, translator.UpdateCardTag);
 				translator.RegisterPushAndGetAndUpdate<CardTargetType>(translator.PushCardTargetType, translator.Get, translator.UpdateCardTargetType);
+				translator.RegisterPushAndGetAndUpdate<CardTag>(translator.PushCardTag, translator.Get, translator.UpdateCardTag);
 				translator.RegisterPushAndGetAndUpdate<Tutorial.TestEnum>(translator.PushTutorialTestEnum, translator.Get, translator.UpdateTutorialTestEnum);
 				translator.RegisterPushAndGetAndUpdate<XLuaTest.MyEnum>(translator.PushXLuaTestMyEnum, translator.Get, translator.UpdateXLuaTestMyEnum);
 				translator.RegisterPushAndGetAndUpdate<Tutorial.DerivedClass.TestEnumInner>(translator.PushTutorialDerivedClassTestEnumInner, translator.Get, translator.UpdateTutorialDerivedClassTestEnumInner);
@@ -773,90 +773,6 @@ namespace XLua
             }
         }
         
-        int CardTag_TypeID = -1;
-		int CardTag_EnumRef = -1;
-        
-        public void PushCardTag(RealStatePtr L, CardTag val)
-        {
-            if (CardTag_TypeID == -1)
-            {
-			    bool is_first;
-                CardTag_TypeID = getTypeId(L, typeof(CardTag), out is_first);
-				
-				if (CardTag_EnumRef == -1)
-				{
-				    Utils.LoadCSTable(L, typeof(CardTag));
-				    CardTag_EnumRef = LuaAPI.luaL_ref(L, LuaIndexes.LUA_REGISTRYINDEX);
-				}
-				
-            }
-			
-			if (LuaAPI.xlua_tryget_cachedud(L, (int)val, CardTag_EnumRef) == 1)
-            {
-			    return;
-			}
-			
-            IntPtr buff = LuaAPI.xlua_pushstruct(L, 4, CardTag_TypeID);
-            if (!CopyByValue.Pack(buff, 0, (int)val))
-            {
-                throw new Exception("pack fail fail for CardTag ,value="+val);
-            }
-			
-			LuaAPI.lua_getref(L, CardTag_EnumRef);
-			LuaAPI.lua_pushvalue(L, -2);
-			LuaAPI.xlua_rawseti(L, -2, (int)val);
-			LuaAPI.lua_pop(L, 1);
-			
-        }
-		
-        public void Get(RealStatePtr L, int index, out CardTag val)
-        {
-		    LuaTypes type = LuaAPI.lua_type(L, index);
-            if (type == LuaTypes.LUA_TUSERDATA )
-            {
-			    if (LuaAPI.xlua_gettypeid(L, index) != CardTag_TypeID)
-				{
-				    throw new Exception("invalid userdata for CardTag");
-				}
-				
-                IntPtr buff = LuaAPI.lua_touserdata(L, index);
-				int e;
-                if (!CopyByValue.UnPack(buff, 0, out e))
-                {
-                    throw new Exception("unpack fail for CardTag");
-                }
-				val = (CardTag)e;
-                
-            }
-            else
-            {
-                val = (CardTag)objectCasters.GetCaster(typeof(CardTag))(L, index, null);
-            }
-        }
-		
-        public void UpdateCardTag(RealStatePtr L, int index, CardTag val)
-        {
-		    
-            if (LuaAPI.lua_type(L, index) == LuaTypes.LUA_TUSERDATA)
-            {
-			    if (LuaAPI.xlua_gettypeid(L, index) != CardTag_TypeID)
-				{
-				    throw new Exception("invalid userdata for CardTag");
-				}
-				
-                IntPtr buff = LuaAPI.lua_touserdata(L, index);
-                if (!CopyByValue.Pack(buff, 0,  (int)val))
-                {
-                    throw new Exception("pack fail for CardTag ,value="+val);
-                }
-            }
-			
-            else
-            {
-                throw new Exception("try to update a data with lua type:" + LuaAPI.lua_type(L, index));
-            }
-        }
-        
         int CardTargetType_TypeID = -1;
 		int CardTargetType_EnumRef = -1;
         
@@ -932,6 +848,90 @@ namespace XLua
                 if (!CopyByValue.Pack(buff, 0,  (int)val))
                 {
                     throw new Exception("pack fail for CardTargetType ,value="+val);
+                }
+            }
+			
+            else
+            {
+                throw new Exception("try to update a data with lua type:" + LuaAPI.lua_type(L, index));
+            }
+        }
+        
+        int CardTag_TypeID = -1;
+		int CardTag_EnumRef = -1;
+        
+        public void PushCardTag(RealStatePtr L, CardTag val)
+        {
+            if (CardTag_TypeID == -1)
+            {
+			    bool is_first;
+                CardTag_TypeID = getTypeId(L, typeof(CardTag), out is_first);
+				
+				if (CardTag_EnumRef == -1)
+				{
+				    Utils.LoadCSTable(L, typeof(CardTag));
+				    CardTag_EnumRef = LuaAPI.luaL_ref(L, LuaIndexes.LUA_REGISTRYINDEX);
+				}
+				
+            }
+			
+			if (LuaAPI.xlua_tryget_cachedud(L, (int)val, CardTag_EnumRef) == 1)
+            {
+			    return;
+			}
+			
+            IntPtr buff = LuaAPI.xlua_pushstruct(L, 4, CardTag_TypeID);
+            if (!CopyByValue.Pack(buff, 0, (int)val))
+            {
+                throw new Exception("pack fail fail for CardTag ,value="+val);
+            }
+			
+			LuaAPI.lua_getref(L, CardTag_EnumRef);
+			LuaAPI.lua_pushvalue(L, -2);
+			LuaAPI.xlua_rawseti(L, -2, (int)val);
+			LuaAPI.lua_pop(L, 1);
+			
+        }
+		
+        public void Get(RealStatePtr L, int index, out CardTag val)
+        {
+		    LuaTypes type = LuaAPI.lua_type(L, index);
+            if (type == LuaTypes.LUA_TUSERDATA )
+            {
+			    if (LuaAPI.xlua_gettypeid(L, index) != CardTag_TypeID)
+				{
+				    throw new Exception("invalid userdata for CardTag");
+				}
+				
+                IntPtr buff = LuaAPI.lua_touserdata(L, index);
+				int e;
+                if (!CopyByValue.UnPack(buff, 0, out e))
+                {
+                    throw new Exception("unpack fail for CardTag");
+                }
+				val = (CardTag)e;
+                
+            }
+            else
+            {
+                val = (CardTag)objectCasters.GetCaster(typeof(CardTag))(L, index, null);
+            }
+        }
+		
+        public void UpdateCardTag(RealStatePtr L, int index, CardTag val)
+        {
+		    
+            if (LuaAPI.lua_type(L, index) == LuaTypes.LUA_TUSERDATA)
+            {
+			    if (LuaAPI.xlua_gettypeid(L, index) != CardTag_TypeID)
+				{
+				    throw new Exception("invalid userdata for CardTag");
+				}
+				
+                IntPtr buff = LuaAPI.lua_touserdata(L, index);
+                if (!CopyByValue.Pack(buff, 0,  (int)val))
+                {
+                    throw new Exception("pack fail for CardTag ,value="+val);
                 }
             }
 			
@@ -1270,16 +1270,16 @@ namespace XLua
 				translator.PushXLuaTestPushAsTableStruct(L, array[index]);
 				return true;
 			}
-			else if (type == typeof(CardTag[]))
-			{
-			    CardTag[] array = obj as CardTag[];
-				translator.PushCardTag(L, array[index]);
-				return true;
-			}
 			else if (type == typeof(CardTargetType[]))
 			{
 			    CardTargetType[] array = obj as CardTargetType[];
 				translator.PushCardTargetType(L, array[index]);
+				return true;
+			}
+			else if (type == typeof(CardTag[]))
+			{
+			    CardTag[] array = obj as CardTag[];
+				translator.PushCardTag(L, array[index]);
 				return true;
 			}
 			else if (type == typeof(Tutorial.TestEnum[]))
@@ -1372,15 +1372,15 @@ namespace XLua
 				translator.Get(L, obj_idx, out array[array_idx]);
 				return true;
 			}
-			else if (type == typeof(CardTag[]))
-			{
-			    CardTag[] array = obj as CardTag[];
-				translator.Get(L, obj_idx, out array[array_idx]);
-				return true;
-			}
 			else if (type == typeof(CardTargetType[]))
 			{
 			    CardTargetType[] array = obj as CardTargetType[];
+				translator.Get(L, obj_idx, out array[array_idx]);
+				return true;
+			}
+			else if (type == typeof(CardTag[]))
+			{
+			    CardTag[] array = obj as CardTag[];
 				translator.Get(L, obj_idx, out array[array_idx]);
 				return true;
 			}

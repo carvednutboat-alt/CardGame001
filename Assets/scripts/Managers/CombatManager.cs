@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class CombatManager : MonoBehaviour
 {
@@ -58,6 +59,15 @@ public class CombatManager : MonoBehaviour
     public void ApplyDamage(RuntimeUnit target, int damage, RuntimeUnit source = null)
     {
         if (target == null) return;
+
+        // Check Immunity (Field Magic Blue Effect)
+        // Checks if Source is Enemy (Owner == 1) and Target is Immune
+        if (target.IsImmuneToEnemyEffects && source != null && source.SourceCard != null && source.SourceCard.Owner == 1)
+        {
+            _bm.UIManager.Log($"{target.Name} 免疫了来自 {source.Name} 的伤害！");
+            damage = 0;
+            return; // Block completely? Or just 0 damage? Return blocks "OnHit" triggers too. Assuming Block.
+        }
 
         target.CurrentHp -= damage;
         if (target.CurrentHp < 0) target.CurrentHp = 0;
@@ -142,6 +152,47 @@ public class CombatManager : MonoBehaviour
                 {
                     finalAtk += 2;
                 }
+            }
+        }
+
+
+        // Initialize Flags
+        unit.IsImmuneToEnemyEffects = false;
+
+        // === Field Magic: Prismatic Battleground (ID 5001) ===
+        if (_bm != null && _bm.FieldCard != null && _bm.FieldCard.Data.id == 5001)
+        {
+            HashSet<CardColor> colors;
+            // Determine side based on unit's owner or type
+            // Assuming unit works for both Player and Enemy (RuntimeUnit shared?)
+            // If unit is in EnemyManager, use Enemy colors.
+            // Simplified check: if it has EnemyUI, it's Enemy.
+            bool isEnemy = (unit.EnemyUI != null);
+
+            if (isEnemy)
+            {
+                colors = _bm.EnemyManager.GetAliveCommanderColors();
+            }
+            else
+            {
+                colors = _bm.UnitManager.GetAliveCommanderColors();
+            }
+
+            bool hasRed = colors.Contains(CardColor.Red);
+            bool hasBlue = colors.Contains(CardColor.Blue);
+            bool hasGreen = colors.Contains(CardColor.Green);
+            bool rainbow = hasRed && hasBlue && hasGreen;
+
+            // Red Effect: +3 ATK
+            if (rainbow || (hasRed && unit.SourceCard.Data.color == CardColor.Red))
+            {
+                finalAtk += 3;
+            }
+            
+            // Blue Effect: Immunity
+            if (rainbow || (hasBlue && unit.SourceCard.Data.color == CardColor.Blue))
+            {
+                unit.IsImmuneToEnemyEffects = true;
             }
         }
 

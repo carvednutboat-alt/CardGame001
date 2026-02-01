@@ -27,7 +27,21 @@ public class FieldUnitUI : MonoBehaviour
         _bm = manager;
 
         // 设置名字
-        if (nameText != null) nameText.text = unit.Name;
+        if (nameText != null) 
+        {
+            nameText.text = unit.Name;
+            // Visual Color Indication
+            if (unit.SourceCard != null)
+            {
+                switch (unit.SourceCard.Data.color)
+                {
+                    case CardColor.Red: nameText.color = Color.red; break;
+                    case CardColor.Green: nameText.color = Color.green; break;
+                    case CardColor.Blue: nameText.color = Color.cyan; break;
+                    default: nameText.color = Color.white; break;
+                }
+            }
+        }
 
         // 绑定按钮事件
         if (clickButton != null)

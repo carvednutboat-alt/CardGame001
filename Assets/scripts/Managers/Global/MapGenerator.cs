@@ -25,8 +25,22 @@ public static class MapGenerator
             for (int x = 0; x < count; x++)
             {
                 NodeType type = GetRandomType(y, config.LayersCount);
+                
+                // === User Request: Elite Enemy Logic ===
+                // 1. No Elites in first 3 rows (Indices 0, 1, 2) -> checks y < 3
+                // 2. 30% of Normal Enemies become Elite
+                if (type == NodeType.MinorEnemy && y >= 3)
+                {
+                    if (Random.value < 0.3f) 
+                    {
+                        type = NodeType.EliteEnemy;
+                    }
+                }
+
                 // 强制修正：Boss层必须是Boss
                 if (y == config.LayersCount - 1) type = NodeType.Boss;
+
+
 
                 layerNodes.Add(new MapNode(x, y, type));
             }

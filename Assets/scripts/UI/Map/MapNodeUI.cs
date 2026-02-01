@@ -93,9 +93,16 @@ public class MapNodeUI : MonoBehaviour
     void SetColor(Color c)
     {
         BackgroundCircle.color = c;
-        // 如果想让里面的图标保持原色，下面这行可以去掉；
-        // 如果想让图标跟着变暗，就保留。
-        TypeIcon.color = new Color(1, 1, 1, c.a);
+        
+        // Elite Icon Tint Logic
+        Color iconBaseColor = Color.white;
+        if (_data != null && _data.Type == NodeType.EliteEnemy)
+        {
+            iconBaseColor = Color.red;
+        }
+
+        // Apply tint while respecting alpha from status
+        TypeIcon.color = new Color(iconBaseColor.r, iconBaseColor.g, iconBaseColor.b, c.a);
     }
 
     void OnClick()

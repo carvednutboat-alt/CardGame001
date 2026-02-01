@@ -319,51 +319,64 @@ public class BattleManager : MonoBehaviour
     // 2. Cost (Pay)
     // 3. Target (SelectTarget -> Targeting Mode)
     // 4. Operation (Execute)
-public void OnCardClicked(CardUI ui, RuntimeCard card)
+    // === Field Magic Slot ===
+    // === Field Magic Slot ===
+    public RuntimeCard FieldCard { get; private set; }
+
+    public void SetFieldCardForEnemy(RuntimeCard card)
+    {
+        FieldCard = card;
+        if (card != null) 
+        {
+             FieldCard.CurrentLocation = Location.SZONE;
+             UIManager.Log($"场地魔法【{card.Data.cardName}】由敌方激活！");
+             // Refresh stats
+             if (CombatManager != null && UnitManager != null)
+             {
+                 foreach (var unit in UnitManager.PlayerUnits) CombatManager.RecalculateUnitStats(unit);
+             }
+             if (CombatManager != null && EnemyManager != null)
+             {
+                 foreach (var enemy in EnemyManager.ActiveEnemies) 
+                 {
+                     // Ensure enemy UI updates too if they show ATK/HP
+                     enemy.UI.UpdateAttack();
+                     enemy.UI.UpdateHP();
+                 }
+             }
+
+             // Visuals for Enemy Field Card
+             if (UIManager.FieldMagicSlot != null && DeckManager != null && DeckManager.CardPrefab != null)
+             {
+                 // REFACTORED: Use dedicated UI Manager helper
+                 UIManager.SetFieldMagicCard(DeckManager.CardPrefab.gameObject, card);
+             }
+        }
+    }
+
+    public void OnCardClicked(CardUI ui, RuntimeCard card)
     {
         if (IsTargetingMode || IsSlotSelectionMode) return;
+
+        // === Field Magic Logic ===
+        if (card.Data.kind == CardKind.Field)
+        {
+            PlayFieldCard(card, ui);
+            return;
+        }
 
         if (!CheckColorCondition(card)) return;
 
         // === 1. Try to activate Ignition Effect ===
+        // === 1. Ignition Effect Logic (Spells / Equipment) ===
+        // REFACTORED: Use RuntimeCard.Effects (Lua) not CardData.Effects
         if (card.Effects != null && card.Effects.Count > 0)
         {
-            foreach (var e in card.Effects)
+            var e = card.Effects.Find(x => x.IsHasType(EffectType.IGNITION));
+            if (e != null)
             {
-                if (e.IsHasType(EffectType.IGNITION)) 
-                {
-                    if (e.CheckCondition(0, null, 0, 0, null, 0, 0, 0))
-                    {
-                        _pendingEffect = e;
-                        _pendingCard = card;
-                        _pendingCardUIObj = ui.gameObject;
-
-                        e.CheckCost(0, null, 0, 0, null, 0, 0, 0);
-                        
-                        bool enteredTargeting = false;
-                        // First call: chk=0 to check if target is available
-                        bool hasTarget = e.CheckTarget(0, null, 0, 0, null, 0, 0, 0);
-                        
-                        if (hasTarget)
-                        {
-                            // Second call: chk=1 to actually select target
-                            e.CheckTarget(0, null, 0, 0, null, 0, 0, 1);
-                            
-                            if (IsTargetingMode)
-                            {
-                                enteredTargeting = true;
-                            }
-                        }
-
-                        if (!enteredTargeting)
-                        {
-                            e.ExecuteOperation(0, null, 0, 0, null, 0, 0);
-                            FinishEffect(card, ui.gameObject);
-                        }
-                        
-                        return;
-                    }
-                }
+                ProcessIgnitionEffect(card, ui, e);
+                return;
             }
         }
 
@@ -383,10 +396,54 @@ public void OnCardClicked(CardUI ui, RuntimeCard card)
         }
     }
 
+    // === Refactored Helper for Ignition Effects (Equipment/Spells) ===
+    private void ProcessIgnitionEffect(RuntimeCard card, CardUI ui, Effect e)
+    {
+        // 1. Cost Check (if any)
+        // e.CheckCost(...) - For now assuming cost is met or checked elsewhere
+
+        // 2. Initial Condition Check (Targeting availability)
+        // chk=0 means checking if valid targets EXIST
+        bool hasTarget = e.CheckCondition(0, null, 0, 0, null, 0, 0, 0); 
+        if (hasTarget)
+        {
+             // Also check Target() function if it exists
+             hasTarget = e.CheckTarget(0, null, 0, 0, null, 0, 0, 0); 
+        }
+        
+        if (!hasTarget)
+        {
+             if (UIManager != null) UIManager.Log("无法使用：不满足条件或无目标。");
+             return;
+        }
+
+        // 3. Prepare State
+        _pendingEffect = e;
+        _pendingCard = card;
+        _pendingCardUIObj = ui.gameObject;
+
+        // 4. Select Target (chk=1) - This usually prompts selection logic in Lua if needed
+        // But for Unity interaction, we rely on IsTargetingMode triggered by Lua or previous setup?
+        // Actually, typical Lua scripts calling Duel.SelectTarget() will set IsTargetingMode via Duel.cs hooks.
+        // We just need to execute the "Select Target" phase.
+        e.CheckTarget(0, null, 0, 0, null, 0, 0, 1);
+        
+        // 5. Check if we entered Targeting Mode
+        bool enteredTargeting = IsTargetingMode;
+        
+        // 6. If NOT targeting (e.g. global effect), Execute immediately
+        if (!enteredTargeting)
+        {
+            e.ExecuteOperation(0, null, 0, 0, null, 0, 0);
+            FinishEffect(card, ui.gameObject);
+        }
+    }
+
     private void FinishEffect(RuntimeCard card, GameObject uiObj)
     {
         // Spells/Items usually go to grave after use
-        if (card.Data.kind != CardKind.Unit && DeckManager != null)
+        // EXCEPTION: Equipment stays on field (attached to unit)
+        if (card.Data.kind != CardKind.Unit && !card.Data.isEquipment && DeckManager != null)
         {
             DeckManager.DiscardCard(card, uiObj);
         }
@@ -523,7 +580,7 @@ public void OnEnemyClicked(EnemyUnitUI enemyUI)
         }
     }
 
-    private void ApplyEquipment(RuntimeCard card, RuntimeUnit target)
+    public void ApplyEquipment(RuntimeCard card, RuntimeUnit target)
     {
         if (card == null || card.Data == null || target == null) return;
 
@@ -540,6 +597,13 @@ public void OnEnemyClicked(EnemyUnitUI enemyUI)
         {
             UIManager.Log($"{target.Name} 装备了 {card.Data.cardName}");
         }
+        
+        // === 触发 EQUIP 事件 (Lua System) ===
+        if (EventSystem.Instance != null)
+        {
+            EventSystem.Instance.RaiseEquipEvent(target, card);
+            EventSystem.Instance.ProcessEvents();
+        }
 
         // === 新增：被装备时触发本家检索 ===
         if (target.SourceCard != null && target.SourceCard.Data != null)
@@ -552,6 +616,66 @@ public void OnEnemyClicked(EnemyUnitUI enemyUI)
                     // 参数：sourceCard 为【被装备的怪兽卡本身】
                     effect.Execute(this, target.SourceCard, target);
                 }
+            }
+        }
+    }
+
+
+    /// <summary>
+    /// 播放场地魔法卡
+    /// </summary>
+    public void PlayFieldCard(RuntimeCard card, CardUI cardUI)
+    {
+        if (card == null || card.Data.kind != CardKind.Field) return;
+
+        /* Mana Check temporarily disabled (ManaManager not found)
+        if (ManaManager != null && !ManaManager.HasEnoughMana(card.Data.cost))
+        {
+            UIManager.LogWarning("法力不足！");
+            return;
+        }
+
+        if (ManaManager != null)
+        {
+            ManaManager.ConsumeMana(card.Data.cost);
+        }
+        */
+
+        // Send old Field to Graveyard
+        if (FieldCard != null)
+        {
+            DeckManager.DiscardPile.Add(FieldCard);
+            FieldCard.CurrentLocation = Location.GRAVE;
+            // Optionally trigger Leave Field effects
+            UIManager.Log($"【{FieldCard.Data.cardName}】被送去墓地");
+            
+            // 重要：如果是c5001等带有被动效果的卡，可能需移除被动。
+            // 目前被动由RecalculateStats每一帧或事件驱动计算，所以只要FieldCard变了，属性就变了。
+        }
+
+        // Set New Field
+        FieldCard = card;
+        FieldCard.CurrentLocation = Location.SZONE; 
+        
+        // Remove from Hand
+        DeckManager.RemoveCardFromHand(card, cardUI.gameObject);
+
+        // Visuals: Instantiate or Move to Field Slot
+        if (UIManager.FieldMagicSlot != null)
+        {
+            // REFACTORED: Use shared helper logic
+             UIManager.SetFieldMagicCard(DeckManager.CardPrefab.gameObject, card);
+        }
+        
+        UIManager.Log($"场地魔法【{card.Data.cardName}】已激活！");
+        
+        // 立即刷新全场状态，以应用可能的场地BUFF
+        if (CombatManager != null && UnitManager != null)
+        {
+            // ValidateAllStats replacement: Iterate and Recalculate
+            foreach (var unit in UnitManager.PlayerUnits)
+            {
+                CombatManager.RecalculateUnitStats(unit);
             }
         }
     }
@@ -665,23 +789,51 @@ public void OnEnemyClicked(EnemyUnitUI enemyUI)
 
         int gold = RollGoldReward();
 
-        // 取得【最后击杀的敌人】单位及其牌库信息（EnemyManager 内部提供这两个属性）
+        // 取得【最后击杀的敌人】单位（不再获得敌人的整个卡组）
         CardData recruitUnit = (EnemyManager != null) ? EnemyManager.LastKilledUnitCard : null;
-        List<CardData> recruitDeck = (EnemyManager != null) ? EnemyManager.LastKilledDeckCards : new List<CardData>();
+
+        // 获取当前指挥官颜色池 (从 MasterDeck 检查，而不是当前场上单位)
+        List<CardColor> commanderColors = new List<CardColor>();
+        if (GameManager.Instance != null)
+        {
+            foreach (var cardData in GameManager.Instance.MasterDeck)
+            {
+                if (cardData != null && cardData.isCommander)
+                {
+                    if (!commanderColors.Contains(cardData.color))
+                        commanderColors.Add(cardData.color);
+                }
+            }
+        }
+        
+        // Debug Log
+        string colorsStr = string.Join(", ", commanderColors);
+        Debug.Log($"[BattleManager] Commander colors detected in MasterDeck: {colorsStr}");
+        
+        // 抽 3 张卡作为奖励候选
+        List<CardData> choices = (GameManager.Instance != null) 
+            ? GameManager.Instance.GetRandomCardsByColors(commanderColors, 3) 
+            : new List<CardData>();
 
         if (UIManager != null)
         {
-            UIManager.ShowBattleReward(gold, recruitUnit, recruitDeck, (recruit) =>
+            UIManager.ShowBattleReward(gold, recruitUnit, choices, (selectedCard, recruit) =>
             {
                 if (GameManager.Instance != null)
                 {
                     // 给钱
                     if (gold > 0) GameManager.Instance.AddGold(gold);
 
-                    // 决定是否招募
+                    // 奖励卡牌
+                    if (selectedCard != null)
+                    {
+                        GameManager.Instance.RegisterCardToDeck(selectedCard);
+                    }
+
+                    // 招募单位
                     if (recruit && recruitUnit != null)
                     {
-                        GameManager.Instance.AcquireEnemyUnitAndDeck(recruitUnit, recruitDeck);
+                        GameManager.Instance.RegisterCardToDeck(recruitUnit);
                     }
                 }
 
@@ -735,6 +887,27 @@ public void OnEnemyClicked(EnemyUnitUI enemyUI)
         }
     }
 
+    // === Lua Helpers ===
+    public List<RuntimeUnit> GetOpponentUnits(int owner)
+    {
+        List<RuntimeUnit> targets = new List<RuntimeUnit>();
+        if (owner == 0) // Owner is Player
+        {
+            foreach(var enemy in EnemyManager.ActiveEnemies)
+            {
+                if (!enemy.UnitData.IsDead) targets.Add(enemy.UnitData);
+            }
+        }
+        else // Owner is Enemy
+        {
+            foreach(var unit in UnitManager.PlayerUnits)
+            {
+                if (!unit.IsDead) targets.Add(unit);
+            }
+        }
+        return targets;
+    }
+
     // === Color Mechanism ===
     private bool CheckColorCondition(RuntimeCard card)
     {
@@ -780,4 +953,7 @@ public void OnEnemyClicked(EnemyUnitUI enemyUI)
         // We set _pendingCard
         EnterTargetingMode(e.OwnerCard, null); // OwnerCard is known. UI Obj might be null initially.
     }
+
+
 }
+

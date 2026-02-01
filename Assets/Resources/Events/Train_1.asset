@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7dd5a27faad0d434d9006d05dc4da272, type: 3}
+  m_Name: Train_1
+  m_EditorClassIdentifier: Assembly-CSharp::EventProfile
+  Title: "\u5217\u8F66"
+  Description: "\u5217\u8F66\u9A76\u8FC7\uFF0C\u4F60\u7591\u60D1\u8FD9\u4E2A\u5730\u65B9\u600E\u4E48\u4F1A\u51FA\u73B0\u5982\u6B64\u5177\u8C61\u4E14\u73B0\u5B9E\u7684\u7269\u4F53\u3002\u4F46\u57CE\u5E02\u5FC5\u987B\u5206\u5F00\uFF0C\u5217\u8F66\u7684\u8F68\u9053\u5373\u662F\u5212\u5206\u4ED6\u4EEC\u754C\u9650\u7684\u9E3F\u6C9F\uFF0C\u5374\u540C\u65F6\u4E5F\u4F5C\u4E3A\u8054\u7CFB\u5F7C\u6B64\u7684\u7EBD\u5E26\u3002\u94C1\u8F68\u7684\u8D77\u70B9\u548C\u7ED3\u5C3E\u5FC5\u987B\u5B58\u5728\u4E00\u4E9B\u53EA\u6709\u57CE\u5E02\u624D\u4F1A\u6709\u7684\uFF1A\u4EBA\uFF0C\u4E8B\u60C5\uFF0C\u4EE5\u53CA\u80FD\u8BC1\u660E\u65F6\u95F4\u5B58\u5728\u7684\u4E1C\u897F\u3002\u5982\u6B64\u60F3\u7740\uFF0C\u4F60......"
+  EventImage: {fileID: 0}
+  RequiredRelics: []
+  RequiredRelicIds: []
+  Options:
+  - OptionText: "\u4E58\u4E0A\u4E86\u6BCF\u7AD9\u505C\u9760\u7684\u5217\u8F66"
+    ResultText: "\u56F0\u4F4F\u4F60\u7684\u4E0D\u518D\u662F\u5730\u70B9\uFF0C\u800C\u662F\u65B9\u5411\u3002"
+    Effect: 0
+    Value: 0
+    TargetCard: {fileID: 0}
+    TargetRelic: {fileID: 11400000, guid: 49f51ee51096f9f4c81001beb36431b4, type: 2}
+    LuaScriptPath: 
+  - OptionText: "\u62D2\u7EDD\u9EC4\u660F\u4E0E\u65E0\u804A\u7684\u9080\u8BF7"
+    ResultText: "\u4F46\u57CE\u5E02\u5FC5\u987B\u5206\u5F00\u3002"
+    Effect: 0
+    Value: 0
+    TargetCard: {fileID: 0}
+    TargetRelic: {fileID: 0}
+    LuaScriptPath: 

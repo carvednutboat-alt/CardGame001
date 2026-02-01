@@ -1,0 +1,13 @@
+-- ==========================================
+-- 蒸汽机器人·指挥官 (Steam Robot Commander)
+-- ID: 4001
+-- ==========================================
+
+local c4001 = {}
+
+function c4001.initial_effect(c)
+    -- Commander 3/5
+    -- Logic regarding Overload behavior (Atk = 3 + Overload) is handled in CombatManager currently.
+end
+
+return c4001

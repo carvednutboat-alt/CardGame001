@@ -485,7 +485,27 @@ namespace XLua.CSObjectWrap
                 Effect gen_to_be_invoked = (Effect)translator.FastGetCSObj(L, 1);
             
             
-                
+			    int gen_param_count = LuaAPI.lua_gettop(L);
+            
+                if(gen_param_count == 9&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 2)&& translator.Assignable<object>(L, 3)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 4)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 5)&& translator.Assignable<Effect>(L, 6)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 7)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 8)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 9)) 
+                {
+                    int _tp = LuaAPI.xlua_tointeger(L, 2);
+                    object _eg = translator.GetObject(L, 3, typeof(object));
+                    int _ep = LuaAPI.xlua_tointeger(L, 4);
+                    int _ev = LuaAPI.xlua_tointeger(L, 5);
+                    Effect _re = (Effect)translator.GetObject(L, 6, typeof(Effect));
+                    int _r = LuaAPI.xlua_tointeger(L, 7);
+                    int _rp = LuaAPI.xlua_tointeger(L, 8);
+                    int _chk = LuaAPI.xlua_tointeger(L, 9);
+                    
+                        var gen_ret = gen_to_be_invoked.CheckCondition( _tp, _eg, _ep, _ev, _re, _r, _rp, _chk );
+                        LuaAPI.lua_pushboolean(L, gen_ret);
+                    
+                    
+                    
+                    return 1;
+                }
+                if(gen_param_count == 8&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 2)&& translator.Assignable<object>(L, 3)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 4)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 5)&& translator.Assignable<Effect>(L, 6)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 7)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 8)) 
                 {
                     int _tp = LuaAPI.xlua_tointeger(L, 2);
                     object _eg = translator.GetObject(L, 3, typeof(object));
@@ -507,6 +527,8 @@ namespace XLua.CSObjectWrap
                 return LuaAPI.luaL_error(L, "c# exception:" + gen_e);
             }
             
+            return LuaAPI.luaL_error(L, "invalid arguments to Effect.CheckCondition!");
+            
         }
         
         [MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
@@ -520,7 +542,27 @@ namespace XLua.CSObjectWrap
                 Effect gen_to_be_invoked = (Effect)translator.FastGetCSObj(L, 1);
             
             
-                
+			    int gen_param_count = LuaAPI.lua_gettop(L);
+            
+                if(gen_param_count == 9&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 2)&& translator.Assignable<object>(L, 3)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 4)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 5)&& translator.Assignable<Effect>(L, 6)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 7)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 8)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 9)) 
+                {
+                    int _tp = LuaAPI.xlua_tointeger(L, 2);
+                    object _eg = translator.GetObject(L, 3, typeof(object));
+                    int _ep = LuaAPI.xlua_tointeger(L, 4);
+                    int _ev = LuaAPI.xlua_tointeger(L, 5);
+                    Effect _re = (Effect)translator.GetObject(L, 6, typeof(Effect));
+                    int _r = LuaAPI.xlua_tointeger(L, 7);
+                    int _rp = LuaAPI.xlua_tointeger(L, 8);
+                    int _chk = LuaAPI.xlua_tointeger(L, 9);
+                    
+                        var gen_ret = gen_to_be_invoked.CheckCost( _tp, _eg, _ep, _ev, _re, _r, _rp, _chk );
+                        LuaAPI.lua_pushboolean(L, gen_ret);
+                    
+                    
+                    
+                    return 1;
+                }
+                if(gen_param_count == 8&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 2)&& translator.Assignable<object>(L, 3)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 4)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 5)&& translator.Assignable<Effect>(L, 6)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 7)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 8)) 
                 {
                     int _tp = LuaAPI.xlua_tointeger(L, 2);
                     object _eg = translator.GetObject(L, 3, typeof(object));
@@ -542,6 +584,8 @@ namespace XLua.CSObjectWrap
                 return LuaAPI.luaL_error(L, "c# exception:" + gen_e);
             }
             
+            return LuaAPI.luaL_error(L, "invalid arguments to Effect.CheckCost!");
+            
         }
         
         [MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
@@ -555,7 +599,27 @@ namespace XLua.CSObjectWrap
                 Effect gen_to_be_invoked = (Effect)translator.FastGetCSObj(L, 1);
             
             
-                
+			    int gen_param_count = LuaAPI.lua_gettop(L);
+            
+                if(gen_param_count == 9&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 2)&& translator.Assignable<object>(L, 3)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 4)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 5)&& translator.Assignable<Effect>(L, 6)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 7)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 8)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 9)) 
+                {
+                    int _tp = LuaAPI.xlua_tointeger(L, 2);
+                    object _eg = translator.GetObject(L, 3, typeof(object));
+                    int _ep = LuaAPI.xlua_tointeger(L, 4);
+                    int _ev = LuaAPI.xlua_tointeger(L, 5);
+                    Effect _re = (Effect)translator.GetObject(L, 6, typeof(Effect));
+                    int _r = LuaAPI.xlua_tointeger(L, 7);
+                    int _rp = LuaAPI.xlua_tointeger(L, 8);
+                    int _chk = LuaAPI.xlua_tointeger(L, 9);
+                    
+                        var gen_ret = gen_to_be_invoked.CheckTarget( _tp, _eg, _ep, _ev, _re, _r, _rp, _chk );
+                        LuaAPI.lua_pushboolean(L, gen_ret);
+                    
+                    
+                    
+                    return 1;
+                }
+                if(gen_param_count == 8&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 2)&& translator.Assignable<object>(L, 3)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 4)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 5)&& translator.Assignable<Effect>(L, 6)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 7)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 8)) 
                 {
                     int _tp = LuaAPI.xlua_tointeger(L, 2);
                     object _eg = translator.GetObject(L, 3, typeof(object));
@@ -576,6 +640,8 @@ namespace XLua.CSObjectWrap
             } catch(System.Exception gen_e) {
                 return LuaAPI.luaL_error(L, "c# exception:" + gen_e);
             }
+            
+            return LuaAPI.luaL_error(L, "invalid arguments to Effect.CheckTarget!");
             
         }
         

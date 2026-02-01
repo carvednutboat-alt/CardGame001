@@ -1,0 +1,41 @@
+-- ==========================================
+-- 二重过载 (Double Overload)
+-- ID: 4006
+-- Desc: Spell - Double target's Overload, but take damage equal to new total at end of turn.
+-- ==========================================
+
+local c4006 = {}
+
+function c4006.initial_effect(c)
+    local e1=Effect.CreateEffect(c)
+    e1:SetType(EffectType.ACTIVATE)
+    e1:SetCode(EventCode.FREE_CHAIN)
+    e1:SetTarget(c4006.target)
+    e1:SetOperation(c4006.operation)
+    c:RegisterEffect(e1)
+end
+
+function c4006.target(e, tp, eg, ep, ev, re, r, rp, chk)
+    if chk==0 then return Duel.GetFieldUnitCount(tp, Location.MZONE, 0) > 0 end
+    Duel.SelectTarget(e:GetHandler(), CardTargetType.Ally)
+end
+
+function c4006.operation(e, tp, eg, ep, ev, re, r, rp)
+    local target = Duel.GetFirstTarget()
+    if target ~= nil then
+        local current = target.Overload
+        if current > 0 then
+             Duel.AddOverload(target, current) -- Double it
+             -- Set Pending Damage
+             -- Note: target.Overload is now doubled. 
+             -- Pending damage should equal the NEW Overload (or the added amount? Description says "damage equal to Overload").
+             -- Assuming "Damage equal to current Overload" (the new total).
+             target.PendingOverloadSelfDamage = target.PendingOverloadSelfDamage + target.Overload
+             Duel.Log("二重过载！当前过载: " .. target.Overload .. " (回合结束将受到伤害)")
+        else
+             Duel.Log("目标无过载，无法翻倍。")
+        end
+    end
+end
+
+return c4006

@@ -1,0 +1,27 @@
+-- ==========================================
+-- 千具武·新兵 (Thousand Weapons Recruit)
+-- ID: 3004
+-- Desc: Deathrattle: Search Equipment
+-- ==========================================
+
+local c3004 = {}
+
+function c3004.initial_effect(c)
+    -- 亡语：检索装备 (Same as Guard)
+    local e1=Effect.CreateEffect(c)
+    e1:SetType(EffectType.TRIGGER)
+    e1:SetCode(EventCode.DESTROYED)
+    e1:SetRange(Location.GRAVE)
+    e1:SetOperation(c3004.operation)
+    c:RegisterEffect(e1)
+end
+
+function c3004.operation(e, tp, eg, ep, ev, re, r, rp)
+    Duel.Log("亡语触发：检索装备")
+    local filter = function(card)
+         return card.Data.isEquipment
+    end
+    Duel.SearchDeckAndAddToHand(filter)
+end
+
+return c3004

@@ -1,0 +1,36 @@
+-- ==========================================
+-- 试炼之剑 (Trial Sword)
+-- ID: 3002
+-- Desc: Equipment (+2 Atk, +3 HP usually handled by C# stats, but we need Equip Action)
+-- ==========================================
+
+local c3002 = {}
+
+function c3002.initial_effect(c)
+    -- Equip Effect (Ignition from Hand)
+    local e1=Effect.CreateEffect(c)
+    e1:SetType(EffectType.IGNITION) -- Use IGNITION to allow activation from hand
+    e1:SetRange(Location.HAND)
+    e1:SetTarget(c3002.target)
+    e1:SetOperation(c3002.operation)
+    c:RegisterEffect(e1)
+end
+
+function c3002.target(e, tp, eg, ep, ev, re, r, rp, chk)
+    if chk==0 then return Duel.GetFieldUnitCount(tp, Location.MZONE, 0) > 0 end
+    Duel.SelectTarget(e:GetHandler(), CardTargetType.Ally)
+end
+
+function c3002.operation(e, tp, eg, ep, ev, re, r, rp)
+    local target = Duel.GetFirstTarget()
+    local c = e:GetHandler()
+    if target ~= nil and c ~= nil then
+        Duel.Equip(target, c)
+        -- 使用更稳妥的日志方式
+        local cName = c.Name or "Unknown Card"
+        local tName = target.Name or "Unknown Unit"
+        Duel.Log("装备了 " .. cName .. " 到 " .. tName)
+    end
+end
+
+return c3002

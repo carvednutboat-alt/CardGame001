@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardName: "\u53F2\u83B1\u59C6"
   kind: 0
-  color: 0
+  color: 3
   description: 
   unitAttack: 1
   unitHealth: 1

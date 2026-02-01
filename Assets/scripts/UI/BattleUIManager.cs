@@ -30,7 +30,13 @@ public class BattleUIManager : MonoBehaviour
     public Button TakeOnlyButton;
     public TMP_Text TakeOnlyText; // 新增：按钮文字引用
     public Button TakeAndRecruitButton;
-    public TMP_Text TakeAndRecruitText; // 新增：按钮文字引用
+    public TMP_Text TakeAndRecruitText; 
+    
+    [Header("Reward Card Choices")]
+    public Transform CardChoiceContainer;
+    public TMP_Text CardChoiceHeaderText; // [NEW] "Choose your reward card"
+    public List<CardData> CurrentChoices = new List<CardData>();
+    public CardData SelectedChoice;
     
     
     private CanvasGroup _rewardPanelCanvasGroup;
@@ -91,15 +97,12 @@ public class BattleUIManager : MonoBehaviour
 
     public void Log(string msg)
     {
+        Debug.Log($"[BattleUI] {msg}"); // Always log to console
         if (LogText != null)
         {
             LogText.text += "\n" + msg;
             Canvas.ForceUpdateCanvases();
             if (LogScroll != null) LogScroll.verticalNormalizedPosition = 0f;
-        }
-        else
-        {
-            Debug.Log(msg);
         }
     }
 
@@ -218,68 +221,165 @@ public class BattleUIManager : MonoBehaviour
     public void ShowBattleReward(
         int gold,
         CardData recruitUnit,
-        List<CardData> recruitDeck,
-        System.Action<bool> onConfirm)
+        List<CardData> cardChoices,
+        System.Action<CardData, bool> onConfirm) // SelectedCard, ShouldRecruit
     {
-        if (RewardPanel == null)
-        {
-            Debug.LogError("RewardPanel 未绑定到 BattleUIManager");
-            onConfirm?.Invoke(false);
-            return;
-        }
+        if (RewardPanel == null) { Debug.LogError("RewardPanel is missing!"); return; }
 
-        // 每次显示前重新应用一次样式配置，确保显示正确
         SetupUIAttributes();
         
-        RewardPanel.SetActive(true);
-        RewardPanel.transform.SetAsLastSibling(); // ★ 确保显示在最上层，不被 Slot 遮挡
-        
-        // 播放淡入动画
-        StartCoroutine(AnimateRewardPanel());
-
-        // 设置标题
-        if (TitleText != null)
-        {
-            TitleText.text = "战斗胜利";
-        }
-
-        // 显示金币信息
-        if (RewardGoldText != null)
-        {
-            RewardGoldText.text = $"获得金币：{gold}";
-        }
-
-        bool canRecruit = (recruitUnit != null);
-        int deckCount = (recruitDeck != null) ? recruitDeck.Count : 0;
-
-        // 更新招募信息
-        UpdateRecruitInfo(recruitUnit, deckCount);
-
-        // 设置按钮内容
-        if (TakeOnlyText != null) TakeOnlyText.text = "只领金币";
-        if (TakeAndRecruitText != null) TakeAndRecruitText.text = "领取并招募";
-
-        // 设置按钮逻辑
+        // 1. 设置按钮逻辑 (哪怕报错，也要先保证按钮能点)
         if (TakeOnlyButton != null)
         {
             TakeOnlyButton.onClick.RemoveAllListeners();
-            TakeOnlyButton.onClick.AddListener(() =>
-            {
-                onConfirm?.Invoke(false);
-            });
+            TakeOnlyButton.onClick.AddListener(() => onConfirm?.Invoke(SelectedChoice, false));
             TakeOnlyButton.interactable = true;
         }
-
         if (TakeAndRecruitButton != null)
         {
             TakeAndRecruitButton.onClick.RemoveAllListeners();
-            TakeAndRecruitButton.onClick.AddListener(() =>
-            {
-                onConfirm?.Invoke(true);
-            });
-
-            TakeAndRecruitButton.interactable = canRecruit;
+            TakeAndRecruitButton.onClick.AddListener(() => onConfirm?.Invoke(SelectedChoice, true));
+            TakeAndRecruitButton.interactable = (recruitUnit != null);
         }
+
+        // 2. 验证并修复容器 (最容易报错的地方)
+        try {
+            if (CardChoiceContainer == null) 
+            {
+                Log("Container reference is null, looking for or creating a new one.");
+                var found = MainWindow ? MainWindow.transform.Find("CardChoiceContainer") : null;
+                if (found != null) CardChoiceContainer = found;
+                else 
+                {
+                    GameObject go = new GameObject("CardChoiceContainer");
+                    go.transform.SetParent(MainWindow ? MainWindow.transform : RewardPanel.transform, false);
+                    CardChoiceContainer = go.transform;
+                }
+            }
+            
+            // 确保不是 Destroyed 的
+            if (CardChoiceContainer.gameObject != null) 
+            {
+                CardChoiceContainer.gameObject.SetActive(true);
+                CardChoiceContainer.SetAsLastSibling();
+            }
+        } catch (System.Exception ex) {
+            Debug.LogError($"[BattleUI] Container Rescue Failed: {ex.Message}");
+            // 重写引用
+            GameObject go = new GameObject("CardChoiceContainer_Rescue");
+            go.transform.SetParent(MainWindow ? MainWindow.transform : RewardPanel.transform, false);
+            CardChoiceContainer = go.transform;
+        }
+
+        RewardPanel.SetActive(true);
+        RewardPanel.transform.SetAsLastSibling(); 
+
+        if (MainWindow != null) MainWindow.transform.SetAsLastSibling();
+
+        // 3. 设置文本
+        if (TitleText != null) TitleText.text = "战斗胜利";
+        if (RewardGoldText != null) RewardGoldText.text = $"获得金币：<color=yellow>{gold}</color>";
+        if (CardChoiceHeaderText != null) {
+            CardChoiceHeaderText.text = "<b><size=+6>—— 战利品选择 ——</size></b>\n<color=#aaaaaa><size=-2>请点击下方卡牌，确认后加入收藏</size></color>";
+            CardChoiceHeaderText.color = new Color(1f, 0.84f, 0f);
+        }
+
+        bool canRecruit = (recruitUnit != null);
+        CurrentChoices = cardChoices;
+        SelectedChoice = null;
+
+        int choiceCount = (cardChoices != null) ? cardChoices.Count : 0;
+        Log($"Showing reward choices. Count: {choiceCount}");
+        
+        // [Diagnostic] Safer Logging
+        if (CardChoiceContainer != null)
+        {
+            Log($"Container Path: {GetHierarchyPath(CardChoiceContainer)}");
+            // Check if gameObject is still valid
+            try {
+                Log($"Container Active: {CardChoiceContainer.gameObject.activeInHierarchy}, Scale: {CardChoiceContainer.lossyScale}");
+            } catch (System.Exception e) {
+                Log("Error accessing Container properties: " + e.Message);
+            }
+        }
+        else
+        {
+            Log("Container is STILL NULL after rescue!");
+        }
+
+        // 生成卡牌选项
+        if (CardChoiceContainer != null)
+        {
+            Log("Clearing old card choices...");
+            foreach (Transform child in CardChoiceContainer) Destroy(child.gameObject);
+            
+            // [Diagnostic] Create a giant Red Box to see if anything is visible in this container
+            GameObject dummy = new GameObject("Diagnostic_RedBox");
+            dummy.transform.SetParent(CardChoiceContainer, false);
+            var dummyImg = dummy.AddComponent<Image>();
+            dummyImg.color = Color.red;
+            var dummyRect = dummy.GetComponent<RectTransform>();
+            dummyRect.sizeDelta = new Vector2(100, 100);
+            Log("Created Diagnostic Red Box");
+
+            if (cardChoices != null)
+            {
+                Log($"Instantiating {cardChoices.Count} cards...");
+                foreach (var cardData in cardChoices)
+                {
+                    Log($" - {cardData.cardName}");
+                    CardUI cardUI = Instantiate(CardPrefab, CardChoiceContainer);
+                    
+                    // 强制设置缩放、图层和位置，防止不可见
+                    cardUI.transform.localScale = Vector3.one;
+                    cardUI.transform.localPosition = Vector3.zero; // Reset Z
+                    cardUI.gameObject.layer = LayerMask.NameToLayer("UI");
+                    
+                    // 显式设置大小，防止被 LayoutGroup 缩放成 0
+                    RectTransform cardRect = cardUI.GetComponent<RectTransform>();
+                    if (cardRect != null) cardRect.sizeDelta = new Vector2(180, 250);
+                    
+                    var runtimeCard = new RuntimeCard(cardData);
+                    cardUI.Init(runtimeCard, _bm);
+                    
+                    // 确保卡牌里的 Graphic 组件都是开启的，且 Alpha 是 1
+                    foreach (var gr in cardUI.GetComponentsInChildren<Graphic>()) 
+                    {
+                        gr.color = new Color(gr.color.r, gr.color.g, gr.color.b, 1f);
+                        gr.raycastTarget = true;
+                    }
+
+                    // 如果 CardUI 有 CanvasGroup 强制其 Alpha = 1
+                    var cg = cardUI.GetComponent<CanvasGroup>();
+                    if (cg != null) cg.alpha = 1f;
+                    
+                    Button btn = cardUI.GetComponent<Button>();
+                    if (btn != null)
+                    {
+                        btn.onClick.RemoveAllListeners();
+                        btn.onClick.AddListener(() => {
+                            SelectedChoice = cardData;
+                            Log($"已选择卡牌: {cardData.cardName}");
+                            foreach(Transform c in CardChoiceContainer) 
+                            {
+                                Image img = c.GetComponent<Image>();
+                                if (img != null) img.color = Color.white;
+                            }
+                            Image selfImg = cardUI.GetComponent<Image>();
+                            if (selfImg != null) selfImg.color = Color.yellow;
+                        });
+                    }
+                }
+            }
+        }
+
+        // 5. 更新招募信息
+        UpdateRecruitInfo(recruitUnit, (cardChoices != null ? cardChoices.Count : 0));
+        
+        if (RecruitSection != null) RecruitSection.SetActive(recruitUnit != null);
+
+        // 启动淡入动画
+        StartCoroutine(AnimateRewardPanel());
     }
 
     public void HideBattleReward()
@@ -322,9 +422,8 @@ public class BattleUIManager : MonoBehaviour
         {
             if (canRecruit)
             {
-                string unitInfo = $"{recruitUnit.cardName}\n";
-                unitInfo += $"攻击: {recruitUnit.unitAttack} | 生命: {recruitUnit.unitHealth}\n";
-                unitInfo += $"可获得 {deckCount} 张卡牌";
+                string unitInfo = $"<color=green>目标单位: {recruitUnit.cardName}</color>\n";
+                unitInfo += $"面板: {recruitUnit.unitAttack}/{recruitUnit.unitHealth}\n";
                 RewardRecruitText.text = unitInfo;
             }
             else
@@ -337,6 +436,16 @@ public class BattleUIManager : MonoBehaviour
     private void SetupUIAttributes()
     {
         if (RewardPanel == null) return;
+
+        // Ensure Canvas for layering
+        Canvas pCanvas = RewardPanel.GetComponent<Canvas>();
+        if (pCanvas == null) pCanvas = RewardPanel.AddComponent<Canvas>();
+        pCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        pCanvas.overrideSorting = true;
+        pCanvas.sortingOrder = 100; // High enough to be on top
+
+        if (RewardPanel.GetComponent<GraphicRaycaster>() == null)
+            RewardPanel.AddComponent<GraphicRaycaster>();
 
         RectTransform panelRect = RewardPanel.GetComponent<RectTransform>();
         if (panelRect != null)
@@ -360,37 +469,57 @@ public class BattleUIManager : MonoBehaviour
             if (mainRect != null)
             {
                 mainRect.localScale = Vector3.one;
-                mainRect.sizeDelta = new Vector2(320, 240);
+                mainRect.sizeDelta = new Vector2(800, 500); // Enlarged
                 mainRect.anchoredPosition = Vector2.zero;
             }
 
             Image mainImg = MainWindow.GetComponent<Image>();
             if (mainImg != null)
             {
-                mainImg.color = new Color(0.12f, 0.12f, 0.15f, 1f); 
+                mainImg.color = new Color(0.08f, 0.08f, 0.12f, 0.95f); // Rich Dark Blue/Black
             }
         }
 
-        ConfigureText(TitleText, 24, TextAlignmentOptions.Center);
-        ConfigureText(RewardGoldText, 18, TextAlignmentOptions.Center);
-        ConfigureText(RewardRecruitText, 16, TextAlignmentOptions.Center);
-        ConfigureText(TakeOnlyText, 14, TextAlignmentOptions.Center);
-        ConfigureText(TakeAndRecruitText, 14, TextAlignmentOptions.Center);
-
-        SetupButtonStyle(TakeOnlyButton, new Color(0.3f, 0.35f, 0.4f, 1f));
-        SetupButtonStyle(TakeAndRecruitButton, new Color(0.5f, 0.4f, 0.2f, 1f));
+        ConfigureText(TitleText, 32, TextAlignmentOptions.Center);
+        SetupButtonStyle(TakeOnlyButton, new Color(0.15f, 0.35f, 0.55f, 1f), "仅领取金币 & 卡牌"); 
+        SetupButtonStyle(TakeAndRecruitButton, new Color(0.85f, 0.65f, 0.15f, 1f), "领取并招募单位"); 
     }
 
-    private void SetupButtonStyle(Button btn, Color color)
+    private void SetupButtonStyle(Button btn, Color color, string label)
     {
         if (btn == null) return;
-        btn.transform.localScale = Vector3.one;
+        
+        // 强制大小
+        RectTransform btnRect = btn.GetComponent<RectTransform>();
+        if (btnRect != null) btnRect.sizeDelta = new Vector2(250, 50);
+
         Image img = btn.GetComponent<Image>();
-        if (img != null)
+        if (img == null) img = btn.gameObject.AddComponent<Image>();
+        img.color = color;
+        img.raycastTarget = true;
+
+        // 确保按钮有显示文字
+        TextMeshProUGUI btnText = btn.GetComponentInChildren<TextMeshProUGUI>();
+        if (btnText == null)
         {
-            img.color = color;
+            GameObject tObj = new GameObject("Text");
+            tObj.transform.SetParent(btn.transform, false);
+            btnText = tObj.AddComponent<TextMeshProUGUI>();
+            
+            RectTransform rt = btnText.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
         }
+        
+        btnText.text = $"<b>{label}</b>";
+        btnText.fontSize = 18;
+        btnText.color = Color.white;
+        btnText.alignment = TextAlignmentOptions.Center;
+        btnText.raycastTarget = false; 
     }
+
 
     private void ConfigureText(TMP_Text text, float size, TextAlignmentOptions align)
     {
@@ -431,8 +560,125 @@ public class BattleUIManager : MonoBehaviour
         // 3. 生成敌人槽位 (5个)
         GenerateSlots(EnemyFieldContainer, EnemySlots, false);
 
-        // 4. 应用保存的布局 (UnitPanel, LogText, HandPanel, DetailPanel)
+        // 4. 生成场地魔法槽位 (1个)
+        GenerateFieldMagicSlot();
+
+        // 5. 应用保存的布局 (UnitPanel, LogText, HandPanel, DetailPanel)
         ApplySavedLayout();
+    }
+
+    [Header("Field Magic Slot")]
+    public Transform FieldMagicContainer;
+    public BattleSlotUI FieldMagicSlot;
+
+    private void GenerateFieldMagicSlot()
+    {
+        // 创建容器 (如果不存)
+        if (FieldMagicContainer == null) 
+        {
+            // Position: Center X=0, Y=77.
+            // DO NOT use CreateSlotContainer because it adds a HorizontalLayoutGroup!
+            // We want a simple container that does not stretch its child.
+            var obj = new GameObject("FieldMagicSlot_Container");
+            
+            // Find Canvas
+            Transform canvasTransform = null;
+            Canvas canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) canvas = FindObjectOfType<Canvas>();
+            if (canvas != null) canvasTransform = canvas.transform;
+            else canvasTransform = this.transform; 
+
+            obj.transform.SetParent(canvasTransform, false);
+            var containerRect = obj.AddComponent<RectTransform>();
+            containerRect.anchorMin = new Vector2(0.5f, 0.5f);
+            containerRect.anchorMax = new Vector2(0.5f, 0.5f);
+            containerRect.anchoredPosition = new Vector2(0, 77);
+            containerRect.sizeDelta = new Vector2(120, 140); // Exact size
+            obj.layer = LayerMask.NameToLayer("UI");
+
+            FieldMagicContainer = obj.transform;
+        }
+
+        // 清理旧的
+        for (int i = FieldMagicContainer.childCount - 1; i >= 0; i--)
+        {
+            Destroy(FieldMagicContainer.GetChild(i).gameObject);
+        }
+
+        // 生成 1 个槽位
+        GameObject slotObj = new GameObject("Field_Slot");
+        slotObj.transform.SetParent(FieldMagicContainer, false);
+        slotObj.layer = LayerMask.NameToLayer("UI");
+        
+        // UI Image
+        Image img = slotObj.AddComponent<Image>();
+        img.color = new Color(0, 0.5f, 0.5f, 0.5f); // Distinct color (Cyan-ish)
+
+        RectTransform rect = slotObj.GetComponent<RectTransform>();
+        rect.sizeDelta = new Vector2(120, 140); // Same size as unit slots
+
+        // Component
+        BattleSlotUI slotUI = slotObj.AddComponent<BattleSlotUI>();
+        // Special Index -1 for Field Magic? Or just use it directly.
+        slotUI.Init(-1, true, null); // No click handler for now? Or maybe show detail?
+        
+        // Text "Field"
+        GameObject textObj = new GameObject("Label");
+        textObj.transform.SetParent(slotObj.transform, false);
+        textObj.layer = LayerMask.NameToLayer("UI");
+        var txt = textObj.AddComponent<TextMeshProUGUI>();
+        txt.text = "Field";
+        txt.fontSize = 20;
+        txt.color = Color.white;
+        txt.alignment = TextAlignmentOptions.Center;
+        var tr = textObj.GetComponent<RectTransform>();
+        tr.anchorMin = Vector2.zero;
+        tr.anchorMax = Vector2.one;
+        tr.offsetMin = Vector2.zero;
+        tr.offsetMax = Vector2.zero;
+
+        FieldMagicSlot = slotUI;
+    }
+
+    public void SetFieldMagicCard(GameObject cardPrefab, RuntimeCard card)
+    {
+        if (FieldMagicSlot == null) return;
+        
+        // 1. Clear existing children
+        foreach(Transform child in FieldMagicSlot.transform)
+        {
+            // Do not destroy "Label" or other UI elements we added in Generate
+            if (child.GetComponent<CardUI>() != null) Destroy(child.gameObject);
+        }
+
+        // 2. Instantiate new card
+        if (cardPrefab != null)
+        {
+             var newUI = Instantiate(cardPrefab, FieldMagicSlot.transform, false);
+             CardUI uiComp = newUI.GetComponent<CardUI>();
+             if (uiComp != null) uiComp.Init(card, null);
+             
+             // 3. Fix Layout & Scale
+             RectTransform rt = newUI.GetComponent<RectTransform>();
+             if (rt != null)
+             {
+                 rt.anchorMin = Vector2.zero;
+                 rt.anchorMax = Vector2.one;
+                 rt.offsetMin = Vector2.zero;
+                 rt.offsetMax = Vector2.zero;
+                 rt.sizeDelta = Vector2.zero; 
+                 rt.localScale = Vector3.one;
+             }
+             
+             // 4. Strip Interactive Components
+             var hover = newUI.GetComponent<CardHoverHandler>();
+             if (hover != null) Destroy(hover);
+
+             var le = newUI.GetComponent<UnityEngine.UI.LayoutElement>();
+             if (le != null) Destroy(le);
+
+             if (uiComp != null && uiComp.button != null) uiComp.button.interactable = false;
+        }
     }
 
     private void ApplySavedLayout()
@@ -559,6 +805,18 @@ public class BattleUIManager : MonoBehaviour
         {
             _bm.OnBattleSlotClicked(index, isPlayerSide);
         }
+    }
+
+    private string GetHierarchyPath(Transform t)
+    {
+        if (t == null) return "null";
+        string path = t.name;
+        while (t.parent != null)
+        {
+            t = t.parent;
+            path = t.name + "/" + path;
+        }
+        return path;
     }
 
     public void HighlightPlayerSlots(bool active)

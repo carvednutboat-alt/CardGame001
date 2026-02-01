@@ -65,6 +65,24 @@ public class MapSceneManager : MonoBehaviour
 
                 // 获取图标
                 Sprite icon = IconsConfig != null ? IconsConfig.GetIcon(nodeData.Type) : null;
+                
+                // === Elite Enemy Check ===
+                if (nodeData.Type == NodeType.EliteEnemy)
+                {
+                    Debug.Log($"[MapSceneManager] Found Elite Node at {nodeData.Coordinate}. Attempting to check resource...");
+                // Attempt to load from Resources if not in Config
+                Sprite eliteIcon = Resources.Load<Sprite>("image/elite_battle_icon");
+                if (eliteIcon != null)
+                {
+                    Debug.Log("[MapSceneManager] Successfully loaded elite_battle_icon from Resources/image.");
+                    icon = eliteIcon;
+                }
+                else
+                {
+                    Debug.LogError("[MapSceneManager] Failed to load 'image/elite_battle_icon' from Resources! checking path 'Assets/Resources/image/elite_battle_icon.png'. Is it set as Sprite?");
+                }
+                }
+
                 obj.GetComponent<MapNodeUI>().Init(nodeData, icon);
 
                 // 记录坐标，用于画线 (Key是网格坐标, Value是UI物体)

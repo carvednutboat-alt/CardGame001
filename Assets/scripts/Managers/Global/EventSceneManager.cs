@@ -89,13 +89,29 @@ void ApplyEffect(EventOptionData opt)
                 break;
             case EventEffectType.GainCard:
                 if (opt.TargetCard != null)
-                    GameManager.Instance.AddCardToDeck(opt.TargetCard);
+                    GameManager.Instance.RegisterCardToDeck(opt.TargetCard);
                 break;
             case EventEffectType.GainRelic:
                 GameManager.Instance.GainRandomRelic();
                 break;
+            case EventEffectType.GainSpecificRelic:
+                // [NEW] 获得指定遗物
+                if (opt.TargetRelic != null && RelicManager.Instance != null)
+                {
+                    RelicManager.Instance.AddRelic(opt.TargetRelic);
+                    Debug.Log($"[Event] 获得遗物: {opt.TargetRelic.relicName}");
+                }
+                else
+                {
+                    Debug.LogWarning("[Event] GainSpecificRelic: TargetRelic is null or RelicManager not found!");
+                }
+                break;
             case EventEffectType.OpenCardReward:
                 GameManager.Instance.OpenCardReward();
+                break;
+            case EventEffectType.LuaEffect:
+                // [NEW] 执行Lua脚本效果
+                ExecuteLuaEffect(opt.LuaScriptPath);
                 break;
         }
     }
@@ -106,5 +122,56 @@ void ApplyEffect(EventOptionData opt)
             GameManager.Instance.OnNodeCompleted();
         else
             SceneManager.LoadScene("MapScene"); // Fallback
+    }
+
+    /// <summary>
+    /// [NEW] 执行Lua脚本效果
+    /// </summary>
+    void ExecuteLuaEffect(string scriptPath)
+    {
+        if (string.IsNullOrEmpty(scriptPath))
+        {
+            Debug.LogWarning("[Event] LuaEffect: scriptPath is empty!");
+            return;
+        }
+
+        if (LuaManager.Instance == null)
+        {
+            Debug.LogError("[Event] LuaEffect: LuaManager not found!");
+            return;
+        }
+
+        try
+        {
+            // 加载Lua脚本 (从 Resources/Lua/Events/ 目录)
+            string fullPath = $"Lua/Events/{scriptPath}";
+            TextAsset luaScript = Resources.Load<TextAsset>(fullPath);
+            
+            if (luaScript == null)
+            {
+                Debug.LogError($"[Event] Lua script not found: {fullPath}");
+                return;
+            }
+
+            // 执行Lua脚本
+            // 注意: 事件Lua脚本应该定义一个 execute() 函数
+            LuaManager.Instance.GlobalEnv.DoString(luaScript.text);
+            
+            // 调用 execute 函数 (如果存在)
+            var executeFunc = LuaManager.Instance.GlobalEnv.Global.Get<XLua.LuaFunction>("execute");
+            if (executeFunc != null)
+            {
+                executeFunc.Call();
+                Debug.Log($"[Event] Executed Lua effect: {scriptPath}");
+            }
+            else
+            {
+                Debug.LogWarning($"[Event] Lua script '{scriptPath}' has no execute() function");
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"[Event] Lua execution error: {e.Message}");
+        }
     }
 }

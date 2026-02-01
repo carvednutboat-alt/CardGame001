@@ -141,7 +141,7 @@ public class ShopSceneManager : MonoBehaviour
             return;
         }
 
-        gm.AddCardToDeck(card);
+        gm.RegisterCardToDeck(card);
         RefreshGold();
 
         // 下架已购买商品

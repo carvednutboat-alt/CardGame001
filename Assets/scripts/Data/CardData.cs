@@ -14,12 +14,15 @@ public enum CardKind
 {
     Unit,
     Spell,
-    Evolve
+    Evolve,
+    Field
 }
 
 
 
 // 1. 定义枚举：目标类型
+// 2. 目标类型
+[LuaCallCSharp]
 public enum CardTargetType
 {
     None,       // 不需要目标 (如 AOE, 抽牌)

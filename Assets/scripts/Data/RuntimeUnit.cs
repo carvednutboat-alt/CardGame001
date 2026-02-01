@@ -41,6 +41,9 @@ public class RuntimeUnit
     public bool IsEvolved;
 
     public int EvolveTurnsLeft;
+    
+    // === Field Magic Effects ===
+    public bool IsImmuneToEnemyEffects;
 
     // === 新增：过载系统 (Overload) ===
     public int Overload;       // 当前过载层数 (倒计时)

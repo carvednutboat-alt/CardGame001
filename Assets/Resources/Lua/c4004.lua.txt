@@ -1,0 +1,14 @@
+-- ==========================================
+-- 过载增幅器 (Overload Amplifier)
+-- ID: 4004
+-- Desc: 1/1 Aura: Overload Gain +1
+-- ==========================================
+
+local c4004 = {}
+
+function c4004.initial_effect(c)
+    -- Aura logic is currently in C# UnitManager.ModifyOverload checks.
+    -- This script acts as the ID holder.
+end
+
+return c4004

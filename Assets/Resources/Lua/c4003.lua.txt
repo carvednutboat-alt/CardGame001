@@ -1,0 +1,38 @@
+-- ==========================================
+-- 蒸汽收割者 (Steam Reaper)
+-- ID: 4003
+-- Desc: 2/1 On Kill -> Gain Overload
+-- ==========================================
+
+local c4003 = {}
+
+function c4003.initial_effect(c)
+    -- On Battle Destroy Enemy triggering
+    local e1=Effect.CreateEffect(c)
+    e1:SetType(EffectType.TRIGGER)
+    e1:SetCode(EventCode.BATTLE_DESTROYED) -- Triggers when *anyone* is destroyed by battle
+    e1:SetRange(Location.MZONE)
+    e1:SetCondition(c4003.condition)
+    e1:SetOperation(c4003.operation)
+    c:RegisterEffect(e1)
+end
+
+function c4003.condition(e, tp, eg, ep, ev, re, r, rp)
+    -- Context: 'eg' usually contains destroyed unit? 
+    -- But XLua mapping of arguments is generic.
+    -- Better check: Did *I* kill something?
+    -- Duel.GetLastAttacker() == Me?
+    -- And was the destroyed thing an enemy?
+    
+    local me = e:GetHandler()
+    local attacker = Duel.GetLastAttacker()
+    return attacker ~= nil and attacker.Id == me.Id
+end
+
+function c4003.operation(e, tp, eg, ep, ev, re, r, rp)
+    Duel.Log("收割者击杀敌人，获得1层过载！")
+    local me = e:GetHandler()
+    Duel.AddOverload(me, 1)
+end
+
+return c4003

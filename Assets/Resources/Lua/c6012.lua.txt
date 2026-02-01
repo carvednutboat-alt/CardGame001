@@ -1,0 +1,40 @@
+local c6012 = {}
+
+function c6012.OnEffect(card, target)
+    local bm = CS.BattleManager.Instance
+    local owner = card.c.Owner -- 0=Player, 1=Enemy
+
+    -- 1. Count Colors (Self)
+    local colors = nil
+    if owner == 0 then
+        colors = bm.UnitManager:GetAliveCommanderColors()
+    else
+        colors = bm.EnemyManager:GetAliveCommanderColors()
+    end
+
+    local count = 0
+    if colors:Contains(CS.CardColor.Red) then count = count + 1 end
+    if colors:Contains(CS.CardColor.Green) then count = count + 1 end
+    if colors:Contains(CS.CardColor.Blue) then count = count + 1 end
+
+    bm.UIManager:Log("Assault! Attacks: " .. count)
+
+    for i=1, count do
+        -- 2. Find Targets (Opponent)
+        local targets = bm:GetOpponentUnits(owner) 
+        
+        if targets.Count > 0 then
+            local targetUnit = targets[CS.UnityEngine.Random.Range(0, targets.Count)]
+            bm.CombatManager:ApplyDamage(targetUnit, 5)
+            bm.UIManager:Log("Assault hits " .. targetUnit.Name)
+        else
+            -- If no units, hit Player Face (if Enemy matches)
+            if owner == 1 then
+                bm.PlayerUnit:TakeDamage(5)
+                bm.UIManager:Log("Assault hits Player!")
+            end
+        end
+    end
+end
+
+return c6012

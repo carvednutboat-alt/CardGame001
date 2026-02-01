@@ -50,6 +50,22 @@ public class UnitManager : MonoBehaviour
         return false;
     }
 
+    /// <summary>
+    /// 获取当前场上所有存活指挥官的颜色集合
+    /// </summary>
+    public HashSet<CardColor> GetAliveCommanderColors()
+    {
+        HashSet<CardColor> colors = new HashSet<CardColor>();
+        foreach (var unit in PlayerUnits)
+        {
+            if (unit != null && !unit.IsDead && unit.SourceCard != null)
+            {
+                colors.Add(unit.SourceCard.Data.color);
+            }
+        }
+        return colors;
+    }
+
     public bool TrySummonUnitAt(int slotIndex, RuntimeCard card)
     {
         if (slotIndex < 0 || slotIndex >= 5) return false;
@@ -149,7 +165,14 @@ public void KillUnit(RuntimeUnit unit)
             EventSystem.Instance.ProcessEvents();
         }
 
-        // 怪兽本体进入墓地
+        // 怪兽本体进入墓地 -> Now correctly using DeckManager DiscardPile
+        if (_bm.DeckManager != null)
+        {
+            _bm.DeckManager.DiscardPile.Add(unit.SourceCard);
+            // Also keep local list for legacy/unit-specific query, or remove if unused. 
+            // For safety, we keep it but it might duplicate refs if we rely on it for "Total Graveyard".
+            // Since Reshuffle ONLY uses DeckManager.DiscardPile, this is the fix.
+        }
         Graveyard.Add(unit.SourceCard);
 
         if (unit.UI != null) Destroy(unit.UI.gameObject);

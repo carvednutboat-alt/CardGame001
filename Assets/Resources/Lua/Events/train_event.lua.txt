@@ -1,0 +1,37 @@
+-- 列车事件 Lua脚本示例
+-- 此脚本会在玩家选择特定选项时执行
+-- 文件位置: Assets/Resources/Lua/Events/train_event.lua.txt
+
+-- 定义 execute 函数 (EventSceneManager 会调用此函数)
+function execute()
+    -- 获取 GameManager
+    local gm = CS.GameManager.Instance
+    if gm == nil then
+        CS.UnityEngine.Debug.LogError("[Lua Event] GameManager not found!")
+        return
+    end
+
+    -- 示例效果: 获得金币和生命值
+    local goldAmount = 50
+    local healAmount = 20
+    
+    gm:AddGold(goldAmount)
+    gm:HealPlayer(healAmount)
+    
+    CS.UnityEngine.Debug.Log("[Lua Event] Train event executed: +" .. goldAmount .. " gold, +" .. healAmount .. " HP")
+    
+    -- 你可以在这里添加更复杂的逻辑
+    -- 例如: 检查玩家状态、添加特定卡牌、触发其他效果等
+end
+
+-- 可选: 定义其他辅助函数
+function checkPlayerStatus()
+    local gm = CS.GameManager.Instance
+    if gm then
+        local currentHP = gm.PlayerCurrentHP
+        local maxHP = gm.PlayerMaxHP
+        CS.UnityEngine.Debug.Log("[Lua Event] Player HP: " .. currentHP .. "/" .. maxHP)
+        return currentHP, maxHP
+    end
+    return 0, 0
+end

@@ -1,0 +1,40 @@
+-- ==========================================
+-- 过载释放 (Overload Release)
+-- ID: 4008
+-- Desc: Spell - Reduce 1 Overload from target, Deal 5 AOE to Enemies
+-- ==========================================
+
+local c4008 = {}
+
+function c4008.initial_effect(c)
+    local e1=Effect.CreateEffect(c)
+    e1:SetType(EffectType.ACTIVATE)
+    e1:SetCode(EventCode.FREE_CHAIN)
+    e1:SetTarget(c4008.target)
+    e1:SetOperation(c4008.operation)
+    c:RegisterEffect(e1)
+end
+
+function c4008.target(e, tp, eg, ep, ev, re, r, rp, chk)
+    if chk==0 then return Duel.GetFieldUnitCount(tp, Location.MZONE, 0) > 0 end
+    Duel.SelectTarget(e:GetHandler(), CardTargetType.Ally)
+end
+
+function c4008.operation(e, tp, eg, ep, ev, re, r, rp)
+    -- 1. Reduce Overload
+    local target = Duel.GetFirstTarget()
+    if target ~= nil then
+        if target.Overload > 0 then
+             Duel.RemoveOverload(target, 1)
+             Duel.Log(target.Name .. " 过载减少1层。")
+        else
+             Duel.Log(target.Name .. " 无过载。")
+        end
+    end
+    
+    -- 2. AOE Damage
+    Duel.DamageAll(5, false, true) -- 5 dmg, player=false, enemy=true
+    Duel.Log("释放过载能量：全场轰炸5点伤害！")
+end
+
+return c4008

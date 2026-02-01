@@ -53,12 +53,27 @@ public class DeckManager : MonoBehaviour
 
     public void DrawCards(int count)
     {
+        Debug.Log($"[DeckManager] Requesting Draw: {count} cards. Deck: {DrawPile.Count}, Discard: {DiscardPile.Count}");
         for (int i = 0; i < count; i++)
         {
+            // 1. Check Draw Pile
             if (DrawPile.Count == 0)
             {
-                if (DiscardPile.Count == 0) return; // û����
+                Debug.Log("[DeckManager] Deck empty. Attempting reshuffle...");
+                if (DiscardPile.Count == 0) 
+                {
+                    Debug.LogWarning("[DeckManager] Both Deck and Discard are empty. Cannot draw.");
+                    return; 
+                }
                 ReshuffleDiscardToDraw();
+                
+                // SAFETY
+                if (DrawPile.Count == 0)
+                {
+                    Debug.LogError("[DeckManager] Draw Error: DrawPile remains empty after Reshuffle!");
+                    return;
+                }
+                Debug.Log($"[DeckManager] Reshuffle Success. New Deck Count: {DrawPile.Count}");
             }
 
             RuntimeCard card = DrawPile[0];
@@ -66,15 +81,21 @@ public class DeckManager : MonoBehaviour
 
             if (Hand.Count >= MaxHandSize)
             {
-                // �����߼���ֱ�ӽ����ƶѣ������� UI
+                Debug.Log($"[DeckManager] Hand Full ({Hand.Count}/{MaxHandSize}). Discarding {card.Name}");
+                // Hand Full -> Discard directly
+                card.UpdateLocation(Location.GRAVE, 0); 
                 DiscardPile.Add(card);
-                _bm.UIManager.Log($"<color=red>����������</color> {card.Data.cardName} �����á�");
-                continue; // ��������ѭ����������һ��
+                if (_bm != null && _bm.UIManager != null) 
+                    _bm.UIManager.Log($"<color=red>手牌已满，</color> {card.Data.cardName} 被丢弃。");
+                continue; 
             }
 
+            // Update Location to HAND
+            card.UpdateLocation(Location.HAND, Hand.Count);
             Hand.Add(card);
+            Debug.Log($"[DeckManager] Drawing '{card.Name}' to Hand. New Hand Count: {Hand.Count}");
 
-            // ���� UI
+            // Create UI
             CreateCardUI(card);
         }
     }
@@ -84,6 +105,10 @@ public class DeckManager : MonoBehaviour
         if (Hand.Contains(card))
         {
             Hand.Remove(card);
+            
+            // Update Location to GRAVE
+            card.UpdateLocation(Location.GRAVE, DiscardPile.Count);
+            
             DiscardPile.Add(card);
             Destroy(uiObject);
         }
@@ -113,10 +138,12 @@ public class DeckManager : MonoBehaviour
         if (Hand.Count >= MaxHandSize)
         {
             _bm.UIManager.Log($"手牌已满，{card.Data.cardName} 被挤掉了。");
+            card.UpdateLocation(Location.GRAVE, DiscardPile.Count);
             DiscardPile.Add(card);
             return false;
         }
 
+        card.UpdateLocation(Location.HAND, Hand.Count);
         Hand.Add(card);
         CreateCardUI(card);
         return true;
@@ -130,6 +157,12 @@ public class DeckManager : MonoBehaviour
 
     private void ReshuffleDiscardToDraw()
     {
+        // Update Location for ALL cards moving to Deck
+        foreach(var c in DiscardPile)
+        {
+            c.UpdateLocation(Location.DECK, 0); // Sequence isn't strictly maintained in deck until draw
+        }
+
         DrawPile.AddRange(DiscardPile);
         DiscardPile.Clear();
         Shuffle(DrawPile);
@@ -145,14 +178,14 @@ public class DeckManager : MonoBehaviour
         }
     }
 
-    private void Shuffle(List<RuntimeCard> list)
+    public void Shuffle(List<RuntimeCard> deck)
     {
-        for (int i = 0; i < list.Count; i++)
+        for (int i = 0; i < deck.Count; i++)
         {
-            int rnd = Random.Range(i, list.Count);
-            var temp = list[i];
-            list[i] = list[rnd];
-            list[rnd] = temp;
+            RuntimeCard temp = deck[i];
+            int randomIndex = Random.Range(i, deck.Count);
+            deck[i] = deck[randomIndex];
+            deck[randomIndex] = temp;
         }
     }
 

@@ -1,0 +1,33 @@
+-- ==========================================
+-- 过载模式 (Overload Mode)
+-- ID: 4005
+-- Desc: Spell - Grant Target +2 Overload
+-- ==========================================
+
+local c4005 = {}
+
+function c4005.initial_effect(c)
+    -- Spell Activation
+    local e1=Effect.CreateEffect(c)
+    e1:SetType(EffectType.ACTIVATE)
+    e1:SetCode(EventCode.FREE_CHAIN)
+    e1:SetTarget(c4005.target)
+    e1:SetOperation(c4005.operation)
+    c:RegisterEffect(e1)
+end
+
+function c4005.target(e, tp, eg, ep, ev, re, r, rp, chk)
+    -- Target 1 Ally Unit
+    if chk==0 then return Duel.GetFieldUnitCount(tp, Location.MZONE, 0) > 0 end
+    Duel.SelectTarget(e:GetHandler(), CardTargetType.Ally)
+end
+
+function c4005.operation(e, tp, eg, ep, ev, re, r, rp)
+    local target = Duel.GetFirstTarget()
+    if target ~= nil then
+        Duel.Log("过载模式启动：增加2层过载")
+        Duel.AddOverload(target, 2)
+    end
+end
+
+return c4005

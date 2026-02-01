@@ -12,6 +12,9 @@ public class RuntimeCard
     public string UniqueId { get; private set; }
     public CardData Data { get; private set; }
     
+    // Helper property for Lua
+    public string Name => Data != null ? Data.cardName : "Unknown Card";
+    
     // === 位置追踪（参考YGO） ===
     public int CurrentLocation;  // LOCATION_HAND, MZONE等
     public int CurrentSequence;  // 在该区域的序号（0-4）
@@ -19,6 +22,7 @@ public class RuntimeCard
     public int Controller;       // 当前控制者
     public int PreviousLocation; // 上一个位置（用于效果判定）
     public int PreviousSequence;   // 原始配置
+    public bool IsPendingResolved = false;
 
 public RuntimeCard(CardData data)
     {

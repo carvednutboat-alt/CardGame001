@@ -18,6 +18,9 @@ public class SaveData
     public string MapJson; 
     public Vector2Int CurrentNodeCoord;
     public bool HasActiveRun;
+    
+    // [NEW] 记录已触发的事件名称
+    public List<string> TriggeredEventNames = new List<string>();
 }
 
 public class GameManager : MonoBehaviour
@@ -51,6 +54,10 @@ public class GameManager : MonoBehaviour
     public EventProfile RestProfile;
     
     public EventProfile CurrentEventProfile;
+    
+    // [NEW] 追踪本局游戏已触发的事件（防止重复）
+    [System.NonSerialized]
+    public List<EventProfile> TriggeredEvents = new List<EventProfile>();
 
     // 玩家状态
     public int PlayerCurrentHP = 80;
@@ -78,6 +85,9 @@ public class GameManager : MonoBehaviour
 
         // 初始化 MasterDeck
         MasterDeck = new List<CardData>(starterDeck);
+        
+        // [NEW] 清空已触发事件列表
+        TriggeredEvents.Clear();
 
         // 2. === 修复：初始化 PlayerCollection ===
         if (PlayerCollection.Instance != null)
@@ -130,10 +140,24 @@ public class GameManager : MonoBehaviour
         StartNewGame(MasterDeck);
     }
 
+    private void RefreshEventList()
+    {
+        // 自动从 Resources/Events 加载所有 EventProfile
+        var loadedEvents = Resources.LoadAll<EventProfile>("Events");
+        if (loadedEvents != null && loadedEvents.Length > 0)
+        {
+            AllEvents = new List<EventProfile>(loadedEvents);
+            Debug.Log($"[GameManager] Refreshed event pool: {AllEvents.Count} events found.");
+        }
+    }
+
     public void SelectNode(MapNode node)
     {
         CurrentNode = node;
         node.Status = NodeStatus.Current;
+
+        // [NEW] 每次选择节点前刷新一次事件列表，确保新创建的事件被包含
+        RefreshEventList();
 
         // 根据类型跳转场景
         if (node.Type == NodeType.MinorEnemy || node.Type == NodeType.EliteEnemy || node.Type == NodeType.Boss)
@@ -142,15 +166,52 @@ public class GameManager : MonoBehaviour
         }
         else if (node.Type == NodeType.Event)
         {
-            // 随机选择一个事件
+            // 随机选择一个事件 (考虑解锁条件)
             if (AllEvents != null && AllEvents.Count > 0)
             {
-                int idx = UnityEngine.Random.Range(0, AllEvents.Count);
-                CurrentEventProfile = AllEvents[idx];
+                // [NEW] 过滤出可用的事件 (满足解锁条件 + 未触发过)
+                List<EventProfile> availableEvents = new List<EventProfile>();
+                
+                foreach (var evt in AllEvents)
+                {
+                    // 检查解锁条件 AND 未触发过
+                    if (IsEventUnlocked(evt) && !TriggeredEvents.Contains(evt))
+                    {
+                        availableEvents.Add(evt);
+                    }
+                }
+                
+                // 从可用事件中随机选择
+                if (availableEvents.Count > 0)
+                {
+                    int idx = UnityEngine.Random.Range(0, availableEvents.Count);
+                    CurrentEventProfile = availableEvents[idx];
+                    
+                    // [NEW] 记录已触发的事件
+                    TriggeredEvents.Add(CurrentEventProfile);
+                    Debug.Log($"[GameManager] Triggered event: {CurrentEventProfile.Title} (Total triggered: {TriggeredEvents.Count})");
+                }
+                else
+                {
+                    // 如果所有事件都触发过了，清空追踪器以允许重新循环 (或者使用默认)
+                    Debug.Log("[GameManager] All events triggered. Resetting event pool for variety.");
+                    TriggeredEvents.Clear();
+                    
+                    if (AllEvents.Count > 0)
+                    {
+                        CurrentEventProfile = AllEvents[UnityEngine.Random.Range(0, AllEvents.Count)];
+                        TriggeredEvents.Add(CurrentEventProfile);
+                    }
+                    else
+                    {
+                        CurrentEventProfile = Resources.Load<EventProfile>("Events/Event_Spring");
+                    }
+                }
             }
             else
             {
-                // Fallback: Use a default one loaded from resources or keep existing logic if assigned elsewhere
+                // Fallback: Use a default one loaded from resources
+                Debug.LogWarning("[GameManager] AllEvents list is empty. Loading Spring fallback.");
                 CurrentEventProfile = Resources.Load<EventProfile>("Events/Event_Spring"); 
             }
             SceneManager.LoadScene("EventScene");
@@ -219,7 +280,6 @@ public class GameManager : MonoBehaviour
     public void OnRunFailed()
     {
         Debug.Log("游戏结束");
-        // SceneManager.LoadScene("MainMenu"); 
     }
 
     public MapNode GetNode(Vector2Int coord)
@@ -230,19 +290,14 @@ public class GameManager : MonoBehaviour
     }
 
     // --- 接口：获得卡牌 ---
-    public void AddCardToDeck(CardData newCard)
+    public void RegisterCardToDeck(CardData newCard)
     {
         if (newCard == null) return;
-
         MasterDeck.Add(newCard);
-
-        // 同时加入玩家的收藏库(Owned)
         if (PlayerCollection.Instance != null)
         {
-            // true 表示允许重复 (Roguelike通常允许)
             PlayerCollection.Instance.AddCardToCollection(newCard, true);
         }
-
         Debug.Log($"获得了卡牌: {newCard.cardName}");
     }
 
@@ -255,32 +310,52 @@ public class GameManager : MonoBehaviour
         NotifyPlayerStateChanged();
     }
 
-    // 获得卡片和unit    
-    // GameManager.cs
-    public void AcquireEnemyUnitAndDeck(CardData unitCard, List<CardData> deckCards)
+    public void AcquireEnemyUnitAndChoice(CardData unitCard, CardData selectedChoice)
     {
-        if (unitCard != null)
-            AddCardToDeck(unitCard);
-
-        if (deckCards != null)
-        {
-            foreach (var c in deckCards)
-            {
-                if (c == null) continue;
-                AddCardToDeck(c);
-            }
-        }
+        if (unitCard != null) RegisterCardToDeck(unitCard);
+        if (selectedChoice != null) RegisterCardToDeck(selectedChoice);
     }
     
+    public List<CardData> GetRandomCardsByColors(List<CardColor> colors, int count)
+    {
+        if (_cardRegistry.Count == 0) BuildCardRegistry();
+        
+        Debug.Log($"[GameManager] GetRandomCardsByColors: Registry={_cardRegistry.Count}, RequestedColors={ (colors != null ? string.Join(",", colors) : "null") }");
 
+        // 1. 过滤：颜色匹配 (包含无色)
+        var pool = _cardRegistry.Values.Where(c => 
+            (colors != null && colors.Contains(c.color)) || c.color == CardColor.Colorless).ToList();
+
+        // 2. 兜底：如果没搜到（或者没配颜色），从全卡池抽
+        if (pool.Count == 0)
+        {
+            Debug.LogWarning("[GameManager] Color-matched pool is empty. Falling back to full registry.");
+            pool = _cardRegistry.Values.ToList();
+        }
+
+        if (pool.Count == 0)
+        {
+            Debug.LogError("[GameManager] CRITICAL: Card Registry is still empty after fallback!");
+            return new List<CardData>();
+        }
+
+        // 3. 随机抽取 (去重)
+        List<CardData> result = new List<CardData>();
+        var shuffled = pool.OrderBy(x => UnityEngine.Random.value).ToList();
+        for (int i = 0; i < Mathf.Min(count, shuffled.Count); i++)
+        {
+            result.Add(shuffled[i]);
+        }
+        
+        Debug.Log($"[GameManager] Offering {result.Count} reward cards.");
+        return result;
+    }
 
     public bool TrySpendGold(int amount)
     {
         if (amount <= 0) return true;
         if (_gold < amount) return false;
-
         _gold -= amount;
-        Debug.Log($"[Global] 花费金币 {amount}, 当前金币: {_gold}");
         NotifyPlayerStateChanged();
         return true;
     }
@@ -323,7 +398,7 @@ public class GameManager : MonoBehaviour
         List<CardData> allCards = new List<CardData>(_cardRegistry.Values);
         CardData randomCard = allCards[UnityEngine.Random.Range(0, allCards.Count)];
         
-        AddCardToDeck(randomCard);
+        RegisterCardToDeck(randomCard);
         Debug.Log($"[Event] Random Card Reward: {randomCard.cardName}");
     }
 
@@ -423,15 +498,24 @@ public void ReturnToTitle()
 
     private void BuildCardRegistry()
     {
-        // 自动索引所有 Resources 下的 CardData
-        CardData[] cards = Resources.LoadAll<CardData>("");
         _cardRegistry.Clear();
-        foreach (var c in cards)
+        // 1. 尝试从 root 加载
+        CardData[] rootCards = Resources.LoadAll<CardData>("");
+        foreach (var c in rootCards)
         {
             if (c != null && !_cardRegistry.ContainsKey(c.name))
                 _cardRegistry.Add(c.name, c);
         }
-        Debug.Log($"[GameManager] 已索引 {_cardRegistry.Count} 张卡片");
+        
+        // 2. 显式尝试从 "Cards" 文件夹加载 (预防 LoadAll("") 不递归的情况)
+        CardData[] subfolderCards = Resources.LoadAll<CardData>("Cards");
+        foreach (var c in subfolderCards)
+        {
+            if (c != null && !_cardRegistry.ContainsKey(c.name))
+                _cardRegistry.Add(c.name, c);
+        }
+
+        Debug.Log($"[GameManager] Card Registry Built: {_cardRegistry.Count} cards indexed.");
     }
 
     public void BuildRelicRegistry()
@@ -510,6 +594,13 @@ public void ReturnToTitle()
         }
         data.CurrentNodeCoord = CurrentNode != null ? CurrentNode.Coordinate : new Vector2Int(-1, -1);
 
+        // [NEW] 保存已触发事件
+        data.TriggeredEventNames.Clear();
+        foreach (var evt in TriggeredEvents)
+        {
+            if (evt != null) data.TriggeredEventNames.Add(evt.name);
+        }
+
         string json = JsonUtility.ToJson(data, true);
         File.WriteAllText(path, json);
         Debug.Log("Save successful to: " + path);
@@ -547,6 +638,14 @@ public void ReturnToTitle()
             {
                 CurrentMap = MapDataSerializer.Deserialize(data.MapJson);
                 CurrentNode = GetNode(data.CurrentNodeCoord);
+            }
+
+            // [NEW] 还原已触发事件
+            TriggeredEvents.Clear();
+            foreach (var evtName in data.TriggeredEventNames)
+            {
+                var evt = AllEvents.Find(e => e.name == evtName);
+                if (evt != null) TriggeredEvents.Add(evt);
             }
 
             // 同步到 PlayerCollection (核心修复点)
@@ -595,6 +694,62 @@ public void ReturnToTitle()
             }
             Debug.Log("[GameManager] 仓库与出战卡组已同步至 PlayerCollection");
         }
+    }
+
+    /// <summary>
+    /// [NEW] 检查事件是否解锁 (基于遗物条件)
+    /// </summary>
+    private bool IsEventUnlocked(EventProfile evt)
+    {
+        if (evt == null) return false;
+
+        // 如果没有解锁条件，则默认解锁
+        if ((evt.RequiredRelics == null || evt.RequiredRelics.Count == 0) &&
+            (evt.RequiredRelicIds == null || evt.RequiredRelicIds.Count == 0))
+        {
+            return true;
+        }
+
+        // 检查玩家是否拥有所需遗物
+        if (PlayerCollection.Instance == null)
+        {
+            Debug.LogWarning("[GameManager] PlayerCollection is null, cannot check event unlock conditions.");
+            return false;
+        }
+
+        var ownedRelics = PlayerCollection.Instance.OwnedRelics;
+
+        // 检查 RequiredRelics (通过引用)
+        if (evt.RequiredRelics != null && evt.RequiredRelics.Count > 0)
+        {
+            foreach (var requiredRelic in evt.RequiredRelics)
+            {
+                if (requiredRelic == null) continue;
+                
+                bool hasRelic = ownedRelics.Exists(r => r != null && r.relicId == requiredRelic.relicId);
+                if (!hasRelic)
+                {
+                    return false; // 缺少必需遗物
+                }
+            }
+        }
+
+        // 检查 RequiredRelicIds (通过ID字符串)
+        if (evt.RequiredRelicIds != null && evt.RequiredRelicIds.Count > 0)
+        {
+            foreach (var requiredId in evt.RequiredRelicIds)
+            {
+                if (string.IsNullOrEmpty(requiredId)) continue;
+                
+                bool hasRelic = ownedRelics.Exists(r => r != null && r.relicId == requiredId);
+                if (!hasRelic)
+                {
+                    return false; // 缺少必需遗物
+                }
+            }
+        }
+
+        return true; // 所有条件满足
     }
 }
 

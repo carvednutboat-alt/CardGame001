@@ -80,6 +80,26 @@ public class EventSystem : MonoBehaviour
     }
     
     /// <summary>
+    /// 触发装备事件 (Special case: Unit is target, Card is equipment)
+    /// </summary>
+    public void RaiseEquipEvent(RuntimeUnit target, RuntimeCard equipment)
+    {
+        var gameEvent = new GameEvent
+        {
+            Code = EventCode.EQUIP,
+            Card = equipment,
+            Unit = target,
+            Value = 0,
+            Reason = 0,
+            Player = equipment?.Owner ?? 0
+        };
+        
+        _eventQueue.Enqueue(gameEvent);
+        
+        Debug.Log($"[EventSystem] Equip Event Raised: {target?.Name} equipped with {equipment?.Data?.cardName}");
+    }
+
+    /// <summary>
     /// 处理事件队列
     /// </summary>
     public void ProcessEvents()
@@ -114,23 +134,22 @@ public class EventSystem : MonoBehaviour
     {
         _triggerEffects.Clear();
         
-        Debug.Log($"[EventSystem] Collecting effects for event {evt.Code}");
+        // Debug.Log($"[EventSystem] Collecting effects for event {evt.Code}");
         
         // 遍历所有玩家单位的效果
         if (_battleManager?.UnitManager != null)
         {
-            Debug.Log($"[EventSystem] Checking {_battleManager.UnitManager.PlayerUnits.Count} player units");
             foreach (var unit in _battleManager.UnitManager.PlayerUnits)
             {
                 if (unit?.SourceCard == null) continue;
                 
-                Debug.Log($"[EventSystem] Unit {unit.Name} has {unit.SourceCard.Effects.Count} effects");
+                // Debug.Log($"[EventSystem] Unit {unit.Name} has {unit.SourceCard.Effects.Count} effects");
                 foreach (var effect in unit.SourceCard.Effects)
                 {
                     if (CheckEffectTrigger(effect, evt))
                     {
                         _triggerEffects.Add(effect);
-                        Debug.Log($"[EventSystem] ✓ Added effect Code={effect.EffectCode} from {unit.Name}");
+                        // Debug.Log($"[EventSystem] ✓ Added effect Code={effect.EffectCode} from {unit.Name}");
                     }
                 }
             }
@@ -160,28 +179,19 @@ public class EventSystem : MonoBehaviour
     private bool CheckEffectTrigger(Effect effect, GameEvent evt)
     {
         // 检查效果类型是否为触发效果
-        if (!effect.IsHasType(EffectType.TRIGGER))
-        {
-            Debug.Log($"[EventSystem] Effect Type={effect.EffectType} is not TRIGGER (need {EffectType.TRIGGER})");
-            return false;
-        }
+        if (!effect.IsHasType(EffectType.TRIGGER)) return false;
         
         // 检查效果代码是否匹配事件
-        if (effect.EffectCode != evt.Code && effect.EffectCode != EventCode.FREE_CHAIN)
-        {
-            Debug.Log($"[EventSystem] Effect Code={effect.EffectCode} doesn't match Event Code={evt.Code}");
-            return false;
-        }
+        if (effect.EffectCode != evt.Code && effect.EffectCode != EventCode.FREE_CHAIN) return false;
         
         // 检查效果是否可用
-        if (!effect.IsAvailable())
-        {
-            Debug.Log($"[EventSystem] Effect {effect.EffectCode} unavailable. Range Check: {effect.IsAvailable()}");
-            return false;
-        }
+        if (!effect.IsAvailable()) return false;
         
         // 检查条件
-        return effect.CheckCondition(evt.Player, null, evt.Player, evt.Value, null, evt.Reason, evt.Player);
+        // KEY CHANGE: Passing evt.Card as 'eg' (Event Group / Event Graph)
+        // If it's an EQUIP event, evt.Card is the Equipment.
+        // If it's a SUMMON event, evt.Card is the Summoned Unit's Card.
+        return effect.CheckCondition(evt.Player, evt.Card, evt.Player, evt.Value, null, evt.Reason, evt.Player);
     }
     
     /// <summary>
@@ -192,19 +202,19 @@ public class EventSystem : MonoBehaviour
         foreach (var effect in _triggerEffects)
         {
             // 检查代价
-            if (!effect.CheckCost(evt.Player, null, evt.Player, evt.Value, null, evt.Reason, evt.Player))
+            if (!effect.CheckCost(evt.Player, evt.Card, evt.Player, evt.Value, null, evt.Reason, evt.Player))
             {
                 continue;
             }
             
             // 检查目标
-            if (!effect.CheckTarget(evt.Player, null, evt.Player, evt.Value, null, evt.Reason, evt.Player))
+            if (!effect.CheckTarget(evt.Player, evt.Card, evt.Player, evt.Value, null, evt.Reason, evt.Player))
             {
                 continue;
             }
             
             // 执行操作
-            effect.ExecuteOperation(evt.Player, null, evt.Player, evt.Value, null, evt.Reason, evt.Player);
+            effect.ExecuteOperation(evt.Player, evt.Card, evt.Player, evt.Value, null, evt.Reason, evt.Player);
             
             Debug.Log($"[EventSystem] Effect Executed: {effect.Description ?? effect.EffectCode.ToString()}");
         }

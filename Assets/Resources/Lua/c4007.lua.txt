@@ -1,0 +1,38 @@
+-- ==========================================
+-- 极限运转 (Limit Operation)
+-- ID: 4007
+-- Desc: Evolve - Change Commander Attack logic to Overload*2
+-- ==========================================
+
+local c4007 = {}
+
+function c4007.initial_effect(c)
+    local e1=Effect.CreateEffect(c)
+    e1:SetType(EffectType.ACTIVATE) -- Evolve cards might use ACTIVATE or specific logic
+    e1:SetCode(EventCode.FREE_CHAIN)
+    e1:SetTarget(c4007.target)
+    e1:SetOperation(c4007.operation)
+    c:RegisterEffect(e1)
+end
+
+function c4007.target(e, tp, eg, ep, ev, re, r, rp, chk)
+    -- Target Ally Unit (Preferably Robot Commander, but maybe any Robot?)
+    if chk==0 then return Duel.GetFieldUnitCount(tp, Location.MZONE, 0) > 0 end
+    Duel.SelectTarget(e:GetHandler(), CardTargetType.Ally)
+end
+
+function c4007.operation(e, tp, eg, ep, ev, re, r, rp)
+    local target = Duel.GetFirstTarget()
+    if target ~= nil then
+        if not target.RobotEvolved then
+             target.RobotEvolved = true
+             Duel.Log(target.Name .. " 极限运转进化！")
+             -- Recalculate stats handled by C# detecting this flag
+             Duel.ModifyATK(target, 0, true) -- Force refresh
+        else
+             Duel.Log("该单位已经极限进化过。")
+        end
+    end
+end
+
+return c4007

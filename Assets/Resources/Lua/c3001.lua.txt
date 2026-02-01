@@ -1,0 +1,13 @@
+-- ==========================================
+-- 千具武·宗师 (Thousand Weapons Commander)
+-- ID: 3001
+-- ==========================================
+
+local c3001 = {}
+
+function c3001.initial_effect(c)
+    -- Vanilla Commander: No effects strictly handled by Lua yet.
+    -- Logic regarding "Commander" status is likely checked by CardData flags.
+end
+
+return c3001

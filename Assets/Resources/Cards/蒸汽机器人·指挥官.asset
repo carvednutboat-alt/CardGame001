@@ -38,5 +38,12 @@ MonoBehaviour:
   cardTag: 2
   targetType: 0
   startsInDeck: 0
+  EnemyMoves:
+  - {fileID: 11400000, guid: 7a3b91b43d2684148ace0456f05627db, type: 2}
+  - {fileID: 11400000, guid: 2d40e58f8dca6074c9352f9acab7f01c, type: 2}
+  - {fileID: 11400000, guid: 4a079569f758b864782ec31df6c86cd9, type: 2}
+  - {fileID: 11400000, guid: 5394d0cc0c974b54597177d68659f31f, type: 2}
+  - {fileID: 11400000, guid: 47839ba523180fc4b9232999e60a2242, type: 2}
+  - {fileID: 11400000, guid: 1ff27957f3d727e4cac484c712de23d3, type: 2}
   isCommander: 1
   dieWithoutCommander: 0

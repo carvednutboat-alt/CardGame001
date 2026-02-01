@@ -16,6 +16,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 2ea94d82d85a6154cb235420c3edec41, type: 2}
   - {fileID: 11400000, guid: c864d2fab19a7004694d9d4044871656, type: 2}
   EliteEncounters:
-  - {fileID: 11400000, guid: c864d2fab19a7004694d9d4044871656, type: 2}
+  - {fileID: 11400000, guid: 191384f19e971ef46b19b82916523315, type: 2}
   BossEncounters:
-  - {fileID: 11400000, guid: c864d2fab19a7004694d9d4044871656, type: 2}
+  - {fileID: 11400000, guid: 191384f19e971ef46b19b82916523315, type: 2}

@@ -200,6 +200,22 @@ public static class Duel
         BattleManager.Instance.UnitManager.KillUnit(unit);
     }
 
+    public static void Equip(RuntimeUnit target, RuntimeCard card)
+    {
+        if (BattleManager.Instance == null || target == null || card == null) return;
+        
+        // 1. Call logic
+        BattleManager.Instance.ApplyEquipment(card, target);
+        
+        // 2. Remove from Hand (visuals + logic) but do NOT discard
+        var dm = BattleManager.Instance.DeckManager;
+        if (dm != null && dm.Hand.Contains(card))
+        {
+            var ui = dm.FindCardUI(card);
+            dm.RemoveCardFromHand(card, ui); 
+        }
+    }
+
     public static void SwapUnitPositions(RuntimeUnit unit1, RuntimeUnit unit2)
     {
         if (unit1 == null || unit2 == null || BattleManager.Instance?.UnitManager == null) return;

@@ -1,0 +1,18 @@
+local c6022 = {}
+
+function c6022.OnEffect(card, target)
+    local bm = CS.BattleManager.Instance
+    local enemies = bm.EnemyManager.ActiveEnemies
+    
+    for i=0, enemies.Count-1 do
+        local enemy = enemies[i]
+        enemy.UnitData.CurrentAtk = enemy.UnitData.CurrentAtk + 1
+        enemy.UnitData.CurrentHp = enemy.UnitData.CurrentHp + 1
+        enemy.UnitData.MaxHp = enemy.UnitData.MaxHp + 1
+        enemy.UI:UpdateAttack()
+        enemy.UI:UpdateHP()
+    end
+    bm.UIManager:Log("Pack Tactics: All Enemies +1/+1")
+end
+
+return c6022

@@ -1,0 +1,42 @@
+-- ==========================================
+-- 千具武·侍卫 (Thousand Weapons Guard)
+-- ID: 3003
+-- Desc: Deathrattle: Search Equipment
+-- ==========================================
+
+local c3003 = {}
+
+function c3003.initial_effect(c)
+    -- 亡语：检索装备
+    local e1=Effect.CreateEffect(c)
+    e1:SetType(EffectType.TRIGGER)
+    e1:SetCode(EventCode.DESTROYED) -- or DESTROYED_BY_BATTLE / EFFECT? Standard is DESTROYED
+    e1:SetRange(Location.GRAVE)     -- Trigger from Grave
+    e1:SetCondition(c3003.condition)
+    e1:SetOperation(c3003.operation)
+    c:RegisterEffect(e1)
+end
+
+function c3003.condition(e, tp, eg, ep, ev, re, r, rp)
+    -- Ensure it was on field before
+    return e:GetHandler():IsLocation(Location.GRAVE) 
+end
+
+function c3003.operation(e, tp, eg, ep, ev, re, r, rp)
+    Duel.Log("亡语触发：检索装备")
+    
+    -- Filter: Is Equipment
+    local filter = function(card)
+         return card.Data.isEquipment
+    end
+    
+    -- Search Deck for Equipment
+    local found = Duel.SearchDeckAndAddToHand(filter)
+    if found then
+        Duel.Log("已将一张装备牌加入手牌。")
+    else
+        Duel.Log("未发现装备牌。")
+    end
+end
+
+return c3003

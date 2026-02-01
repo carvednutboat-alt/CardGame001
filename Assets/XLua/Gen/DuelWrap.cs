@@ -31,7 +31,7 @@ namespace XLua.CSObjectWrap
 			Utils.EndObjectRegister(type, L, translator, null, null,
 			    null, null, null);
 
-		    Utils.BeginClassRegister(type, L, __CreateInstance, 35, 0, 0);
+		    Utils.BeginClassRegister(type, L, __CreateInstance, 36, 0, 0);
 			Utils.RegisterFunc(L, Utils.CLS_IDX, "CreateToken", _m_CreateToken_xlua_st_);
             Utils.RegisterFunc(L, Utils.CLS_IDX, "SendtoDeck", _m_SendtoDeck_xlua_st_);
             Utils.RegisterFunc(L, Utils.CLS_IDX, "ShuffleDeck", _m_ShuffleDeck_xlua_st_);
@@ -51,6 +51,7 @@ namespace XLua.CSObjectWrap
             Utils.RegisterFunc(L, Utils.CLS_IDX, "Damage", _m_Damage_xlua_st_);
             Utils.RegisterFunc(L, Utils.CLS_IDX, "DamageAll", _m_DamageAll_xlua_st_);
             Utils.RegisterFunc(L, Utils.CLS_IDX, "DestroyUnit", _m_DestroyUnit_xlua_st_);
+            Utils.RegisterFunc(L, Utils.CLS_IDX, "Equip", _m_Equip_xlua_st_);
             Utils.RegisterFunc(L, Utils.CLS_IDX, "SwapUnitPositions", _m_SwapUnitPositions_xlua_st_);
             Utils.RegisterFunc(L, Utils.CLS_IDX, "GetLastAttacker", _m_GetLastAttacker_xlua_st_);
             Utils.RegisterFunc(L, Utils.CLS_IDX, "SetLastAttacker", _m_SetLastAttacker_xlua_st_);
@@ -617,6 +618,33 @@ namespace XLua.CSObjectWrap
                     RuntimeUnit _unit = (RuntimeUnit)translator.GetObject(L, 1, typeof(RuntimeUnit));
                     
                     Duel.DestroyUnit( _unit );
+                    
+                    
+                    
+                    return 0;
+                }
+                
+            } catch(System.Exception gen_e) {
+                return LuaAPI.luaL_error(L, "c# exception:" + gen_e);
+            }
+            
+        }
+        
+        [MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
+        static int _m_Equip_xlua_st_(RealStatePtr L)
+        {
+		    try {
+            
+                ObjectTranslator translator = ObjectTranslatorPool.Instance.Find(L);
+            
+            
+            
+                
+                {
+                    RuntimeUnit _target = (RuntimeUnit)translator.GetObject(L, 1, typeof(RuntimeUnit));
+                    RuntimeCard _card = (RuntimeCard)translator.GetObject(L, 2, typeof(RuntimeCard));
+                    
+                    Duel.Equip( _target, _card );
                     
                     
                     

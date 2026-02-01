@@ -1,0 +1,43 @@
+-- ==========================================
+-- 千具武·突击者 (Thousand Weapons Assault)
+-- ID: 3005
+-- Desc: On Equip -> Search Family (or Bonus?)
+-- NOTE: DevCardLoader says "OnEquip". EffectLogic had "SearchFamilyOnEquip".
+-- Let's implement Search Family when equipped.
+-- ==========================================
+
+local c3005 = {}
+
+function c3005.initial_effect(c)
+    -- 装备时触发效果
+    -- WARNING: "When Equipped" usually means "When I become equipped with something".
+    -- EventCode.EQUIP usually triggers.
+    local e1=Effect.CreateEffect(c)
+    e1:SetType(EffectType.TRIGGER)
+    e1:SetCode(EventCode.EQUIP) 
+    e1:SetRange(Location.MZONE)
+    e1:SetOperation(c3005.operation)
+    c:RegisterEffect(e1)
+end
+
+function c3005.operation(e, tp, eg, ep, ev, re, r, rp)
+    -- eg is the equipment card (RuntimeCard) passed from EventSystem
+    -- Check if we need to verify the equipment characteristic?
+    -- User said: "When equipped with ANY equipment card".
+    -- So we just trigger.
+    
+    Duel.Log("装备共鸣触发：检索千具武单位")
+    
+    local filter = function(card)
+         -- 查找 "千具武" 单位 (Tag: MartialArtist or similar check)
+         -- CardKind.Unit AND (CardTag.MartialArtist OR name contains Thousand Weapons)
+         -- Assuming Tag "MartialArtist" is used for Thousand Weapons units.
+         return (card.Data.kind == CardKind.Unit) and (card.Data.cardTag == CardTag.MartialArtist)
+    end
+    
+    if Duel.SearchDeckAndAddToHand(filter) then
+         Duel.Log("千具武支援已到达。")
+    end
+end
+
+return c3005

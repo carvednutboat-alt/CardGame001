@@ -1,0 +1,14 @@
+-- ==========================================
+-- 蒸汽哨兵 (Steam Sentry)
+-- ID: 4002
+-- Desc: 0/2 Taunt Aura (Neighbor +1 HP handled by C# usually)
+-- ==========================================
+
+local c4002 = {}
+
+function c4002.initial_effect(c)
+    -- Basic Taunt Unit. 
+    -- Aura effects are complex to script purely in Lua without hooks.
+end
+
+return c4002

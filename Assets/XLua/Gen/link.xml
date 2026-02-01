@@ -16,6 +16,7 @@
 		<type fullname="Position" preserve="all"/>
 		<type fullname="Player" preserve="all"/>
 		<type fullname="Phase" preserve="all"/>
+		<type fullname="CardTargetType" preserve="all"/>
 		<type fullname="CardTag" preserve="all"/>
 		<type fullname="CardData" preserve="all"/>
 		<type fullname="RuntimeCard" preserve="all"/>
@@ -24,7 +25,6 @@
 		<type fullname="Effect" preserve="all"/>
 		<type fullname="EventSystem" preserve="all"/>
 		<type fullname="GameEvent" preserve="all"/>
-		<type fullname="CardTargetType" preserve="all"/>
 		<type fullname="Tutorial.BaseClass" preserve="all"/>
 		<type fullname="Tutorial.TestEnum" preserve="all"/>
 		<type fullname="Tutorial.DerivedClass" preserve="all"/>

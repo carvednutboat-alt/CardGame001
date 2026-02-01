@@ -1,61 +1,88 @@
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro; // ÒıÓÃ TextMeshPro
+using TMPro; // å¼•ç”¨ TextMeshPro
 
 public class EnemyUnitUI : MonoBehaviour
 {
-    [Header("UI ×é¼şÒıÓÃ")]
+    [Header("UI ç»„ä»¶å¼•ç”¨")]
     public Button ClickButton;
     public TMP_Text NameText;
     public TMP_Text HPText;
     public TMP_Text AttackText;
-    public Image HPBar; // Èç¹ûÄãÏë×öÑªÌõµÄ»°
+    public Image HPBar; // å¦‚æœä½ æƒ³åšè¡€æ¡çš„è¯
 
-    // ÄÚ²¿ÒıÓÃ
+    // å†…éƒ¨å¼•ç”¨
     private BattleManager _bm;
     private RuntimeUnit _unitData;
 
-    // ¹«¿ªÊôĞÔ£ºÈÃÍâ²¿ÄÜ»ñÈ¡Õâ¸ö UI °ó¶¨µÄÊı¾İ
+    // å…¬å¼€å±æ€§ï¼šè®©å¤–éƒ¨èƒ½è·å–è¿™ä¸ª UI ç»‘å®šçš„æ•°æ®
     public RuntimeUnit MyUnit => _unitData;
 
     // ==========================================
-    // ³õÊ¼»¯
+    // åˆå§‹åŒ–
     // ==========================================
     public void Init(RuntimeUnit unit, BattleManager bm)
     {
         _unitData = unit;
         _bm = bm;
 
-        // 1. ÉèÖÃÃû×Ö
+        // 1. è®¾ç½®åå­—
         if (NameText != null) NameText.text = unit.Name;
-        Debug.Log($"¹ÖÊŞ{NameText.text}{unit.Id}±»³õÊ¼»¯");
-        // 2. °ó¶¨°´Å¥ÊÂ¼ş
+        Debug.Log($"æ€ªå…½{NameText.text}{unit.Id}è¢«åˆå§‹åŒ–");
+        // 2. ç»‘å®šæŒ‰é’®äº‹ä»¶
         if (ClickButton != null)
         {
-            Debug.Log($"¹ÖÊŞ{NameText.text}{unit.Id}µÄ°´¼üÕı³£");
+            Debug.Log($"æ€ªå…½{NameText.text}{unit.Id}çš„æŒ‰é”®æ­£å¸¸");
             ClickButton.onClick.RemoveAllListeners();
             ClickButton.onClick.AddListener(OnClicked);
         }
 
-        // 3. Ë¢ĞÂ³õÊ¼×´Ì¬
+        // 3. åˆ·æ–°åˆå§‹çŠ¶æ€
         UpdateHP();
         UpdateAttack();
+
+        // [Elite Robot] Blue Tint Visual
+        ApplyEliteVisuals();
+    }
+
+    private void ApplyEliteVisuals()
+    {
+        if (_unitData == null || _unitData.SourceCard == null) return;
+
+        // å¦‚æœæ˜¯ç²¾è‹±æœºå™¨äººæŒ‡æŒ¥å®˜ (4001)
+        if (_unitData.SourceCard.Data.id == 4001)
+        {
+            // å°è¯•ç»™ UI åŠ ä¸Šè“è‰²è°ƒ
+            Image mainBg = GetComponent<Image>();
+            if (mainBg != null)
+            {
+                mainBg.color = new Color(0.2f, 0.4f, 1.0f, 1.0f); // æ·±è“è‰²èƒŒæ™¯
+            }
+
+            // ä¹Ÿå¯ä»¥ç»™åå­—åŠ é¢œè‰²
+            if (NameText != null)
+            {
+                NameText.color = Color.cyan;
+            }
+
+            Debug.Log($"[EnemyUnitUI] Applied elite blue visual to {_unitData.Name}");
+        }
     }
 
     // ==========================================
-    // ×´Ì¬Ë¢ĞÂ
+    // çŠ¶æ€åˆ·æ–°
     // ==========================================
     public void UpdateHP()
     {
         if (_unitData == null) return;
 
-        // ¸üĞÂÎÄ×Ö
+        // æ›´æ–°æ–‡å­—
         if (HPText != null)
         {
             HPText.text = $"{_unitData.CurrentHp}/{_unitData.MaxHp}";
         }
 
-        // ¸üĞÂÑªÌõ (Èç¹ûÓĞ)
+        // æ›´æ–°è¡€æ¡ (å¦‚æœæœ‰)
         if (HPBar != null && _unitData.MaxHp > 0)
         {
             HPBar.fillAmount = (float)_unitData.CurrentHp / _unitData.MaxHp;
@@ -71,15 +98,24 @@ public class EnemyUnitUI : MonoBehaviour
         }
     }
 
+    public void RefreshName()
+    {
+        if (_unitData == null) return;
+        if (NameText != null)
+        {
+            NameText.text = string.IsNullOrEmpty(_unitData.OverrideName) ? _unitData.Name : _unitData.OverrideName;
+        }
+    }
+
     // ==========================================
-    // ½»»¥ÊÂ¼ş
+    // äº¤äº’äº‹ä»¶
     // ==========================================
     private void OnClicked()
     {
         if (_bm != null)
         {
-            // Í¨Öª BattleManager£ºÎÒ£¨Õâ¸ö¾ßÌåµÄµĞÈËUI£©±»µãÁË
-            // ×¢Òâ£ºÄãĞèÒªÈ¥ BattleManager Ìí¼Ó OnEnemyClicked(EnemyUnitUI ui) µÄÖØÔØ·½·¨
+            // é€šçŸ¥ BattleManagerï¼šæˆ‘ï¼ˆè¿™ä¸ªå…·ä½“çš„æ•ŒäººUIï¼‰è¢«ç‚¹äº†
+            // æ³¨æ„ï¼šä½ éœ€è¦å» BattleManager æ·»åŠ  OnEnemyClicked(EnemyUnitUI ui) çš„é‡è½½æ–¹æ³•
             _bm.OnEnemyClicked(this);
         }
     }

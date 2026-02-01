@@ -1,0 +1,29 @@
+local c6032 = {}
+
+function c6032.OnEffect(card, target)
+    local bm = CS.BattleManager.Instance
+    
+    if card.IsPendingResolved == true then
+        -- EXECUTE
+        bm.UIManager:Log("Ice Shard PIERCE!")
+        -- Deal 8 to random target
+        local units = bm.UnitManager.PlayerUnits
+        local targetUnit = nil
+        if units.Count > 0 then
+            targetUnit = units[CS.UnityEngine.Random.Range(0, units.Count)]
+        end
+
+        if targetUnit ~= nil then
+            bm.CombatManager:ApplyDamage(targetUnit, 8)
+        else
+            bm.PlayerUnit:TakeDamage(8)
+        end
+        card.IsPendingResolved = false 
+    else
+        -- QUEUE
+        -- 1 Turn
+        bm.EnemyManager:AddPendingSpell(card, 1, bm.EnemyManager:FindOwner(card)) 
+    end
+end
+
+return c6032

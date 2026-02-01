@@ -15,6 +15,13 @@ public class EventProfile : ScriptableObject
     
     public Sprite EventImage;                          // 事件配图
     
+    [Header("解锁条件")]
+    [Tooltip("需要拥有的遗物才能触发此事件 (留空表示无条件)")]
+    public List<RelicData> RequiredRelics = new List<RelicData>();  // [NEW] 需要的遗物
+    
+    [Tooltip("需要拥有的遗物ID才能触发此事件 (留空表示无条件)")]
+    public List<string> RequiredRelicIds = new List<string>();      // [NEW] 需要的遗物ID (备用方案)
+    
     [Header("可选项")]
     public List<EventOptionData> Options = new List<EventOptionData>();  // 可选择的选项列表
 }

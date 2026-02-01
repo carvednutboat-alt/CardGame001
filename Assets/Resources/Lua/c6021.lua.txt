@@ -1,0 +1,23 @@
+local c6021 = {}
+
+function c6021.OnEffect(card, target)
+    local bm = CS.BattleManager.Instance
+    -- Summon 2 Wolves (3/3)
+    -- We need a wolf ID. Let's assume we can create Ephemeral or use an existing one.
+    -- Or we use DevCardLoader to make one on the fly?
+    -- Let's assume ID 6029 is Wolf Token (Need to add to DevCardLoader or reuse logic)
+    -- For now, reusing 6002 (Green Commander) as placeholder or using a generic Unit.
+    -- Actually, let's just make a "Wolf" (ID 6050) in DevCardLoader later.
+    local wolfId = 6050 
+    local data = CS.DevCardLoader.GetCardDataShim(wolfId)
+    
+    if data ~= nil then
+        bm.EnemyManager:CreateEnemyAt(data)
+        bm.EnemyManager:CreateEnemyAt(data)
+        bm.UIManager:Log("Summoned 3/3 Wolves!")
+    else
+        bm.UIManager:Log("Wolf Data Missing!")
+    end
+end
+
+return c6021

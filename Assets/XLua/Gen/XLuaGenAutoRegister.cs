@@ -49,6 +49,9 @@ namespace XLua.CSObjectWrap
             translator.DelayWrapLoader(typeof(Phase), PhaseWrap.__Register);
         
         
+            translator.DelayWrapLoader(typeof(CardTargetType), CardTargetTypeWrap.__Register);
+        
+        
             translator.DelayWrapLoader(typeof(CardTag), CardTagWrap.__Register);
         
         
@@ -71,9 +74,6 @@ namespace XLua.CSObjectWrap
         
         
             translator.DelayWrapLoader(typeof(GameEvent), GameEventWrap.__Register);
-        
-        
-            translator.DelayWrapLoader(typeof(CardTargetType), CardTargetTypeWrap.__Register);
         
         
             translator.DelayWrapLoader(typeof(object), SystemObjectWrap.__Register);

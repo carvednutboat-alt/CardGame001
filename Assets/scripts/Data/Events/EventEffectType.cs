@@ -11,6 +11,8 @@ public enum EventEffectType
     LoseCard,   // 失去卡牌
     MaxHPUp,    // 增加最大生命值
     MaxHPDown,  // 减少最大生命值
-    GainRelic,      // [New] 获得随机遗物
-    OpenCardReward  // [New] 打开卡牌奖励 (三选一)
+    GainRelic,      // 获得随机遗物
+    GainSpecificRelic,  // [NEW] 获得指定遗物
+    OpenCardReward,  // 打开卡牌奖励 (三选一)
+    LuaEffect   // [NEW] 执行Lua脚本效果
 }
