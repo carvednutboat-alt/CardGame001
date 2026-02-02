@@ -1,0 +1,27 @@
+-- ==========================================
+-- 特征向量 (Eigenvector)
+-- ID: 2203
+-- ==========================================
+
+local c2203 = {}
+
+function c2203.initial_effect(c)
+    local e1=Effect.CreateEffect(c)
+    e1:SetType(EffectType.CONTINUOUS)
+    e1:SetCode(EventCode.DAMAGE_CALCULATING)
+    e1:SetRange(Location.MZONE)
+    e1:SetOperation(c2203.damage_op)
+    c:RegisterEffect(e1)
+end
+
+function c2203.damage_op(e, tp, eg, ep, ev, re, r, rp)
+    local c=e:GetHandler()
+    local unit=e:GetHandlerUnit()
+    if unit == nil then return end
+    if unit.PermAttackModifier > 0 then
+        Duel.DoubleBattleDamage(unit)
+        Duel.Log("【特征向量】受变换影响，伤害翻倍！")
+    end
+end
+
+return c2203

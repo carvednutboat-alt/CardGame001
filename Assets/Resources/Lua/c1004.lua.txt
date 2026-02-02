@@ -1,38 +1,24 @@
 -- ==========================================
--- 零向量 (Zero Vector)
+-- 火球 (Fireball)
 -- ID: 1004
 -- ==========================================
 
 local c1004 = {}
 
 function c1004.initial_effect(c)
-    -- 亡语效果
-    local e1=Effect.CreateEffect(c)
-    e1:SetType(EffectType.TRIGGER)
-    e1:SetCode(EventCode.DESTROYED)
-    e1:SetRange(Location.MZONE)
-    e1:SetCondition(c1004.death_con)
-    e1:SetOperation(c1004.death_op)
+    local e1 = Effect.CreateEffect(c)
+    e1:SetType(EffectType.IGNITION)
+    e1:SetRange(Location.HAND)
+    e1:SetOperation(c1004.activate)
     c:RegisterEffect(e1)
 end
 
--- 条件：被战斗破坏
-function c1004.death_con(e, tp, eg, ep, ev, re, r, rp)
-    -- 检查是否被战斗破坏
-    return bit.band(r, Reason.BATTLE) ~= 0
-end
-
--- 亡语操作
-function c1004.death_op(e, tp, eg, ep, ev, re, r, rp)
-    -- 获取攻击者（从事件系统中）
-    local attacker = Duel.GetLastAttacker()
-    
-    if attacker ~= nil then
-        -- 使攻击者攻击力归零（临时，本回合）
-        local currentAtk = attacker.CurrentAtk
-        Duel.ModifyATK(attacker, -currentAtk, false)  -- false=临时修正
-        
-        Duel.Log("【零向量】效果触发！攻击者攻击力归零 (本回合)。")
+function c1004.activate(e, tp, eg, ep, ev, re, r, rp)
+    Duel.SelectTarget(tp, Location.MZONE, 0, 1)
+    local target = Duel.GetFirstTarget()
+    if target then
+        Duel.Log("【火球】发动！造成 5 点伤害。")
+        Duel.Damage(target, 5)
     end
 end
 

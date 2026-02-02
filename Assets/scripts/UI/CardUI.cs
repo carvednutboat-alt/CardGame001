@@ -25,7 +25,21 @@ public class CardUI : MonoBehaviour
         // 从 Data 模版里读取显示信息
         if (card != null && card.Data != null)
         {
-            if (nameText) nameText.text = card.Data.cardName;
+            string colorPrefix = "";
+            Color textColor = Color.white;
+            switch (card.Data.color)
+            {
+                case CardColor.Red: colorPrefix = "[红] "; textColor = Color.red; break;
+                case CardColor.Green: colorPrefix = "[绿] "; textColor = Color.green; break;
+                case CardColor.Blue: colorPrefix = "[蓝] "; textColor = Color.cyan; break;
+                case CardColor.Colorless: colorPrefix = "[无] "; textColor = Color.gray; break;
+            }
+
+            if (nameText) 
+            {
+                nameText.text = colorPrefix + card.Data.cardName;
+                nameText.color = textColor;
+            }
             if (descriptionText) descriptionText.text = card.Data.description;
 
             // 添加悬停处理逻辑

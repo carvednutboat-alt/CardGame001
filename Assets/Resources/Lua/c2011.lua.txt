@@ -1,0 +1,31 @@
+-- ==========================================
+-- 火球术 (Fire Ball - Old)
+-- ID: 2011
+-- ==========================================
+
+local c2011 = {}
+
+function c2011.initial_effect(c)
+    local e1=Effect.CreateEffect(c)
+    e1:SetType(EffectType.IGNITION)
+    e1:SetRange(Location.HAND)
+    e1:SetTarget(c2011.target)
+    e1:SetOperation(c2011.operation)
+    c:RegisterEffect(e1)
+end
+
+function c2011.target(e, tp, eg, ep, ev, re, r, rp, chk)
+    if chk==0 then return Duel.GetUnitCount(false) >= 1 end
+    Duel.Log("请选择一个敌方单位")
+    Duel.SelectTarget(tp, Location.MZONE, 1, 1)
+end
+
+function c2011.operation(e, tp, eg, ep, ev, re, r, rp)
+    local target = Duel.GetFirstTarget()
+    if target then
+        Duel.Log("火球术命中了 " .. target.Name)
+        Duel.Damage(target, 5)
+    end
+end
+
+return c2011

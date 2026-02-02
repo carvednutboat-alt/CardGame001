@@ -142,6 +142,7 @@ public class EnemyManager : MonoBehaviour
     {
         _bm = bm;
         ActiveEnemies.Clear();
+        PendingSpells.Clear(); // 清理残留的吟唱法术
         // 清理槽位
         for (int i = 0; i < 5; i++) EnemySlots[i] = null;
 
@@ -353,6 +354,7 @@ public class EnemyManager : MonoBehaviour
             if (eliteRobot != null && !eliteRobot.UnitData.IsDead)
             {
                 yield return StartCoroutine(RunEliteRobotAI(eliteRobot));
+                boss = eliteRobot; // Treat as boss to skip in the following loop
             }
         }
         
@@ -367,9 +369,9 @@ public class EnemyManager : MonoBehaviour
                 int playerGreenCount = _bm.UnitManager.PlayerUnits.FindAll(u => u.SourceCard.Data.color == CardColor.Green).Count;
                 if (playerGreenCount > 0)
                 {
-                    foreach (var e in ActiveEnemies)
-                    {
-                        if (!e.UnitData.IsDead)
+                foreach (var e in new List<RuntimeEnemy>(ActiveEnemies))
+                {
+                    if (e != null && !e.UnitData.IsDead)
                         {
                             e.UnitData.CurrentHp = Mathf.Min(e.UnitData.CurrentHp + playerGreenCount, e.UnitData.MaxHp);
                             e.UI.UpdateHP();
@@ -413,7 +415,7 @@ public class EnemyManager : MonoBehaviour
                 }
             }
 
-            foreach (var enemy in ActiveEnemies)
+            foreach (var enemy in new List<RuntimeEnemy>(ActiveEnemies))
             {
                 // If it's the boss (and we just ran it), skip
                 if (enemy == boss) continue; 
@@ -558,7 +560,7 @@ public class EnemyManager : MonoBehaviour
         // Attack Phase
         PerformAttack(boss);
         // Also let minions attack?
-        foreach(var minion in ActiveEnemies)
+        foreach(var minion in new List<RuntimeEnemy>(ActiveEnemies))
         {
             if (minion == boss) continue;
             PerformAttack(minion);
@@ -650,7 +652,10 @@ public class EnemyManager : MonoBehaviour
                 attacker.UnitData.Overload = Mathf.Max(0, attacker.UnitData.Overload - 1);
                 _bm.UIManager.Log($"【{enemyName}】释放「{data.cardName}」，过载释放，造成 {data.value} 点全场伤害！");
                 _bm.PlayerUnit.TakeDamage(data.value);
-                foreach(var u in _bm.UnitManager.PlayerUnits) _bm.CombatManager.ApplyDamage(u, data.value);
+                
+                // Snapshot to avoid collection modification
+                var targets = new List<RuntimeUnit>(_bm.UnitManager.PlayerUnits);
+                foreach(var u in targets) _bm.CombatManager.ApplyDamage(u, data.value);
                 break;
 
             case CardEffectType.LimitOperationEvolve:

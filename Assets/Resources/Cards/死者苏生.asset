@@ -16,7 +16,7 @@ MonoBehaviour:
   id: 1003
   kind: 1
   color: 0
-  description: 
+  description: "\u4E3A\u4E00\u4E2A\u53CB\u65B9\u5355\u4F4D\u6062\u590D 10 \u70B9\u751F\u547D\u3002"
   unitAttack: 0
   unitHealth: 0
   unitStartsFlying: 0

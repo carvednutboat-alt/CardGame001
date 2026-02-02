@@ -28,6 +28,7 @@ public class UnitManager : MonoBehaviour
         _bm = bm;
         PlayerUnits.Clear();
         Graveyard.Clear();
+        _nextId = 1; // 重置单位 ID 计数
         _attackStateBackup.Clear();
         PlayerImmuneToEffects = false; // Reset
 
@@ -194,7 +195,7 @@ public void KillUnit(RuntimeUnit unit)
     
     public void RefreshAllUnits()
     {
-        foreach (var u in PlayerUnits)
+        foreach (var u in new List<RuntimeUnit>(PlayerUnits))
         {
             RefreshUnitUI(u);
         }
@@ -226,7 +227,7 @@ public void KillUnit(RuntimeUnit unit)
     // 设置所有单位能否攻击
     public void SetAllAttackStatus(bool canAttack)
     {
-        foreach (var u in PlayerUnits)
+        foreach (var u in new List<RuntimeUnit>(PlayerUnits))
         {
             u.CanAttack = canAttack;
             if (u.UI != null) u.UI.SetButtonInteractable(canAttack);
@@ -237,7 +238,7 @@ public void KillUnit(RuntimeUnit unit)
     public void EnableTargetingSelection()
     {
         _attackStateBackup.Clear();
-        foreach (var unit in PlayerUnits)
+        foreach (var unit in new List<RuntimeUnit>(PlayerUnits))
         {
             // 备份当前的 CanAttack
             _attackStateBackup[unit.Id] = unit.CanAttack;
@@ -275,9 +276,10 @@ public void KillUnit(RuntimeUnit unit)
     {
         foreach (var unit in PlayerUnits)
         {
-            if (unit.TempAttackModifier != 0)
+            if (unit.TempAttackModifier != 0 || unit.PendingDamageMultiplier != 1f)
             {
                 unit.TempAttackModifier = 0;
+                unit.PendingDamageMultiplier = 1f;
                 // 必须重新计算并刷新UI
                 if (_bm != null && _bm.CombatManager != null)
                 {

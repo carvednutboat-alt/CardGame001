@@ -241,8 +241,9 @@ public static class Duel
 
     public static void DoubleBattleDamage(RuntimeUnit unit)
     {
-        // 逻辑提示：此处标记该单位下次伤害翻倍，需在CombatManager的伤害应用中判断此状态
-        Log($"{unit.Name} 造成的下一次伤害将翻倍！");
+        if (unit == null) return;
+        unit.PendingDamageMultiplier *= 2f; // 支持叠加
+        Log($"{unit.Name} 造成的下一次伤害将翻倍！(当前倍率: {unit.PendingDamageMultiplier}x)");
     }
 
     public static void EvolveUnit(RuntimeUnit unit, string newName, string newNameEn)
@@ -283,15 +284,66 @@ public static class Duel
 
     public static void SelectTarget(RuntimeCard c, CardTargetType targetType)
     {
-        if (BattleManager.Instance != null)
-            BattleManager.Instance.InitiateEffectTargeting(c, targetType);
+        if (BattleManager.Instance == null) return;
+
+        // 如果是敌人回合，由 AI 自动选择目标
+        if (!BattleManager.Instance.IsPlayerTurn)
+        {
+            RuntimeUnit aiTarget = null;
+            if (targetType == CardTargetType.Ally)
+            {
+                // 敌人选取自己的队友
+                var allies = BattleManager.Instance.EnemyManager.ActiveEnemies;
+                if (allies.Count > 0) aiTarget = allies[UnityEngine.Random.Range(0, allies.Count)].UnitData;
+            }
+            else if (targetType == CardTargetType.Enemy)
+            {
+                // 敌人选取玩家的单位
+                var enemies = BattleManager.Instance.UnitManager.PlayerUnits;
+                if (enemies.Count > 0) aiTarget = enemies[UnityEngine.Random.Range(0, enemies.Count)];
+            }
+            else if (targetType == CardTargetType.All)
+            {
+                 // 随机选一个
+                 var all = new List<RuntimeUnit>(BattleManager.Instance.UnitManager.PlayerUnits);
+                 foreach(var e in BattleManager.Instance.EnemyManager.ActiveEnemies) all.Add(e.UnitData);
+                 if (all.Count > 0) aiTarget = all[UnityEngine.Random.Range(0, all.Count)];
+            }
+
+            if (aiTarget != null)
+            {
+                Log($"AI 自动选择了目标: {aiTarget.Name}");
+                SetSelection(aiTarget);
+            }
+            return;
+        }
+
+        // 效验是否有合法目标，若无则直接退出防止软锁
+        bool hasValidTarget = false;
+        if (targetType == CardTargetType.Ally) hasValidTarget = BattleManager.Instance.EnemyManager.ActiveEnemies.Count > 0;
+        else if (targetType == CardTargetType.Enemy) hasValidTarget = BattleManager.Instance.UnitManager.PlayerUnits.Count > 0;
+        else if (targetType == CardTargetType.All) hasValidTarget = (BattleManager.Instance.UnitManager.PlayerUnits.Count > 0 || BattleManager.Instance.EnemyManager.ActiveEnemies.Count > 0);
+
+        if (!hasValidTarget)
+        {
+            Log("没有可选择的合法目标，效果取消。");
+            return;
+        }
+
+        BattleManager.Instance.InitiateEffectTargeting(c, targetType);
     }
 
     // 重载版本，支持 Lua 简单的参数调用
     public static void SelectTarget(int player, int location, int min, int max)
     {
-        if (BattleManager.Instance != null)
-            BattleManager.Instance.IsTargetingMode = true;
+        if (BattleManager.Instance == null) return;
+        if (!BattleManager.Instance.IsPlayerTurn)
+        {
+            // AI auto-selection logic could be added here if needed, 
+            // but for now we just return to avoid soft-locking the player.
+            return;
+        }
+        BattleManager.Instance.IsTargetingMode = true;
     }
 
     public static void Log(string msg)

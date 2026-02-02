@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 07b54b35d8588e44d9baa982855cf548, type: 3}
   m_Name: Card_Unit_IdentityMatrix
   m_EditorClassIdentifier: 
-  id: 1001
+  id: 2201
   cost: 4
   cardName: "\u5355\u4F4D\u77E9\u9635"
   kind: 0

@@ -10,32 +10,23 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 07b54b35d8588e44d9baa982855cf548, type: 3}
-  m_Name: Card_Unit_ZeroVector
-  m_EditorClassIdentifier: 
-  id: 2204
-  cost: 1
-  cardName: "\u96F6\u5411\u91CF"
-  kind: 0
-  color: 2
-  description: "\u5632\u8BBD\u3002\u653B\u51FB\u6B64\u5355\u4F4D\u7684\u654C\u4EBA\u653B\u51FB\u529B\u53D8\u4E3A0\uFF08\u672C\u56DE\u5408\uFF09\u3002"
+  m_Name: "\u6807\u51C6\u57FA"
+  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  cardName: "\u6807\u51C6\u57FA"
+  id: 1009
+  kind: 1
+  color: 3
+  description: "\u4E00\u5F20\u6807\u51C6\u7684\u57FA\u5E95\u5361\u724C\u3002"
   unitAttack: 0
-  unitHealth: 1
+  unitHealth: 0
   unitStartsFlying: 0
-  unitHasTaunt: 1
+  unitHasTaunt: 0
   buffGrantFlying: 0
   buffFreeAttackNow: 0
   effectType: 0
-  deathEffect: 0
-  onReceiveEquipEffect: 0
   value: 0
   isEquipment: 0
   isFieldEquipment: 0
-  EnemyMoves: []
-  cardTag: 3
-  targetType: 0
-  startsInDeck: 1
-  isCommander: 0
-  dieWithoutCommander: 1
   equipAttackBonus: 0
   equipHealthBonus: 0
   shieldEffectDamage: 0

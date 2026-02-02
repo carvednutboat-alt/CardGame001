@@ -1,13 +1,21 @@
 -- ==========================================
--- 标准基 (Standard Basis)
+-- 强欲之壶 (Pot of Greed)
 -- ID: 1002
 -- ==========================================
 
 local c1002 = {}
 
 function c1002.initial_effect(c)
-    -- 标准基本身没有特殊效果
-    -- 只是作为被检索和被正交化的目标
+    -- 激活效果: 抽2张牌
+    local e1 = Effect.CreateEffect(c)
+    e1:SetType(EffectType.IGNITION)
+    e1:SetOperation(c1002.activate)
+    c:RegisterEffect(e1)
+end
+
+function c1002.activate(e, tp, eg, ep, ev, re, r, rp)
+    Duel.Log("【强欲之壶】发动！抽 2 张牌。")
+    BattleManager.Instance.DeckManager:DrawCards(2)
 end
 
 return c1002

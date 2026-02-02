@@ -37,29 +37,21 @@ public static class DevCardLoader
     {
         List<CardData> list = new List<CardData>();
         
-        // 1. Damage Spell (c1001) - Try Loading Asset First
-        var fireAsset = Resources.Load<CardData>("Cards/LuaFireball");
-        if (fireAsset != null)
-        {
-             // Reset ID just in case (optional, but ensures binding works)
-             // fireAsset.id = 1001; 
-             list.Add(fireAsset);
-             Debug.Log("Loaded LuaFireball from Asset.");
-        }
-        else
-        {
-             list.Add(CreateEphemeralCard(1001, "Lua Fireball", "Deal 5 damage to a target.", CardKind.Spell, CardColor.Red, CardTargetType.Enemy));
-             Debug.Log("Created Ephemeral Lua Fireball.");
-        }
+        // 1. Damage Spell - Fireball (1004)
+        var fireAsset = Resources.Load<CardData>("Cards/火球");
+        if (fireAsset != null) list.Add(fireAsset);
 
-        // 2. Heal Spell (c1002)
-        list.Add(CreateEphemeralCard(1002, "Lua Heal", "Heal a unit for 2.", CardKind.Spell, CardColor.Blue, CardTargetType.Ally));
+        // 2. Pot of Greed (1002) - Fix for user
+        var greedAsset = Resources.Load<CardData>("Cards/强欲之壶");
+        if (greedAsset != null) list.Add(greedAsset);
 
-        // 3. Draw Spell (c1003)
-        list.Add(CreateEphemeralCard(1003, "Lua Greed", "Draw 2 cards.", CardKind.Spell, CardColor.Green, CardTargetType.None));
+        // 3. SaintSword Caliburn (3101) - Request from user
+        var caliburnAsset = Resources.Load<CardData>("Cards/圣剑卡利班");
+        if (caliburnAsset != null) list.Add(caliburnAsset);
         
-        // 4. Default Unit (Test)
-        list.Add(CreateEphemeralCard(1004, "Lua Soldier", "Vanilla Unit.", CardKind.Unit, CardColor.Colorless, CardTargetType.None, 2, 2));
+        // 4. Martial Artist (Red Unit for Caliburn)
+        var unitAsset = Resources.Load<CardData>("Cards/千具武·宗师");
+        if (unitAsset != null) list.Add(unitAsset);
 
         return list;
     }
@@ -115,8 +107,8 @@ public static class DevCardLoader
         // 5. Red Unit 2-1 (Soldier)
         AddCard("千具武·突击者", 2, 3005);
         
-        // 6. Field Magic: Prismatic Battleground
-        CreateEphemeralCard(5001, "Prismatic Battleground", CardKind.Field, CardColor.Red, 3, 0, 0, null, 1);
+        // 6. Field Magic: Prismatic Battleground (Colorless, ID 7001)
+        CreateEphemeralCard(7001, "Prismatic Battleground", CardKind.Field, CardColor.Colorless, 3, 0, 0, null, 1);
     }
 
     private static void InjectRobotDeck()
@@ -193,8 +185,8 @@ public static class DevCardLoader
 
     public static void InjectFieldDeck()
     {
-        // 5001: Prismatic Battleground (Field)
-        CreateEphemeralCard(5001, "Prismatic Battleground", CardKind.Field, CardColor.Red, 3, 0, 0, null, 1);
+        // 7001: Prismatic Battleground (Field magic, Colorless)
+        CreateEphemeralCard(7001, "Prismatic Battleground", CardKind.Field, CardColor.Colorless, 3, 0, 0, null, 1);
     }
 
     private static void CreateEphemeralCard(int luaId, string name, CardKind kind, CardColor color, int cost, int atk, int hp, List<CardTag> tags, int count = 1)

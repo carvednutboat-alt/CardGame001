@@ -1,13 +1,25 @@
 -- ==========================================
--- 正交基 (Orthogonal Basis)
+-- 突袭 (Assault)
 -- ID: 1005
 -- ==========================================
 
 local c1005 = {}
 
 function c1005.initial_effect(c)
-    -- 正交基本身没有特殊效果
-    -- 主要作为进化后的形态，参与Rank计算
+    local e1 = Effect.CreateEffect(c)
+    e1:SetType(EffectType.IGNITION)
+    e1:SetRange(Location.HAND)
+    e1:SetOperation(c1005.activate)
+    c:RegisterEffect(e1)
+end
+
+function c1005.activate(e, tp, eg, ep, ev, re, r, rp)
+    Duel.SelectTarget(tp, Location.MZONE, 0, 1)
+    local target = Duel.GetFirstTarget()
+    if target then
+        Duel.Log("【突袭】发动！造成 3 点伤害。")
+        Duel.Damage(target, 3)
+    end
 end
 
 return c1005

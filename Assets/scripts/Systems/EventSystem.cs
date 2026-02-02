@@ -38,6 +38,8 @@ public class EventSystem : MonoBehaviour
     public void Init(BattleManager bm)
     {
         _battleManager = bm;
+        _eventQueue.Clear();
+        _triggerEffects.Clear();
     }
     
     /// <summary>

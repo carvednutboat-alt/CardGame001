@@ -1,0 +1,31 @@
+-- ==========================================
+-- 零向量 (Zero Vector)
+-- ID: 2204
+-- ==========================================
+
+local c2204 = {}
+
+function c2204.initial_effect(c)
+    local e1=Effect.CreateEffect(c)
+    e1:SetType(EffectType.TRIGGER)
+    e1:SetCode(EventCode.DESTROYED)
+    e1:SetRange(Location.MZONE)
+    e1:SetCondition(c2204.death_con)
+    e1:SetOperation(c2204.death_op)
+    c:RegisterEffect(e1)
+end
+
+function c2204.death_con(e, tp, eg, ep, ev, re, r, rp)
+    return bit.band(r, Reason.BATTLE) ~= 0
+end
+
+function c2204.death_op(e, tp, eg, ep, ev, re, r, rp)
+    local attacker = Duel.GetLastAttacker()
+    if attacker ~= nil then
+        local currentAtk = attacker.CurrentAtk
+        Duel.ModifyATK(attacker, -currentAtk, false)
+        Duel.Log("【零向量】效果触发！攻击者攻击力归零 (本回合)。")
+    end
+end
+
+return c2204

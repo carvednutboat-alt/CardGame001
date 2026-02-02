@@ -15,9 +15,13 @@ public class CombatManager : MonoBehaviour
         if (attacker == null || target == null) return;
 
         // 1. 造成伤害
-        int damage = attacker.CurrentAtk;
+        int baseDamage = attacker.CurrentAtk;
+        int damage = Mathf.RoundToInt(baseDamage * attacker.PendingDamageMultiplier);
         
         Duel.SetLastAttacker(attacker);
+        
+        // Reset multiplier after attack
+        attacker.PendingDamageMultiplier = 1f;
 
         // === 使用效果系统处理攻击修正 ===
         if (CardEffectSystem.Instance != null)
@@ -31,6 +35,7 @@ public class CombatManager : MonoBehaviour
         }
 
         _bm.UIManager.Log($"{attacker.Name} 攻击了 {target.Name}！");
+        if (damage != baseDamage) _bm.UIManager.Log($"伤害修正：{baseDamage} -> {damage}");
         ApplyDamage(target, damage, attacker);
 
         if (consumeAction)

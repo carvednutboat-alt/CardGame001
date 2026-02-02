@@ -16,7 +16,7 @@ MonoBehaviour:
   id: 1002
   kind: 1
   color: 0
-  description: 
+  description: "\u62BD\u53D6 2 \u5F20\u5361\u724C\u3002"
   unitAttack: 0
   unitHealth: 0
   unitStartsFlying: 0

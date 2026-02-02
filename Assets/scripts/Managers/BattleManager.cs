@@ -50,6 +50,7 @@ public class BattleManager : MonoBehaviour
     // === 内部状态 ===
     public bool IsTargetingMode = false;
     public bool IsSlotSelectionMode = false; // 新增：选槽位模式
+    public bool IsPlayerTurn { get; private set; } = true;
 
     private RuntimeCard _pendingCard;
     private GameObject _pendingCardUIObj;
@@ -187,6 +188,7 @@ public class BattleManager : MonoBehaviour
         else
         {
             UIManager.Log("敌人先手（不能攻击）！");
+            IsPlayerTurn = false; // 确保敌人回合玩家无法操作
             EnemyTurn(canAttack: false);
         }
     }
@@ -213,6 +215,7 @@ public class BattleManager : MonoBehaviour
 
     public void StartPlayerTurn(bool canAttack = true, bool drawCard = true)
     {
+        IsPlayerTurn = true;
         CurrentTurnCanAttack = canAttack; // 记录状态
         HasSummonedThisTurn = false; // === 新回合重置召唤限制 ===
         _selectedAttacker = null;    // 重置攻击选择
@@ -261,6 +264,7 @@ public class BattleManager : MonoBehaviour
 
     public void OnEndTurnButton()
     {
+        if (!IsPlayerTurn) return; // 只有在玩家回合才能结束回合
         if (IsTargetingMode || IsSlotSelectionMode) return;
         
         // === 添加空值检查 ===
@@ -290,11 +294,13 @@ public class BattleManager : MonoBehaviour
             RelicManager.Instance.TriggerEndTurnEffects(this);
         }
         
+        IsPlayerTurn = false;
         EnemyTurn(canAttack: true);
     }
 
     private void EnemyTurn(bool canAttack)
     {
+        IsPlayerTurn = false;
         if (UIManager != null)
         {
             UIManager.Log("--------------------------");
@@ -356,6 +362,7 @@ public class BattleManager : MonoBehaviour
 
     public void OnCardClicked(CardUI ui, RuntimeCard card)
     {
+        if (!IsPlayerTurn) return; // 敌人回合无法出牌
         if (IsTargetingMode || IsSlotSelectionMode) return;
 
         // === Field Magic Logic ===
@@ -436,6 +443,7 @@ public class BattleManager : MonoBehaviour
         {
             e.ExecuteOperation(0, null, 0, 0, null, 0, 0);
             FinishEffect(card, ui.gameObject);
+            ExitTargetingMode(); // Ensure state is reset even if operation didn't trigger targeting
         }
     }
 
@@ -452,16 +460,17 @@ public class BattleManager : MonoBehaviour
         _pendingCard = null;
         _pendingCardUIObj = null;
     }
-
-    // 处理场上单位点击 (作为目标)
-    public void OnFieldUnitClicked(int unitId)
+// 处理场上单位点击 (作为目标)
+    public void OnFieldUnitClicked(int slotIndex)
     {
+        if (!IsPlayerTurn) return; // 只有在玩家回合才能点击单位进行操作
+        if (IsSlotSelectionMode) return;
         if (UnitManager == null) return;
         
         // 1. Targerting Resolution (Lua Strict)
         if (IsTargetingMode && _pendingEffect != null)
         {
-            RuntimeUnit target = UnitManager.GetUnitById(unitId);
+            RuntimeUnit target = UnitManager.GetUnitById(slotIndex);
             if (target != null)
             {
                 // Pass selection to Lua
@@ -477,7 +486,7 @@ public class BattleManager : MonoBehaviour
         }
         
         // 2. Attack Selection Mode (Legacy/Core Game Rule)
-        RuntimeUnit unit = UnitManager.GetUnitById(unitId);
+        RuntimeUnit unit = UnitManager.GetUnitById(slotIndex);
         if (unit != null)
         {
             if (IsTargetingMode) return; // Prevent mixing modes
@@ -508,6 +517,8 @@ public class BattleManager : MonoBehaviour
     // 处理敌人点击 (作为目标)
 public void OnEnemyClicked(EnemyUnitUI enemyUI)
     {
+        if (!IsPlayerTurn) return; // 只有在玩家回合才能攻击敌人
+        if (IsSlotSelectionMode) return;
         if (enemyUI == null || enemyUI.MyUnit == null) return;
 
         // 1. Targeting Resolution
@@ -541,7 +552,8 @@ public void OnEnemyClicked(EnemyUnitUI enemyUI)
     // === 新增：槽位点击处理 ===
     public void OnBattleSlotClicked(int index, bool isPlayerSide)
     {
-        // 只有在选槽位模式且点击的是己方槽位才有效
+        // 只有在玩家回合、选槽位模式且点击的是己方槽位才有效
+        if (!IsPlayerTurn) return;
         if (!IsSlotSelectionMode || !isPlayerSide) return;
         if (_pendingCard == null || UnitManager == null) return;
 
@@ -739,6 +751,18 @@ public void OnEnemyClicked(EnemyUnitUI enemyUI)
         }
         // 取消高亮
         if (UIManager != null) UIManager.HighlightPlayerSlots(false);
+    }
+
+    // === 通用取消方法 (用于右键点击或取消按钮) ===
+    public void CancelCurrentMode()
+    {
+        ExitTargetingMode();
+        _selectedAttacker = null;
+        if (UIManager != null)
+        {
+            UIManager.Log("操作已取消。");
+            UIManager.HighlightPlayerSlots(false);
+        }
     }
 
     private void CancelTargeting()

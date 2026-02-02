@@ -50,6 +50,7 @@ public class RuntimeUnit
     public bool IsFatigued;    // 是否处于疲劳状态 (无法攻击，无法使用同色牌)
     public bool RobotEvolved;  // 机器人指挥官特殊进化状态 (攻击力=Overload*2)
     public int PendingOverloadSelfDamage; // 回合结束时结算的自伤 (Double Overload副作用)
+    public float PendingDamageMultiplier = 1f; // 伤害倍率 (Double Damage效果用)
 
     public bool IsDead => CurrentHp <= 0;
 

@@ -1,0 +1,76 @@
+-- ==========================================
+-- Prismatic Battleground (Field Magic)
+-- ID: 7001
+-- Desc: 
+--  Field Magic.
+--  Color: Colorless [无]
+--  Effects based on Commander Colors:
+--  Red: Red Units +3 ATK. (Handled in C# CombatManager)
+--  Green: End Turn -> Green Units Restore 3 HP.
+--  Blue: Blue Units Immune to Enemy Effects. (Handled in C#)
+--  Rainbow: If all 3 colors present, effects apply to ALL units.
+-- ==========================================
+
+local c7001 = {}
+
+function c7001.initial_effect(c)
+    -- Activate: Field logic handled by BattleManager (PlayFieldCard)
+    -- We just register the passive/trigger effects.
+
+    -- Green Effect: End Phase Trigger (Self)
+    local e1 = Effect.CreateEffect(c)
+    e1:SetType(EffectType.TRIGGER) 
+    e1:SetCode(EventCode.PHASE_END) 
+    e1:SetRange(Location.SZONE) 
+    e1:SetCondition(c7001.green_condition)
+    e1:SetOperation(c7001.green_operation)
+    c:RegisterEffect(e1)
+end
+
+function c7001.get_colors(tp)
+    -- Access C# UnitManager to get colors
+    if CS.BattleManager.Instance and CS.BattleManager.Instance.UnitManager then
+        local colors = CS.BattleManager.Instance.UnitManager:GetAliveCommanderColors()
+        local r = colors:Contains(CS.CardColor.Red)
+        local g = colors:Contains(CS.CardColor.Green)
+        local b = colors:Contains(CS.CardColor.Blue)
+        local rainbow = (r and g and b)
+        return r, g, b, rainbow
+    end
+    return false, false, false, false
+end
+
+function c7001.green_condition(e, tp, eg, ep, ev, re, r, rp)
+    if CS.BattleManager.Instance and CS.BattleManager.Instance.IsPlayerTurn then
+         local r, g, b, rainbow = c7001.get_colors(tp)
+         return g or rainbow
+    end
+    return false
+end
+
+function c7001.green_operation(e, tp, eg, ep, ev, re, r, rp)
+    local r, g, b, rainbow = c7001.get_colors(tp)
+    
+    Duel.Log("Prismatic Battleground (Green) Activated: Healing Units...")
+    
+    local filter = function(u)
+        if rainbow then return true end
+        if u.SourceCard and u.SourceCard.Data then
+            -- Note: Using .color (Enum) not .cardColor (Legacy)
+            return u.SourceCard.Data.color == CS.CardColor.Green
+        end
+        return false
+    end
+    
+    local um = CS.BattleManager.Instance.UnitManager
+    if um then
+        for i = 0, um.PlayerUnits.Count - 1 do
+            local u = um.PlayerUnits[i]
+            if u and not u.IsDead and filter(u) then
+                 CS.CombatManager.Instance:Heal(u, 3)
+            end
+        end
+    end
+end
+
+return c7001

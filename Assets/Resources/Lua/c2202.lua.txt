@@ -1,0 +1,12 @@
+-- ==========================================
+-- 标准基 (Standard Basis - Linear Algebra Version)
+-- ID: 2202
+-- ==========================================
+
+local c2202 = {}
+
+function c2202.initial_effect(c)
+    -- 占位，参与 Rank 计算
+end
+
+return c2202

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 07b54b35d8588e44d9baa982855cf548, type: 3}
   m_Name: FireBall
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  id: 2101
+  id: 2011
   cost: 0
   cardName: "\u706B\u7403\u672F"
   kind: 1
