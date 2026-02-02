@@ -1,0 +1,47 @@
+-- ==========================================
+-- 圣剑卡利班 (SaintSword Caliburn)
+-- ID: 3101
+-- Desc: Red Equipment - Usable when red units on field, +2 HP
+-- ==========================================
+
+local c3101 = {}
+
+function c3101.initial_effect(c)
+    -- Equipment Effect (Ignition - requires red unit on field)
+    local e1 = Effect.CreateEffect(c)
+    e1:SetType(EffectType.IGNITION)
+    e1:SetRange(Location.HAND)
+    e1:SetCondition(c3101.condition)
+    e1:SetTarget(c3101.target)
+    e1:SetOperation(c3101.operation)
+    c:RegisterEffect(e1)
+end
+
+function c3101.condition(e, tp, eg, ep, ev, re, r, rp, chk)
+    -- Check if player has at least one red unit on field
+    local bm = CS.BattleManager.Instance
+    if bm == nil or bm.UnitManager == nil then return false end
+    
+    local units = bm.UnitManager.PlayerUnits
+    for i=0, units.Count-1 do
+        if units[i].SourceCard.Data.color == CS.CardColor.Red then
+            return true
+        end
+    end
+    return false
+end
+
+function c3101.target(e, tp, eg, ep, ev, re, r, rp, chk)
+    if chk==0 then return Duel.GetFieldUnitCount(tp, Location.MZONE, 0) > 0 end
+    Duel.SelectTarget(e:GetHandler(), CS.CardTargetType.Ally)
+end
+
+function c3101.operation(e, tp, eg, ep, ev, re, r, rp)
+    local target = Duel.GetFirstTarget()
+    if target ~= nil then
+        Duel.Equip(target, e:GetHandler())
+        Duel.Log(target.Name .. " 装备了圣剑卡利班！(+2 HP)")
+    end
+end
+
+return c3101

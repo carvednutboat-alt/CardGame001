@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cost: 1
   cardName: "\u8FC7\u8F7D\u91CA\u653E"
+  id: 4008
   kind: 1
   color: 1
   description: "\u51CF\u5C11\u76EE\u6807\u5355\u4F4D1\u70B9\u8FC7\u8F7D\uFF0C\u5E76\u5BF9\u6240\u6709\u654C\u4EBA\u9020\u62105\u70B9\u4F24\u5BB3\u3002"

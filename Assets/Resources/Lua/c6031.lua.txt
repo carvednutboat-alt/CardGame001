@@ -1,43 +1,30 @@
 local c6031 = {}
 
-function c6031.OnEffect(card, target)
+function c6031.initial_effect(c)
+    local e1 = Effect.CreateEffect(c)
+    e1:SetType(EffectType.IGNITION)
+    e1:SetRange(Location.HAND)
+    e1:SetOperation(c6031.activate)
+    c:RegisterEffect(e1)
+end
+
+function c6031.activate(e, tp, eg, ep, ev, re, r, rp)
+    local card = e:GetHandler()
     local bm = CS.BattleManager.Instance
-    -- Logic: Check if we are "resolving" from Pending or "casting" to Pending.
-    -- How to distinguish? 
-    -- 1. We can pass a flag in 'context' (not easily available)
-    -- 2. We can check if the card is in 'PendingSpells'.
-    -- But usually the card wraps this logic.
-    
-    -- Simplest approach: The LUA checks a C# helper "IsResolving(card)".
-    -- Or we assume the EnemyManager logic *calls* ResolveEnemyCard ONLY when countdown is done.
-    -- BUT, PickCardAtRandom *also* calls ResolveEnemyCard.
-    -- So we need to diverge: 
-    -- If called from Hand/Deck (Cost paid?): Queue it.
-    -- If called from Pending Manager: Execute it.
-    
-    -- Hack: We'll add a transient flag on the RuntimeCard in C# or Lua.
-    -- Or better: EnemyManager.AddPendingSpell(card, countdown) and STOP execution there.
-    -- BUT ResolveEnemyCard executes the Lua. 
-    -- So the Lua itself must decide "Queue" vs "Blast".
     
     if card.IsPendingResolved == true then
         -- EXECUTE
         bm.UIManager:Log("Arcane Nova BLAST!")
-        -- Deal 12 to 3 random targets (or AOE all)
-        -- "3 random spots" -> Let's do All Player Units + Player for Simplicity or strict 3.
-        -- Plan: AOE All Player Units.
+        -- Deal 12 to 3 random targets (AOE All Player Units logic from old script)
         local units = bm.UnitManager.PlayerUnits
         for i=0, units.Count-1 do
             bm.CombatManager:ApplyDamage(units[i], 12)
         end
-        -- Also hit player? 
         bm.PlayerUnit:TakeDamage(12)
         
-        -- Reset flag for re-use (if reshuffled)
         card.IsPendingResolved = false 
     else
         -- QUEUE
-        -- 2 Turns
         bm.EnemyManager:AddPendingSpell(card, 2, bm.EnemyManager:FindOwner(card)) 
     end
 end

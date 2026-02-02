@@ -1,0 +1,14 @@
+-- ==========================================
+-- 勇鸟猛攻 (Brave Bird)
+-- ID: 1008
+-- Desc: Grant Flying + Immediate Attack (Legacy effectType=10)
+-- ==========================================
+
+local c1008 = {}
+
+function c1008.initial_effect(c)
+    -- This card uses legacy effectType system (Fly)
+    -- No Lua effect needed - handled by C# BattleManager
+end
+
+return c1008

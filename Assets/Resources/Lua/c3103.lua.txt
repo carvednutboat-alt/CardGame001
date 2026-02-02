@@ -1,0 +1,47 @@
+-- ==========================================
+-- 天命之圣剑 (SaintSword Excalibur)
+-- ID: 3103
+-- Desc: Red Equipment - Usable when red units on field, Shield (Absorb 1 damage/effect)
+-- ==========================================
+
+local c3103 = {}
+
+function c3103.initial_effect(c)
+    -- Equipment Effect (Ignition - requires red unit on field)
+    local e1 = Effect.CreateEffect(c)
+    e1:SetType(EffectType.IGNITION)
+    e1:SetRange(Location.HAND)
+    e1:SetCondition(c3103.condition)
+    e1:SetTarget(c3103.target)
+    e1:SetOperation(c3103.operation)
+    c:RegisterEffect(e1)
+end
+
+function c3103.condition(e, tp, eg, ep, ev, re, r, rp, chk)
+    -- Check if player has at least one red unit on field
+    local bm = CS.BattleManager.Instance
+    if bm == nil or bm.UnitManager == nil then return false end
+    
+    local units = bm.UnitManager.PlayerUnits
+    for i=0, units.Count-1 do
+        if units[i].SourceCard.Data.color == CS.CardColor.Red then
+            return true
+        end
+    end
+    return false
+end
+
+function c3103.target(e, tp, eg, ep, ev, re, r, rp, chk)
+    if chk==0 then return Duel.GetFieldUnitCount(tp, Location.MZONE, 0) > 0 end
+    Duel.SelectTarget(e:GetHandler(), CS.CardTargetType.Ally)
+end
+
+function c3103.operation(e, tp, eg, ep, ev, re, r, rp)
+    local target = Duel.GetFirstTarget()
+    if target ~= nil then
+        Duel.Equip(target, e:GetHandler())
+        Duel.Log(target.Name .. " 装备了天命之圣剑！(护盾：吸收1次伤害/效果)")
+    end
+end
+
+return c3103

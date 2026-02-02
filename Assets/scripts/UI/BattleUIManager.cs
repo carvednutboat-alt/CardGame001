@@ -19,6 +19,9 @@ public class BattleUIManager : MonoBehaviour
     public GameObject GameOverPanel; // 失败结算界面
     public Button ReturnBtn;
 
+    [Header("Boss UI")]
+    public BossHPBar BossHPPanel;
+
     private BattleManager _bm; // 需要引用 BattleManager 来获取墓地数据
     [Header("Reward UI")]
     public GameObject RewardPanel;
@@ -65,7 +68,14 @@ public class BattleUIManager : MonoBehaviour
             // 自动配置 UI 属性，防止 Inspector 设置错误
             SetupUIAttributes();
         }
+        
+        // Ensure Boss HP Panel exists
+        if (BossHPPanel == null)
+        {
+            GenerateBossHPUI();
+        }
         if (GameOverPanel != null) GameOverPanel.SetActive(false);
+        if (BossHPPanel != null) BossHPPanel.gameObject.SetActive(false);
 
         // 自动生成战场槽位
         SetupFieldSlots();
@@ -254,6 +264,21 @@ public class BattleUIManager : MonoBehaviour
                     GameObject go = new GameObject("CardChoiceContainer");
                     go.transform.SetParent(MainWindow ? MainWindow.transform : RewardPanel.transform, false);
                     CardChoiceContainer = go.transform;
+
+                    // ★ FIX: Add Layout Group (Recompile Force)
+                    var rtNew = go.AddComponent<RectTransform>();
+                    rtNew.anchorMin = new Vector2(0, 0.2f); // Leave bottom 20% for buttons
+                    rtNew.anchorMax = new Vector2(1, 0.8f); // Top padding
+                    rtNew.offsetMin = Vector2.zero;
+                    rtNew.offsetMax = Vector2.zero;
+
+                    var lgNew = go.AddComponent<HorizontalLayoutGroup>();
+                    lgNew.childAlignment = TextAnchor.MiddleCenter;
+                    lgNew.spacing = 30;
+                    lgNew.childControlWidth = false; // Let cards keep their size
+                    lgNew.childControlHeight = false;
+                    lgNew.childForceExpandWidth = false;
+                    lgNew.childForceExpandHeight = false;
                 }
             }
             
@@ -263,6 +288,27 @@ public class BattleUIManager : MonoBehaviour
                 CardChoiceContainer.gameObject.SetActive(true);
                 CardChoiceContainer.SetAsLastSibling();
             }
+
+            // ★ CRITICAL FIX: Ensure Layout Logic is applied even if object existed
+            var rtExisting = CardChoiceContainer.GetComponent<RectTransform>();
+            if (rtExisting != null)
+            {
+                 rtExisting.anchorMin = new Vector2(0, 0.2f);
+                 rtExisting.anchorMax = new Vector2(1, 0.8f);
+                 rtExisting.offsetMin = Vector2.zero;
+                 rtExisting.offsetMax = Vector2.zero;
+            }
+
+            var lgExisting = CardChoiceContainer.GetComponent<HorizontalLayoutGroup>();
+            if (lgExisting == null) lgExisting = CardChoiceContainer.gameObject.AddComponent<HorizontalLayoutGroup>();
+            
+            lgExisting.childAlignment = TextAnchor.MiddleCenter;
+            lgExisting.spacing = 30;
+            lgExisting.childControlWidth = false;
+            lgExisting.childControlHeight = false;
+            lgExisting.childForceExpandWidth = false;
+            lgExisting.childForceExpandHeight = false;
+
         } catch (System.Exception ex) {
             Debug.LogError($"[BattleUI] Container Rescue Failed: {ex.Message}");
             // 重写引用
@@ -307,41 +353,58 @@ public class BattleUIManager : MonoBehaviour
             Log("Container is STILL NULL after rescue!");
         }
 
-        // 生成卡牌选项
-        if (CardChoiceContainer != null)
-        {
-            Log("Clearing old card choices...");
-            foreach (Transform child in CardChoiceContainer) Destroy(child.gameObject);
-            
-            // [Diagnostic] Create a giant Red Box to see if anything is visible in this container
-            GameObject dummy = new GameObject("Diagnostic_RedBox");
-            dummy.transform.SetParent(CardChoiceContainer, false);
-            var dummyImg = dummy.AddComponent<Image>();
-            dummyImg.color = Color.red;
-            var dummyRect = dummy.GetComponent<RectTransform>();
-            dummyRect.sizeDelta = new Vector2(100, 100);
-            Log("Created Diagnostic Red Box");
-
-            if (cardChoices != null)
+            if (CardChoiceContainer != null)
             {
-                Log($"Instantiating {cardChoices.Count} cards...");
-                foreach (var cardData in cardChoices)
+                Log("Clearing old card choices...");
+                foreach (Transform child in CardChoiceContainer) Destroy(child.gameObject);
+                
+                // ★ FIX: Disable/Destroy LayoutGroup for Manual Positioning
+                var existingLG = CardChoiceContainer.GetComponent<HorizontalLayoutGroup>();
+                if (existingLG != null) DestroyImmediate(existingLG);
+                
+                // Ensure Container Size/Anchors are correct
+                var containerRect = CardChoiceContainer.GetComponent<RectTransform>();
+                if (containerRect != null) {
+                    containerRect.anchorMin = new Vector2(0.5f, 0.5f);
+                    containerRect.anchorMax = new Vector2(0.5f, 0.5f);
+                    containerRect.sizeDelta = new Vector2(800, 400); // Fixed canvas size
+                    containerRect.anchoredPosition = new Vector2(0, 200); // Moved UP to avoid buttons (prev 50)
+                }
+
+                if (cardChoices != null)
                 {
-                    Log($" - {cardData.cardName}");
-                    CardUI cardUI = Instantiate(CardPrefab, CardChoiceContainer);
+                    Log($"Instantiating {cardChoices.Count} cards...");
                     
-                    // 强制设置缩放、图层和位置，防止不可见
-                    cardUI.transform.localScale = Vector3.one;
-                    cardUI.transform.localPosition = Vector3.zero; // Reset Z
-                    cardUI.gameObject.layer = LayerMask.NameToLayer("UI");
+                    int count = cardChoices.Count;
+                    float startX = -((count - 1) * 250f) / 2f; // Center them: gap 250
                     
-                    // 显式设置大小，防止被 LayoutGroup 缩放成 0
-                    RectTransform cardRect = cardUI.GetComponent<RectTransform>();
-                    if (cardRect != null) cardRect.sizeDelta = new Vector2(180, 250);
+                    for (int i = 0; i < count; i++)
+                    {
+                        var cardData = cardChoices[i];
+                        Log($" - {cardData.cardName}");
+                        CardUI cardUI = Instantiate(CardPrefab, CardChoiceContainer);
+                        
+                        cardUI.transform.localScale = Vector3.one;
+                        cardUI.gameObject.layer = LayerMask.NameToLayer("UI");
+                        
+                        // ★ FIX: Manual Positioning
+                        RectTransform cardRect = cardUI.GetComponent<RectTransform>();
+                        if (cardRect != null) 
+                        {
+                            cardRect.anchorMin = new Vector2(0.5f, 0.5f);
+                            cardRect.anchorMax = new Vector2(0.5f, 0.5f);
+                            cardRect.sizeDelta = new Vector2(220, 300);
+                            cardRect.anchoredPosition = new Vector2(startX + (i * 250), 0);
+                        }
+                        
+                        var runtimeCard = new RuntimeCard(cardData);
+                        cardUI.Init(runtimeCard, _bm);
                     
-                    var runtimeCard = new RuntimeCard(cardData);
-                    cardUI.Init(runtimeCard, _bm);
-                    
+                    // ★ FIX: Components Stripping (Start with fresh interaction)
+                    var hover = cardUI.GetComponent<CardHoverHandler>();
+                    if (hover != null) Destroy(hover);
+
+
                     // 确保卡牌里的 Graphic 组件都是开启的，且 Alpha 是 1
                     foreach (var gr in cardUI.GetComponentsInChildren<Graphic>()) 
                     {
@@ -362,11 +425,16 @@ public class BattleUIManager : MonoBehaviour
                             Log($"已选择卡牌: {cardData.cardName}");
                             foreach(Transform c in CardChoiceContainer) 
                             {
+                                // Reset visuals
+                                c.localScale = Vector3.one;
                                 Image img = c.GetComponent<Image>();
                                 if (img != null) img.color = Color.white;
                             }
+                            // Highlight
                             Image selfImg = cardUI.GetComponent<Image>();
                             if (selfImg != null) selfImg.color = Color.yellow;
+                            // Slightly scale up selected
+                            cardUI.transform.localScale = new Vector3(1.1f, 1.1f, 1f);
                         });
                     }
                 }
@@ -385,6 +453,22 @@ public class BattleUIManager : MonoBehaviour
     public void HideBattleReward()
     {
         if (RewardPanel != null) RewardPanel.SetActive(false);
+    }
+
+    public void ShowBossHP(EnemyManager.RuntimeEnemy boss)
+    {
+        if (BossHPPanel != null)
+        {
+            BossHPPanel.Init(boss);
+        }
+    }
+
+    public void UpdateBossHP()
+    {
+        if (BossHPPanel != null && BossHPPanel.gameObject.activeSelf)
+        {
+            BossHPPanel.UpdateHP();
+        }
     }
 
     // === 新增辅助方法 ===
@@ -817,6 +901,113 @@ public class BattleUIManager : MonoBehaviour
             path = t.name + "/" + path;
         }
         return path;
+    }
+
+    private void GenerateBossHPUI()
+    {
+        // 1. Create Root
+        GameObject go = new GameObject("BossHPPanel");
+        go.transform.SetParent(this.transform, false); 
+        if (GetComponentInParent<Canvas>() == null)
+        {
+            var canvas = FindObjectOfType<Canvas>();
+            if (canvas != null) go.transform.SetParent(canvas.transform, false);
+        }
+
+        RectTransform rt = go.AddComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0.5f, 1);
+        rt.anchorMax = new Vector2(0.5f, 1);
+        rt.pivot = new Vector2(0.5f, 1);
+        rt.anchoredPosition = new Vector2(0, -50); 
+        rt.sizeDelta = new Vector2(600, 40);
+
+        go.layer = LayerMask.NameToLayer("UI");
+
+        // 2. Attach Script
+        BossHPPanel = go.AddComponent<BossHPBar>();
+        
+        // 3. Create Slider
+        GameObject sliderObj = new GameObject("Slider");
+        sliderObj.transform.SetParent(go.transform, false);
+        sliderObj.layer = LayerMask.NameToLayer("UI");
+        
+        RectTransform sliderInfo = sliderObj.AddComponent<RectTransform>();
+        sliderInfo.anchorMin = Vector2.zero;
+        sliderInfo.anchorMax = Vector2.one;
+        sliderInfo.sizeDelta = Vector2.zero; // Stretch
+
+        Slider slider = sliderObj.AddComponent<Slider>();
+        BossHPPanel.HPSlider = slider;
+
+        // Background
+        GameObject bg = new GameObject("Background");
+        bg.transform.SetParent(sliderObj.transform, false);
+        bg.layer = LayerMask.NameToLayer("UI");
+        var bgImg = bg.AddComponent<Image>();
+        bgImg.color = new Color(0.2f, 0.2f, 0.2f, 0.8f);
+        RectTransform bgRt = bg.GetComponent<RectTransform>();
+        bgRt.anchorMin = Vector2.zero;
+        bgRt.anchorMax = Vector2.one;
+        bgRt.sizeDelta = Vector2.zero;
+        
+        // Fill Area
+        GameObject fillArea = new GameObject("Fill Area");
+        fillArea.transform.SetParent(sliderObj.transform, false);
+        fillArea.layer = LayerMask.NameToLayer("UI");
+        RectTransform fillAreaRt = fillArea.AddComponent<RectTransform>();
+        fillAreaRt.anchorMin = Vector2.zero;
+        fillAreaRt.anchorMax = Vector2.one;
+        fillAreaRt.sizeDelta = new Vector2(-10, -10);
+
+        // Fill
+        GameObject fill = new GameObject("Fill");
+        fill.transform.SetParent(fillArea.transform, false);
+        fill.layer = LayerMask.NameToLayer("UI");
+        var fillImg = fill.AddComponent<Image>();
+        fillImg.color = new Color(0.8f, 0.1f, 0.1f, 1f); 
+        RectTransform fillRt = fill.GetComponent<RectTransform>();
+        fillRt.anchorMin = Vector2.zero;
+        fillRt.anchorMax = Vector2.one;
+        fillRt.sizeDelta = Vector2.zero;
+
+        slider.targetGraphic = bgImg;
+        slider.fillRect = fillRt;
+        slider.direction = Slider.Direction.LeftToRight;
+
+        // 4. Create Name Text
+        GameObject nameObj = new GameObject("NameText");
+        nameObj.transform.SetParent(go.transform, false);
+        nameObj.layer = LayerMask.NameToLayer("UI");
+        var nameTxt = nameObj.AddComponent<TextMeshProUGUI>();
+        nameTxt.text = "Boss Name";
+        nameTxt.alignment = TextAlignmentOptions.Left;
+        nameTxt.color = Color.white;
+        nameTxt.fontSize = 24;
+        RectTransform nameRt = nameObj.GetComponent<RectTransform>();
+        nameRt.anchorMin = new Vector2(0, 1);
+        nameRt.anchorMax = new Vector2(0, 1);
+        nameRt.pivot = new Vector2(0, 0);
+        nameRt.anchoredPosition = new Vector2(0, 5); 
+        nameRt.sizeDelta = new Vector2(300, 30);
+        BossHPPanel.NameText = nameTxt;
+
+        // 5. Create HP Text
+        GameObject hpObj = new GameObject("HPText");
+        hpObj.transform.SetParent(go.transform, false);
+        hpObj.layer = LayerMask.NameToLayer("UI");
+        var hpTxt = hpObj.AddComponent<TextMeshProUGUI>();
+        hpTxt.text = "100/100";
+        hpTxt.alignment = TextAlignmentOptions.Center;
+        hpTxt.color = Color.white;
+        hpTxt.fontSize = 20;
+        RectTransform hpRt = hpObj.GetComponent<RectTransform>();
+        hpRt.anchorMin = Vector2.zero;
+        hpRt.anchorMax = Vector2.one;
+        hpRt.sizeDelta = Vector2.zero;
+        BossHPPanel.HPText = hpTxt;
+        
+        // Note: Don't set active here, handled by ShowBossHP
+        go.SetActive(false);
     }
 
     public void HighlightPlayerSlots(bool active)

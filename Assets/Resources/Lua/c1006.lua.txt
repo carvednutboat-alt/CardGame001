@@ -1,0 +1,14 @@
+-- ==========================================
+-- 群鸦风暴 (Crow Storm)
+-- ID: 1006
+-- Desc: Deal 3 damage to all enemies (Legacy effectType=2)
+-- ==========================================
+
+local c1006 = {}
+
+function c1006.initial_effect(c)
+    -- This card uses legacy effectType system (DamageAllEnemyUnits)
+    -- No Lua effect needed - handled by C# BattleManager
+end
+
+return c1006

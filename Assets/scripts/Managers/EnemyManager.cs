@@ -18,6 +18,9 @@ public class EnemyManager : MonoBehaviour
     public CardData LastKilledUnitCard { get; private set; }
     public List<CardData> LastKilledDeckCards { get; private set; } = new List<CardData>();
 
+    // === Boss Logic ===
+    public RuntimeEnemy BossLeader { get; private set; }
+
     private BattleManager _bm;
     
     // 优先级：3 -> 2 -> 4 -> 1 -> 5 (对应索引 2 -> 1 -> 3 -> 0 -> 4)
@@ -145,6 +148,8 @@ public class EnemyManager : MonoBehaviour
         // ★ 清空“最后击杀”记录
         LastKilledUnitCard = null;
         LastKilledDeckCards.Clear();
+        BossLeader = null; // Reset Boss Leader
+        if (_bm.UIManager.BossHPPanel != null) _bm.UIManager.BossHPPanel.gameObject.SetActive(false);
 
         // 1. 容器清理 (UIManager接管后，这一步主要是清理残余)
         if (EnemyContainer != null)
@@ -308,6 +313,15 @@ public class EnemyManager : MonoBehaviour
         
         ActiveEnemies.Add(enemy);
         EnemySlots[targetSlot] = enemy;
+
+        // === Check if this is a Boss Leader ===
+        // ID 6000 = Rainbow Boss, 4001 = Elite Steam Commander (Optional treating as boss)
+        if (instanceData.id == 6000) 
+        {
+            BossLeader = enemy;
+            Debug.Log("Boss Leader Spawned: " + enemy.UnitData.Name);
+            if (_bm.UIManager != null) _bm.UIManager.ShowBossHP(BossLeader);
+        }
     }
 
     void SpawnTestEnemy()
@@ -581,6 +595,22 @@ public class EnemyManager : MonoBehaviour
 
     private void ResolveEnemyCard(RuntimeEnemy attacker, RuntimeCard card)
     {
+        // === New Lua Integration ===
+        // If the card has a script and valid effects, prefer that over hardcoded types.
+        if (card.Effects != null && card.Effects.Count > 0)
+        {
+             // Priority: Ignitition (Active) or Trigger
+             // Note: EffectType values are mapped in LuaManager. 4=IGNITION, 8=TRIGGER.
+             var luaEffect = card.Effects.Find(x => x.IsHasType(4) || x.IsHasType(8)); // 4=IGNITION, 8=TRIGGER
+             if (luaEffect != null)
+             {
+                 _bm.UIManager.Log($"【{attacker.UnitData.Name}】发动「{card.Data.cardName}」！");
+                 // Execute Lua Logic
+                 luaEffect.ExecuteOperation(0, null, 0, 0, null, 0, 0);
+                 return; // Skip hardcoded switch logic
+             }
+        }
+
         CardData data = card.Data;
         string enemyName = attacker.UnitData.Name;
 
@@ -678,7 +708,7 @@ public class EnemyManager : MonoBehaviour
                 : new List<CardData>();
 
             ActiveEnemies.Remove(target);
-            Destroy(target.UI.gameObject);
+            if (target.UI != null) Destroy(target.UI.gameObject);
             
             // 清理槽位
             if (target.SlotIndex >= 0 && target.SlotIndex < 5)
@@ -687,9 +717,22 @@ public class EnemyManager : MonoBehaviour
             }
         }
 
-        if (ActiveEnemies.Count == 0)
+        // === Win Condition Check ===
+        if (BossLeader != null)
         {
-            _bm.OnGameWin();
+            // If Boss Leader exists, only win if Boss Leader is dead
+            if (BossLeader.UnitData.IsDead || !ActiveEnemies.Contains(BossLeader))
+            {
+                 _bm.OnGameWin();
+            }
+        }
+        else
+        {
+            // Normal battle: Win if all enemies are dead
+            if (ActiveEnemies.Count == 0)
+            {
+                _bm.OnGameWin();
+            }
         }
     }
 

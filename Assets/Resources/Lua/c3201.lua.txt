@@ -1,0 +1,14 @@
+-- ==========================================
+-- 万具武 (Ten Thousand Weapons)
+-- ID: 3201
+-- Desc: Field Evolve card (Legacy effectType=7)
+-- ==========================================
+
+local c3201 = {}
+
+function c3201.initial_effect(c)
+    -- This card uses legacy effectType system (FieldEvolve)
+    -- No Lua effect needed - handled by C# BattleManager
+end
+
+return c3201

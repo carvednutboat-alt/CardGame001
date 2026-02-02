@@ -1,0 +1,14 @@
+-- ==========================================
+-- 千具武 (Thousand Weapons Boss)
+-- ID: 3000
+-- Desc: Boss unit, no special effects
+-- ==========================================
+
+local c3000 = {}
+
+function c3000.initial_effect(c)
+    -- Boss unit with no special Lua effects
+    -- Stats and behavior handled by C# EnemyManager
+end
+
+return c3000

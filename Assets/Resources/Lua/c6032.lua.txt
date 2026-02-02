@@ -1,6 +1,15 @@
 local c6032 = {}
 
-function c6032.OnEffect(card, target)
+function c6032.initial_effect(c)
+    local e1 = Effect.CreateEffect(c)
+    e1:SetType(EffectType.IGNITION)
+    e1:SetRange(Location.HAND)
+    e1:SetOperation(c6032.activate)
+    c:RegisterEffect(e1)
+end
+
+function c6032.activate(e, tp, eg, ep, ev, re, r, rp)
+    local card = e:GetHandler()
     local bm = CS.BattleManager.Instance
     
     if card.IsPendingResolved == true then
@@ -21,7 +30,6 @@ function c6032.OnEffect(card, target)
         card.IsPendingResolved = false 
     else
         -- QUEUE
-        -- 1 Turn
         bm.EnemyManager:AddPendingSpell(card, 1, bm.EnemyManager:FindOwner(card)) 
     end
 end

@@ -1,0 +1,14 @@
+-- ==========================================
+-- 往日种种 (Days Past)
+-- ID: 1007
+-- Desc: Heal unit 5 HP (Legacy effectType=8)
+-- ==========================================
+
+local c1007 = {}
+
+function c1007.initial_effect(c)
+    -- This card uses legacy effectType system (HealUnit)
+    -- No Lua effect needed - handled by C# BattleManager
+end
+
+return c1007

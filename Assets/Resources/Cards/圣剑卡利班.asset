@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: "\u5723\u5251\u5361\u5229\u73ED"
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardName: "\u5723\u5251\u5361\u5229\u73ED"
+  id: 3101
   kind: 1
   color: 1
   description: 

@@ -1,11 +1,25 @@
 local c6012 = {}
 
-function c6012.OnEffect(card, target)
-    local bm = CS.BattleManager.Instance
-    local owner = card.c.Owner -- 0=Player, 1=Enemy
+function c6012.initial_effect(c)
+    -- Activate: Assault (Count Colors -> Damage)
+    local e1 = Effect.CreateEffect(c)
+    e1:SetType(EffectType.IGNITION)
+    e1:SetRange(Location.HAND)
+    e1:SetOperation(c6012.activate)
+    c:RegisterEffect(e1)
+end
 
-    -- 1. Count Colors (Self)
+function c6012.activate(e, tp, eg, ep, ev, re, r, rp)
+    local c = e:GetHandler()
+    local bm = CS.BattleManager.Instance
+    -- Assuming Enemy usage (owner logic in old script). 
+    -- If Player uses it, we check Player Colors. If Enemy, Enemy Colors.
+    -- But since this is likely an Enemy Card, we default to EnemyManager checks if owner is enemy.
+    
+    -- Robust check:
+    local owner = c.Owner -- 0=Player, 1=Enemy
     local colors = nil
+    
     if owner == 0 then
         colors = bm.UnitManager:GetAliveCommanderColors()
     else
@@ -20,7 +34,7 @@ function c6012.OnEffect(card, target)
     bm.UIManager:Log("Assault! Attacks: " .. count)
 
     for i=1, count do
-        -- 2. Find Targets (Opponent)
+        -- Find Targets (Opponent)
         local targets = bm:GetOpponentUnits(owner) 
         
         if targets.Count > 0 then
@@ -28,10 +42,13 @@ function c6012.OnEffect(card, target)
             bm.CombatManager:ApplyDamage(targetUnit, 5)
             bm.UIManager:Log("Assault hits " .. targetUnit.Name)
         else
-            -- If no units, hit Player Face (if Enemy matches)
-            if owner == 1 then
+            -- If no units, hit Face
+            if owner == 1 then -- Enemy attacking Player
                 bm.PlayerUnit:TakeDamage(5)
                 bm.UIManager:Log("Assault hits Player!")
+            elseif owner == 0 then -- Player attacking Enemy (which face? Enemy doesn't have face usually, just units)
+                -- Maybe hit random enemy? Or no-op?
+                -- Leaving as no-op or hit Boss if exists.
             end
         end
     end

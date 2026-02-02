@@ -1,0 +1,14 @@
+-- ==========================================
+-- 哥布林 (Goblin)
+-- ID: 5002
+-- Desc: Enemy unit, no special effects
+-- ==========================================
+
+local c5002 = {}
+
+function c5002.initial_effect(c)
+    -- Enemy unit with no special Lua effects
+    -- Stats and behavior handled by C# EnemyManager
+end
+
+return c5002
